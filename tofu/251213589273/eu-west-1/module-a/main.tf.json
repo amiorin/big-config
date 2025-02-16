@@ -1,0 +1,26 @@
+{
+  "provider" : {
+    "aws" : [ {
+      "profile" : "251213589273",
+      "region" : "eu-west-1",
+      "allowed_account_ids" : [ "251213589273" ]
+    } ]
+  },
+  "terraform" : [ {
+    "backend" : {
+      "s3" : [ {
+        "bucket" : "tf-state-251213589273-eu-west-1",
+        "encrypt" : true,
+        "key" : "module-a/tofu.tfstate",
+        "region" : "eu-west-1"
+      } ]
+    },
+    "required_providers" : [ {
+      "aws" : {
+        "source" : "hashicorp/aws",
+        "version" : "~> 5.0"
+      }
+    } ],
+    "required_version" : ">= 1.8.0"
+  } ]
+}
