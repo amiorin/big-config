@@ -48,7 +48,7 @@ lock-release aws-account-id region module:
 [group('tofu')]
 apply aws-account-id region module owner:
     just -f {{ justfile() }} lock-acquire {{ aws-account-id }} {{ region }} {{ module }} {{ owner }}
-    cd tofu/{{ aws-account-id }}/{{ region }}/{{ module }} && \
+    -cd tofu/{{ aws-account-id }}/{{ region }}/{{ module }} && \
     direnv exec . tofu apply
     just -f {{ justfile() }} lock-release {{ aws-account-id }} {{ region }} {{ module }}
 
@@ -56,6 +56,6 @@ apply aws-account-id region module owner:
 [group('tofu')]
 destroy aws-account-id region module owner:
     just -f {{ justfile() }} lock-acquire {{ aws-account-id }} {{ region }} {{ module }} {{ owner }}
-    cd tofu/{{ aws-account-id }}/{{ region }}/{{ module }} && \
+    -cd tofu/{{ aws-account-id }}/{{ region }}/{{ module }} && \
     direnv exec . tofu destroy
     just -f {{ justfile() }} lock-release {{ aws-account-id }} {{ region }} {{ module }}

@@ -1,7 +1,6 @@
 (ns module-a.main
   (:require
    [big-config :as bc]
-   [clojure.spec.alpha :as s]
    [clojure.string :as str]
    [common.create-provider :as create-provider]
    [module-a.create-sqs :as create-sqs]))
@@ -10,7 +9,7 @@
   {:post [(as-> % $
             (get-in $ [:resource :aws_sqs_queue])
             (count $)
-            (s/valid? #(= 2 %) $))]}
+            (= 2 $))]}
   (let [{:keys [aws-account-id
                 region]} opts
         bucket (str/join "-" (vector "tf-state" aws-account-id region))
