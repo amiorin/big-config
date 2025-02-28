@@ -5,7 +5,7 @@
                 bucket
                 module
                 aws-account-id]} opts
-        key (str module "/tofu.tfstate")]
+        key (str module ".tfstate")]
     {:provider {:aws [{:profile aws-account-id
                        :region region
                        :allowed_account_ids (vector aws-account-id)}]}

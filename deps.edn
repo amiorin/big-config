@@ -1,9 +1,11 @@
 {:paths   ["src/clj" "resources"]
 
- :deps    {org.clojure/clojure {:mvn/version "1.12.0"}
-           cheshire/cheshire   {:mvn/version "5.13.0"}}
+ :deps    {org.clojure/clojure    {:mvn/version "1.12.0"}
+           babashka/process       {:mvn/version "0.5.22"}
+           buddy/buddy-core       {:mvn/version "1.12.0-430"}
+           cheshire/cheshire      {:mvn/version "5.13.0"}}
 
- :aliases {:build {:deps       {io.github.clojure/tools.build {:mvn/version "0.9.6"}}
+ :aliases {:build {:deps       {io.github.clojure/tools.build       {:mvn/version "0.9.6"}}
                    :ns-default build}
 
            :dev  {:extra-deps  {com.lambdaisland/classpath          {:mvn/version "0.5.48"}

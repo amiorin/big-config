@@ -6,12 +6,22 @@
       "allowed_account_ids" : [ "251213589273" ]
     } ]
   },
+  "resource" : {
+    "aws_sqs_queue" : {
+      "sqs-0" : {
+        "name" : "sqs-0"
+      },
+      "sqs-1" : {
+        "name" : "sqs-1"
+      }
+    }
+  },
   "terraform" : [ {
     "backend" : {
       "s3" : [ {
         "bucket" : "tf-state-251213589273-eu-west-1",
         "encrypt" : true,
-        "key" : "module-a/tofu.tfstate",
+        "key" : "module-a.tfstate",
         "region" : "eu-west-1"
       } ]
     },

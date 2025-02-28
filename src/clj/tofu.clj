@@ -16,9 +16,8 @@
     res))
 
 (defn ^:export create-tf-json [args]
-  (let [_ (when-not (s/valid? ::bs/args args)
-            (throw (ex-info "Invalid input" (s/explain-data ::bs/args args))))
-        {:keys [module]} args]
+  {:pre [(s/valid? ::bs/config args)]}
+  (let [{:keys [module]} args]
     (-> (symbol (str module ".main/invoke"))
         resolve
         (apply (vector args))
