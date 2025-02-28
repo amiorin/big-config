@@ -1,11 +1,16 @@
 (ns module-a.main
   (:require
    [big-config :as bc]
+   [clojure.spec.alpha :as s]
    [clojure.string :as str]
    [common.create-provider :as create-provider]
    [module-a.create-sqs :as create-sqs]))
 
 (defn ^:export invoke [opts]
+  {:post [(as-> % $
+            (get-in $ [:resource :aws_sqs_queue])
+            (count $)
+            (s/valid? #(= 2 %) $))]}
   (let [{:keys [aws-account-id
                 region]} opts
         bucket (str/join "-" (vector "tf-state" aws-account-id region))
@@ -21,8 +26,8 @@
          (apply bc/deep-merge)
          bc/nested-sort-map)))
 
-(comment)
-(-> {:aws-account-id "251213589273"
-     :region "eu-west-1"
-     :module "module-a"}
-    invoke)
+(comment
+  (-> {:aws-account-id "251213589273"
+       :region "eu-west-1"
+       :module "module-a"}
+      invoke))
