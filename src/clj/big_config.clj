@@ -10,8 +10,13 @@
     (reduce m maps)))
 
 (defn nested-sort-map [m]
-  (into (sorted-map)
-        (for [[k v] m]
-          [k (if (map? v)
-               (nested-sort-map v)
-               v)])))
+  (cond
+    (map? m) (into (sorted-map)
+                   (for [[k v] m]
+                     [k (cond
+                          (map? v) (nested-sort-map v)
+                          (vector? v) (mapv nested-sort-map v)
+                          :else v)]))
+    (vector? m) (mapv nested-sort-map m)
+    :else m)
+  (nested-sort-map m))
