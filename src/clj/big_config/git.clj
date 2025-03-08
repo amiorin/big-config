@@ -7,6 +7,7 @@
     (generic-cmd opts cmd key)))
 
 (defn fetch-origin [opts]
+  (println "fetch-origin")
   (generic-cmd opts "git fetch origin"))
 
 (defn upstream-name [opts key]
@@ -14,6 +15,7 @@
     (generic-cmd opts cmd key)))
 
 (defn git-diff [opts]
+  (println "git-diff")
   (generic-cmd opts "git diff --quiet"))
 
 (defn compare-revisions [opts]
