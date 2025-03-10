@@ -4,7 +4,7 @@
    [babashka.process :as process]
    [big-config.git :as git]
    [big-config.lock :as lock]
-   [big-config.utils :refer [exit-end-fn exit-with-code generic-cmd
+   [big-config.utils :refer [exit-end-fn exit-with-code generic-cmd handle-cmd
                              println-step-fn recur-ok-or-end run-cmd]]
    [cheshire.core :as json]
    [clojure.string :as str]))
@@ -53,9 +53,9 @@
 
 (defn init [opts]
   (let [{:keys [run-cmd]} opts]
-    (-> (process/shell {:continue true} run-cmd)
-        :exit
-        (exit-with-code))))
+    (->> (process/shell {:continue true} run-cmd)
+         (handle-cmd opts)
+         (exit-end-fn))))
 
 (defn plan [opts]
   (let [{:keys [fn ns working-dir run-cmd]} opts
@@ -66,12 +66,14 @@
         (apply (vector opts))
         (json/generate-string {:pretty true})
         (->> (spit f)))
-    (-> (process/shell {:continue true} run-cmd)
-        :exit
-        (exit-with-code))))
+    (->> (process/shell {:continue true} run-cmd)
+         (handle-cmd opts)
+         (exit-end-fn))))
 
-(defn ^:export tofu-facade [{[cmd module profile] :args}]
+(defn ^:export tofu-facade [{[cmd module profile] :args
+                             env :env}]
   (as-> (read-module cmd module profile) $
+    (assoc $ :env (or env :shell))
     (case cmd
       "init" (init $)
       "plan" (plan $)
@@ -81,4 +83,6 @@
                        (lock/release-any-owner $))
       ("apply" "destroy") (run-with-lock $ exit-end-fn println-step-fn))))
 
-(comment)
+(comment
+  (tofu-facade {:args ["plan" :module-a :dev]
+                :env :repl}))

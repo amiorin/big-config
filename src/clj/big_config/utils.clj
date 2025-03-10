@@ -103,10 +103,12 @@
   ([opts]
    (exit-end-fn nil opts))
   ([err-msg opts]
-   (let [exit (:exit opts)
-         err (or err-msg (:err opts))]
+   (let [{:keys [exit env err]} opts
+         err (or err-msg err)]
      (when-not (= exit 0)
        (println (style err :red)))
-     (exit-with-code exit))))
+     (case env
+       :shell (exit-with-code exit)
+       :repl opts))))
 
 (comment)
