@@ -1,0 +1,6 @@
+/.clj-kondo/
+/.cpcache/
+/.lsp/
+/.nrepl-port
+/tofu/*/*/*/.terraform
+/.envrc.private

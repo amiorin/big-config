@@ -1,0 +1,23 @@
+{:default {:aws-account-id "111111111111"
+           :region "eu-west-1"
+           :ns "namespace"
+           :fn "invoke"
+           :owner #or [#env ZELLIJ_SESSION_NAME "CI"]
+           :lock-keys [:aws-account-id :region :ns]
+           :working-dir ["tofu/"
+                         :ns]
+           :run-cmd ["bash -c 'cd "
+                     :working-dir
+                     " && direnv exec . tofu "
+                     :cmd "'"]}
+
+ :default-dev #merge [#ref [:default]
+                      {:aws-account-id "251213589273"}]
+
+ :default-prod #merge [#ref [:default]
+                       {:aws-account-id "111111111111"}]
+
+ :module-a #profile {:dev #merge [#ref [:default-dev]
+                                  {:ns "tofu.module-a.main"}]
+                     :prod #merge [#ref [:default-prod]
+                                   {:ns "tofu.module-a.main"}]}}
