@@ -1,6 +1,11 @@
 help:
     @just -f {{ justfile() }} --list --unsorted
 
+# clean
+[group('tofu')]
+clean:
+    rm -rf tofu/tofu.consumer.main/.terraform
+
 # check the AWS identity
 [group('tofu')]
 get-caller-identity module:

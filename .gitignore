@@ -2,5 +2,5 @@
 /.cpcache/
 /.lsp/
 /.nrepl-port
-/tofu/*/*/*/.terraform
+/tofu/*/.terraform
 /.envrc.private

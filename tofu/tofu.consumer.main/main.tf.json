@@ -17,9 +17,9 @@
   "terraform" : [ {
     "backend" : {
       "s3" : [ {
-        "bucket" : "airflow-dacore",
+        "bucket" : "tf-state-251213589273-eu-west-1",
         "encrypt" : true,
-        "key" : "bar.tfstate",
+        "key" : "consumer.tfstate",
         "region" : "eu-west-1"
       } ]
     },
