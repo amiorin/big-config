@@ -51,13 +51,7 @@
                                    (recur-ok-or-end :end $ "Failed to release the lock"))
          :end (end-fn opts))))))
 
-(defn init [opts]
-  (let [{:keys [run-cmd]} opts]
-    (->> (process/shell {:continue true} run-cmd)
-         (handle-cmd opts)
-         (exit-end-fn))))
-
-(defn plan [opts]
+(defn ^:export init-or-plan [opts]
   (let [{:keys [fn ns working-dir run-cmd]} opts
         f (str working-dir "/main.tf.json")]
     (-> (format "%s/%s" ns fn)
@@ -75,8 +69,7 @@
   (as-> (read-module cmd module profile) $
     (assoc $ :env (or env :shell))
     (case cmd
-      "init" (init $)
-      "plan" (plan $)
+      ("init" "plan") (init-or-plan $)
       "lock" (do (println-step-fn :lock-acquire)
                  (lock/acquire $ (partial exit-end-fn "Failed to acquire the lock")))
       "unlock-any" (do (println-step-fn :lock-release-any-owner)
