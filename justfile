@@ -10,5 +10,5 @@ get-caller-identity module:
 # tofu init|plan|apply|destroy|lock|unlock-any
 [group('tofu')]
 tofu cmd module profile:
-    @clj -X:dev big-config.main/tofu-facade \
+    @clj -X big-config.main/tofu-facade \
       :args '["{{ cmd }}" :{{ module }} :{{ profile }}]'

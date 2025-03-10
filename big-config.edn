@@ -17,7 +17,7 @@
  :default-prod #merge [#ref [:default]
                        {:aws-account-id "111111111111"}]
 
- :module-a #profile {:dev #merge [#ref [:default-dev]
-                                  {:ns "tofu.module-a.main"}]
+ :consumer #profile {:dev #merge [#ref [:default-dev]
+                                  {:ns "tofu.consumer.main"}]
                      :prod #merge [#ref [:default-prod]
-                                   {:ns "tofu.module-a.main"}]}}
+                                   {:ns "tofu.consumer.main"}]}}

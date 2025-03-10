@@ -1,4 +1,4 @@
-(ns tofu.module-a.main)
+(ns tofu.consumer.main)
 
 (defn ^:export invoke [{:keys [region
                                aws-account-id]}]
@@ -9,9 +9,9 @@
                                             :squad       "dacore"
                                             :path        "production-infra-dacore-data-platform"
                                             :Managed_by  "Terraform"}}}]}
-   :terraform [{:backend {:s3 [{:bucket "airflow-dacore"
+   :terraform [{:backend {:s3 [{:bucket "tf-state-251213589273-eu-west-1"
                                 :encrypt true
-                                :key "bar.tfstate"
+                                :key "consumer.tfstate"
                                 :region region}]}
                 :required_providers [{:aws {:source "hashicorp/aws"
                                             :version "~> 5.0"}}]
