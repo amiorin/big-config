@@ -1,7 +1,6 @@
-(ns big-config.main-test
+(ns big-config.rwl-test
   (:require
-   [big-config.main :refer [run-with-lock]]
-   [big-config.run-with-lock :as rwl]
+   [big-config.run-with-lock :as rwl :refer [run-with-lock]]
    [big-config.utils-test :refer [default-opts test-step-fn]]
    [clojure.test :refer [deftest is testing]]))
 
