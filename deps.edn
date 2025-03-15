@@ -1,4 +1,4 @@
 {:deps {org.clojure/clojure {:mvn/version "1.12.0"}
         amiorin/big-config  {:git/url "https://github.com/amiorin/big-config"
-                             :git/sha "9743be4b6eaba1dc2369ea68add7d59c595369f7"}
+                             :git/sha "4a9670a43766fa01ec49a5bb3512984489a4b697"}
         #_{:local/root "../main"}}}
