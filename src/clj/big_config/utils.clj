@@ -12,14 +12,14 @@
 
 (defmacro choice
   ([{:keys [on-success on-failure opts errmsg]}]
-   `(let [exit# (:exit ~opts)
-          err# (:err ~opts)
+   `(let [exit# (:big-config/exit ~opts)
+          err# (:big-config/err ~opts)
           msg# (if ~errmsg
                  ~errmsg
                  err#)]
       (if (= exit# 0)
         (recur ~on-success ~opts)
-        (recur ~on-failure (assoc ~opts :err msg#))))))
+        (recur ~on-failure (assoc ~opts :big-config/err msg#))))))
 
 (def default-opts {:continue true
                    :out :string
@@ -30,9 +30,12 @@
                 (update-vals (fn [v] (if (string? v)
                                        (str/replace v #"\x1B\[[0-9;]+m" "")
                                        v))))]
+
     (-> opts
-        (update :cmd-results (fnil conj []) res)
-        (merge (select-keys res [:exit :err])))))
+        (update ::bc/procs (fnil conj []) res)
+        (merge (-> res
+                   (select-keys [:exit :err])
+                   (update-keys (fn [k] (keyword "big-config" (name k)))))))))
 
 (defn generic-cmd
   ([opts cmd]
@@ -82,7 +85,7 @@
   ([opts]
    (exit-end-fn nil opts))
   ([err-msg opts]
-   (let [{:keys [exit ::bc/env err]} opts
+   (let [{:keys [::bc/exit ::bc/env ::bc/err]} opts
          err (or err-msg err)]
      (when (and (not= exit 0) (string? err))
        (binding [*out* *err*]
@@ -92,7 +95,7 @@
        :repl opts))))
 
 (defn default-step-fn [{:keys [f step opts]}]
-  (let [opts (update opts :steps (fnil conj []) step)]
+  (let [opts (update opts ::bc/steps (fnil conj []) step)]
     (f opts)))
 
 (comment)

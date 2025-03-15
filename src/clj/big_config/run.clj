@@ -1,5 +1,6 @@
 (ns big-config.run
   (:require
+   [big-config :as bc]
    [big-config.utils :refer [choice default-step-fn run-cmd]]
    [cheshire.core :as json]))
 
@@ -13,11 +14,11 @@
           (apply (vector opts))
           (json/generate-string {:pretty true})
           (->> (spit f))
-          (merge opts {:exit 0
-                       :err nil}))
+          (merge opts {::bc/exit 0
+                       ::bc/err nil}))
       (catch Exception e
-        (merge opts {:exit 1
-                     :err (pr-str e)})))))
+        (merge opts {::bc/exit 1
+                     ::bc/err (pr-str e)})))))
 
 (defn run
   ([opts]
