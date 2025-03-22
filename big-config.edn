@@ -26,4 +26,14 @@
  :module-a #profile {:dev #merge [#ref [:default-dev]
                                   #:big-config.tofu {:ns "tofu.module-a.main"}]
                      :prod #merge [#ref [:default-prod]
-                                   #:big-config.tofu {:ns "tofu.module-a.main"}]}}
+                                   #:big-config.tofu {:ns "tofu.module-a.main"}]}
+
+ :alpha #profile {:dev {:big-config.tofu/aws-account-id "111111111111"
+                        :big-config.tofu/region "eu-west-1"
+                        :big-config.tofu/ns "tofu.module-a.main"
+                        :big-config.tofu/fn "invoke"
+                        :big-config.lock/owner #or [#env ZELLIJ_SESSION_NAME "CI"]
+                        :big-config.lock/lock-keys [:big-config.tofu/aws-account-id
+                                                    :big-config.tofu/region
+                                                    :big-config.tofu/ns]
+                        :big-config.run/dir "."}}}
