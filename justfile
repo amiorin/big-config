@@ -17,3 +17,10 @@ tofu action module profile:
     (require '[big-config.tofu :refer [main]])
     (main {:args [:{{ action }} :{{ module }} :{{ profile }}]
            :config "big-infra/big-config.edn"})
+
+# tofu
+[group('tofu')]
+test:
+    #!/usr/bin/env -S bb --config big-infra/bb.edn
+    (require '[big-config.run :refer [main]])
+    (main)

@@ -3,6 +3,7 @@
    [babashka.process :as process]
    [big-config :as bc]
    [big-config.core :refer [->workflow]]
+   [big-config.step-fns :as step-fns]
    [clojure.string :as str]))
 
 (def default-opts {:continue true
@@ -56,10 +57,24 @@
                             :else [::end opts]))}))
 
 (comment)
-(run-cmds  {::bc/env :repl
-            ::shell-opts {:continue true
-                          :dir "tofu"
-                          :extra-env {"FOO" "BAR"}}
-            ::cmds ["pwd"
-                    "bash -c 'echo $FOO'"
-                    "echo three"]})
+(defn main []
+  (let [step-fns [(fn [f step {:keys [::bc/exit] :as opts}]
+                    (println "before " step exit)
+                    (let [{:keys [bc/exit] :as opts} (f step opts)]
+                      (println "after" step exit)
+                      opts))
+                  (partial step-fns/exit-step-fn ::wf-end)]
+        wf (->workflow {:first-step ::wf-start
+                        :last-step ::wf-end
+                        :wire-fn (fn [step step-fns]
+                                   (case step
+                                     ::wf-start [(partial run-cmds step-fns) ::wf-end]
+                                     ::wf-end [identity]))})]
+    (wf step-fns  {::bc/env :shell
+                   ::bc/exit 0
+                   ::bc/err nil
+                   ::shell-opts {#_#_:dir "tofu"
+                                 :extra-env {"FOO" "BAR"}}
+                   ::cmds ["false"
+                           "bash -c 'echo $FOO'"
+                           "echo three"]})))
