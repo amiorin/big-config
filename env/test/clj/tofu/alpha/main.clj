@@ -10,10 +10,9 @@
         queues (for [n (range 2)]
                  (create-sqs/invoke {:name (str "sqs-" n)}))
 
-        provider (case aws-account-id
-                   "251213589273"  (-> opts
-                                       (assoc :bucket bucket)
-                                       create-provider/invoke))]
+        provider (-> opts
+                     (assoc :bucket bucket)
+                     create-provider/invoke)]
     (->> [provider]
          (concat queues)
          (apply deep-merge)

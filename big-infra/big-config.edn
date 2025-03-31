@@ -12,7 +12,8 @@
                                                   :region [:big-config.aero/join
                                                            :big-config.tofu/region]
                                                   :module [:big-config.aero/join
-                                                           :big-config.aero/module]}]}]}
+                                                           :big-config.aero/module]
+                                                  :assume-role #env AWS_ASSUME_ROLE}]}]}
                                  {:f "big-config.call/mkdir-and-spit"
                                   :desc "spit user_data.sh"
                                   :args [{:out  [:big-config.aero/join
@@ -26,8 +27,8 @@
                                        :big-config.tofu/region
                                        :big-config.aero/module]
            :big-config.run/shell-opts {:dir #ref [:default :big-config.run/dir]
-                                       :extra-env {"AWS_PROFILE" [:big-config.aero/join
-                                                                  :big-config.tofu/aws-account-id]}}
+                                       :extra-env {"AWS_PROFILE" #or [#env AWS_PROFILE [:big-config.aero/join
+                                                                                        :big-config.tofu/aws-account-id]]}}
            :big-config.run/dir [:big-config.aero/join
                                 "big-infra/tofu/"
                                 :big-config.tofu/aws-account-id "/"
