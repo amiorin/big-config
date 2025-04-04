@@ -47,6 +47,14 @@ tofu action module profile:
     (main {:args [:{{ action }} :{{ module }} :{{ profile }}]
            :config "big-infra/big-config.edn"})
 
+# tofu opts|init|plan|apply|destroy|lock|unlock-any|ci|reset|auto-apply
+[group('tofu')]
+clone-and-tofu action module profile:
+    #!/usr/bin/env -S bb --config big-infra/bb.edn
+    (require '[big-config.clone :refer [main]])
+    (main {:args [:{{ action }} :{{ module }} :{{ profile }}]
+           :repo "https://amiorin@github.com/amiorin/big-config.git"})
+
 # invoked by recipe test
 [group('private')]
 test-wf-exit:
