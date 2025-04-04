@@ -37,7 +37,8 @@
         shell-opts (case env
                      :shell shell-opts
                      :repl (merge shell-opts {:out :string
-                                              :err :string}))
+                                              :err :string})
+                     (throw (ex-info ":big-config/env not defined in opts" opts)))
         cmd (first cmds)
         proc (process/shell shell-opts cmd)]
     (handle-cmd opts proc)))
