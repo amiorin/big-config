@@ -142,6 +142,11 @@
                                            :on-failure ::end
                                            :opts opts})))}))
 
+(defn stack-trace-step-fn [f step {:keys [::bc/stack-trace] :as opts}]
+  (when stack-trace
+    (println stack-trace))
+  (f step opts))
+
 (defn ^:export main [{[action module profile] :args
                       step-fns :step-fns
                       config :config
@@ -149,7 +154,8 @@
   (let [action action
         module module
         profile profile
-        step-fns (or step-fns [print-step-fn
+        step-fns (or step-fns [stack-trace-step-fn
+                               print-step-fn
                                (block-destroy-prod-step-fn ::start)
                                (->exit-step-fn ::end)])
         env (or env :shell)]
@@ -162,7 +168,7 @@
 
 (comment
   (require '[user :refer [debug-atom]])
-  (main {:args [:reset :alpha :dev]
+  (main {:args [:plan :alpha :dev]
          :config "big-infra/big-config.edn"
          :step-fns [log-step-fn
                     tap-step-fn
@@ -173,4 +179,3 @@
 
   (reset! debug-atom [])
   (-> debug-atom))
-

@@ -1,16 +1,43 @@
 {
+  "data" : {
+    "aws_caller_identity" : {
+      "current" : { }
+    },
+    "aws_iam_policy_document" : {
+      "big_kms_data_policy" : [ {
+        "statement" : [ {
+          "actions" : [ "kms:*" ],
+          "effect" : "Allow",
+          "principals" : [ {
+            "identifiers" : [ "arn:aws:iam::${data.aws_caller_identity.current.account_id}:root" ],
+            "type" : "AWS"
+          } ],
+          "resources" : [ "*" ]
+        } ]
+      } ]
+    }
+  },
   "provider" : {
     "aws" : [ {
       "region" : "eu-west-1"
     } ]
   },
   "resource" : {
+    "aws_kms_key" : {
+      "alpha_big_kms" : { }
+    },
+    "aws_kms_key_policy" : {
+      "big_kms_resource_policy" : {
+        "key_id" : "${resource.aws_kms_key.alpha_big_kms.id}",
+        "policy" : "${data.aws_iam_policy_document.big_kms_data_policy.json}"
+      }
+    },
     "aws_sqs_queue" : {
-      "sqs-0" : {
-        "name" : "sqs-0"
+      "big_sqs_0" : {
+        "name" : "big_sqs_0"
       },
-      "sqs-1" : {
-        "name" : "sqs-1"
+      "big_sqs_1" : {
+        "name" : "big_sqs_1"
       }
     }
   },

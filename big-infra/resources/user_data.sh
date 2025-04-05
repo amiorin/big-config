@@ -1,1 +1,3 @@
-../../env/test/resources/user_data.sh
+#!/usr/bin/env sh
+
+echo {{ text }}
