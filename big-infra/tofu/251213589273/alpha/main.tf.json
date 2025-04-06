@@ -4,7 +4,7 @@
       "current" : { }
     },
     "aws_iam_policy_document" : {
-      "big_kms_data_policy" : [ {
+      "alpha_big_kms_data_policy" : [ {
         "statement" : [ {
           "actions" : [ "kms:*" ],
           "effect" : "Allow",
@@ -27,17 +27,17 @@
       "alpha_big_kms" : { }
     },
     "aws_kms_key_policy" : {
-      "big_kms_resource_policy" : {
+      "alpha_big_kms_resource_policy" : {
         "key_id" : "${resource.aws_kms_key.alpha_big_kms.id}",
-        "policy" : "${data.aws_iam_policy_document.big_kms_data_policy.json}"
+        "policy" : "${data.aws_iam_policy_document.alpha_big_kms_data_policy.json}"
       }
     },
     "aws_sqs_queue" : {
-      "big_sqs_0" : {
-        "name" : "big_sqs_0"
+      "alpha_big_sqs_0" : {
+        "name" : "alpha_big_sqs_0"
       },
-      "big_sqs_1" : {
-        "name" : "big_sqs_1"
+      "alpha_big_sqs_1" : {
+        "name" : "alpha_big_sqs_1"
       }
     }
   },

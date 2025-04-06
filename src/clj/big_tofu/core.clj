@@ -3,6 +3,11 @@
    [clojure.string :as str]
    [selmer.parser :as p]))
 
+(defn ^:export add-suffix [fqn suffix]
+  (let [a-namespace (namespace fqn)
+        a-name (name fqn)]
+    (keyword a-namespace (str a-name suffix))))
+
 (defn fqn->name [fqn]
   (let [sanitize #(str/replace % #"[-\.]" "_")
         ns (some-> (namespace fqn)
@@ -36,11 +41,6 @@
           (->> (format "arn:aws:iam::%s:root"))))))
 
 (def caller-identity (->Construct :data :aws_caller_identity :current {}))
-
-(defn ^:export add-suffix [fqn suffix]
-  (let [un-namespace (ns fqn)
-        un-name (name fqn)]
-    (keyword un-namespace (str un-name suffix))))
 
 (comment
   (let [c (map->Construct {:group :data
