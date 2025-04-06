@@ -1,0 +1,58 @@
+(ns tofu.common.create
+  (:require
+   [big-config.utils :refer [deep-merge nested-sort-map]]
+   [big-tofu.core :refer [->Construct add-suffix body caller-identity
+                          fqn->name reference root-arn]]
+   [clojure.pprint :as pp]
+   [clojure.string :as str]))
+
+(defn sqs [fqn]
+  [(->Construct :resource :aws_sqs_queue fqn {:name (fqn->name fqn)})])
+
+(defn kms [fqn]
+  (let [kms (->Construct :resource :aws_kms_key fqn {})
+        policy (->Construct :data
+                            :aws_iam_policy_document
+                            (add-suffix fqn "-data-policy")
+                            [{:statement [{:actions ["kms:*"]
+                                           :effect "Allow"
+                                           :resources ["*"]
+                                           :principals [{:identifiers [(-> caller-identity
+                                                                           root-arn)]
+                                                         :type "AWS"}]}]}])]
+    [caller-identity
+     policy
+     kms
+     (->Construct :resource
+                  :aws_kms_key_policy
+                  (add-suffix fqn "-resource-policy")
+                  {:key_id (reference kms :id)
+                   :policy (reference policy :json)})]))
+
+(defn provider [{:keys [region bucket module assume-role]}]
+  (let [key (str (name module) ".tfstate")
+        assume-role (when (and assume-role
+                               (not (str/blank? assume-role)))
+                      {:assume_role {:role_arn assume-role}})]
+    {:provider {:aws [(merge {:region region}
+                             assume-role)]}
+     :terraform [{:backend {:s3 [(merge {:bucket bucket
+                                         :encrypt true
+                                         :key key
+                                         :region region}
+                                        assume-role)]}
+                  :required_providers [{:aws {:source "hashicorp/aws"
+                                              :version "~> 5.0"}}]
+                  :required_version ">= 1.8.0"}]}))
+
+(comment
+  (->> (kms :alpha/big-kms)
+       (map body)
+       (apply deep-merge)
+       nested-sort-map
+       pp/pprint)
+  (->> (sqs :alpha/big-sqs)
+       (map body)
+       (apply deep-merge)
+       nested-sort-map
+       pp/pprint))

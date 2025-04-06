@@ -4,21 +4,17 @@
    [big-tofu.core :refer [body add-suffix]]
    [clojure.pprint :as pp]
    [clojure.string :as str]
-   [tofu.alpha.create-kms :as create-kms]
-   [tofu.alpha.create-sqs :as create-sqs]
-   [tofu.common.create-provider :as create-provider]))
+   [tofu.common.create :as create]))
 
 (defn invoke [{:keys [aws-account-id region] :as opts}]
   (let [bucket (str/join "-" (vector "tf-state" aws-account-id region))
         queues (->> (for [n (range 2)]
-                      (create-sqs/invoke (add-suffix :alpha/big-sqs (str "-" n))))
+                      (create/sqs (add-suffix :alpha/big-sqs (str "-" n))))
                     flatten
                     (map body))
-        kms (->> (create-kms/invoke :alpha/big-kms)
+        kms (->> (create/kms :alpha/big-kms)
                  (map body))
-        provider (-> opts
-                     (assoc :bucket bucket)
-                     create-provider/invoke)]
+        provider (create/provider (assoc opts :bucket bucket))]
     (->> [provider]
          (concat kms)
          (concat queues)
