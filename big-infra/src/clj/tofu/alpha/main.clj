@@ -16,8 +16,8 @@
                  (map body))
         provider (create/provider (assoc opts :bucket bucket))]
     (->> [provider]
-         (concat kms)
-         (concat queues)
+         (into kms)
+         (into queues)
          (apply deep-merge)
          nested-sort-map)))
 
