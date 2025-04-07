@@ -18,10 +18,10 @@
 
 (defprotocol To
   (reference [this property])
-  (body [this])
+  (construct [this])
   (root-arn [this]))
 
-(defrecord Construct [group type fqn body]
+(defrecord Construct [group type fqn block]
   To
   (reference [{:keys [fqn] :as this} property]
     (let [ctx (merge this {:property property
@@ -29,14 +29,14 @@
                            :suffix "}"
                            :name (fqn->name fqn)})]
       (p/render "{{ prefix }}{{ group|name }}.{{ type|name }}.{{ name }}.{{ property|name }}{{ suffix }}" ctx)))
-  (body [{:keys [group type fqn body]}]
-    {group {type {(fqn->name fqn) body}}})
-  (root-arn [{:keys [group type fqn body] :as this}]
+  (construct [{:keys [group type fqn block]}]
+    {group {type {(fqn->name fqn) block}}})
+  (root-arn [{:keys [group type fqn block] :as this}]
     (cond
       (and (= group :data)
            (= type :aws_caller_identity)
            (= fqn :current)
-           (= body {}))
+           (= block {}))
       (-> (reference this :account_id)
           (->> (format "arn:aws:iam::%s:root"))))))
 
@@ -46,8 +46,8 @@
   (let [c (map->Construct {:group :data
                            :type :aws_iam_policy_document
                            :fqn ::foo
-                           :body {}})]
+                           :block {}})]
     (reference c :json)
-    (body c))
+    (construct c))
   (-> caller-identity
       root-arn))

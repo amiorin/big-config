@@ -1,7 +1,7 @@
 (ns tofu.common.create
   (:require
    [big-config.utils :refer [deep-merge nested-sort-map]]
-   [big-tofu.core :refer [->Construct add-suffix body caller-identity
+   [big-tofu.core :refer [->Construct add-suffix construct caller-identity
                           fqn->name reference root-arn]]
    [clojure.pprint :as pp]
    [clojure.string :as str]))
@@ -47,12 +47,12 @@
 
 (comment
   (->> (kms :alpha/big-kms)
-       (map body)
+       (map construct)
        (apply deep-merge)
        nested-sort-map
        pp/pprint)
   (->> (sqs :alpha/big-sqs)
-       (map body)
+       (map construct)
        (apply deep-merge)
        nested-sort-map
        pp/pprint))
