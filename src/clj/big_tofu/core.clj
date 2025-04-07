@@ -9,13 +9,14 @@
         a-name (name fqn)]
     (keyword a-namespace (str a-name suffix))))
 
-(defn fqn->name [fqn]
-  (let [sanitize #(str/replace % #"[-\.]" "_")
+(defn fqn->name [fqn & [c]]
+  (let [c (if c c "_")
+        sanitize #(str/replace % #"[-\.]" c)
         ns (some-> (namespace fqn)
                    sanitize)
         name (-> (name fqn)
                  sanitize)]
-    (str ns (if ns "_" "") name)))
+    (str ns (if ns c "") name)))
 
 (defprotocol To
   (reference [this property])

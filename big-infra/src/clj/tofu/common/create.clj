@@ -6,6 +6,14 @@
    [clojure.pprint :as pp]
    [clojure.string :as str]))
 
+(defn bucket
+  ([fqn]
+   [(->Construct :resource :aws_s3_bucket fqn [{:bucket (fqn->name fqn "-")}])])
+  ([fqn & xs]
+   (if (seq (rest xs))
+     (apply bucket (add-suffix fqn (str "-" (first xs))) (rest xs))
+     (bucket (add-suffix fqn (str "-" (first xs)))))))
+
 (defn sqs [fqn]
   [(->Construct :resource :aws_sqs_queue fqn {:name (fqn->name fqn)})])
 
@@ -52,6 +60,11 @@
        nested-sort-map
        pp/pprint)
   (->> (sqs :alpha/big-sqs)
+       (map construct)
+       (apply deep-merge)
+       nested-sort-map
+       pp/pprint)
+  (->> (bucket :alpha/big-bucket "foo" "bar")
        (map construct)
        (apply deep-merge)
        nested-sort-map
