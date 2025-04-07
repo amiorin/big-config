@@ -1,7 +1,7 @@
 (ns tofu.alpha.main
   (:require
    [big-config.utils :refer [deep-merge nested-sort-map]]
-   [big-tofu.core :refer [construct add-suffix]]
+   [big-tofu.core :refer [add-suffix construct]]
    [clojure.pprint :as pp]
    [clojure.string :as str]
    [tofu.common.create :as create]))

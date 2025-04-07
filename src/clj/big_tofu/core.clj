@@ -1,6 +1,7 @@
 (ns big-tofu.core
   (:require
    [clojure.string :as str]
+   [selmer.filters :refer [add-filter!]]
    [selmer.parser :as p]))
 
 (defn ^:export add-suffix [fqn suffix]
@@ -19,7 +20,12 @@
 (defprotocol To
   (reference [this property])
   (construct [this])
+  (arn [this aws-account-id])
   (root-arn [this]))
+
+(add-filter! :remove-https
+             (fn [url]
+               (str/replace url #"^https://" "")))
 
 (defrecord Construct [group type fqn block]
   To
@@ -31,6 +37,13 @@
       (p/render "{{ prefix }}{{ group|name }}.{{ type|name }}.{{ name }}.{{ property|name }}{{ suffix }}" ctx)))
   (construct [{:keys [group type fqn block]}]
     {group {type {(fqn->name fqn) block}}})
+  (arn [{:keys [type] :as this} aws-account-id]
+    (let [this (assoc this :aws-account-id aws-account-id)]
+      (cond
+        (and (= group :resource)
+             (= type :aws_iam_role)) (p/render "arn:aws:iam::{{ aws-account-id }}:role/{{ block.name }}" this)
+        (and (= group :resource)
+             (= type :aws_iam_openid_connect_provider)) (p/render "arn:aws:iam::{{ aws-account-id }}:oidc-provider/{{ block.url|remove-https }}" this))))
   (root-arn [{:keys [group type fqn block] :as this}]
     (cond
       (and (= group :data)
