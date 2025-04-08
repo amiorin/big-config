@@ -18,9 +18,9 @@
     }
   },
   "provider" : {
-    "aws" : [ {
+    "aws" : {
       "region" : "eu-west-1"
-    } ]
+    }
   },
   "resource" : {
     "aws_kms_key" : {
@@ -41,21 +41,21 @@
       }
     }
   },
-  "terraform" : [ {
+  "terraform" : {
     "backend" : {
-      "s3" : [ {
+      "s3" : {
         "bucket" : "tf-state-251213589273-eu-west-1",
         "encrypt" : true,
         "key" : "alpha.tfstate",
         "region" : "eu-west-1"
-      } ]
+      }
     },
-    "required_providers" : [ {
+    "required_providers" : {
       "aws" : {
         "source" : "hashicorp/aws",
         "version" : "~> 5.0"
       }
-    } ],
+    },
     "required_version" : ">= 1.8.0"
-  } ]
+  }
 }
