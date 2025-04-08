@@ -4,7 +4,7 @@
    [big-tofu.core :refer [add-suffix construct]]
    [clojure.pprint :as pp]
    [clojure.string :as str]
-   [tofu.common.create :as create]))
+   [big-tofu.create :as create]))
 
 (defn invoke [{:keys [aws-account-id region] :as opts}]
   (let [bucket (str/join "-" (vector "tf-state" aws-account-id region))
