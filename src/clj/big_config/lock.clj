@@ -25,7 +25,8 @@
 
 (defn delete-tag [opts]
   (let [{:keys [::lock-name]} opts]
-    (generic-cmd opts (format "git tag -d %s" lock-name))))
+    (generic-cmd :opts opts
+                 :cmd (format "git tag -d %s" lock-name))))
 
 (defn create-tag [opts]
   (let [{:keys [::lock-name ::lock-details]} opts
@@ -37,20 +38,25 @@
 
 (defn push-tag [opts]
   (let [{:keys [::lock-name]} opts]
-    (generic-cmd opts (format "git push origin %s" lock-name))))
+    (generic-cmd :opts opts
+                 :cmd (format "git push origin %s" lock-name))))
 
 (defn delete-remote-tag [opts]
   (let [{:keys [::lock-name]} opts]
-    (generic-cmd opts (format "git push --delete origin %s" lock-name))))
+    (generic-cmd :opts opts
+                 :cmd (format "git push --delete origin %s" lock-name))))
 
 (defn get-remote-tag [opts]
   (let [{:keys [::lock-name]} opts]
-    (generic-cmd opts (format "git fetch origin tag %s --no-tags" lock-name))))
+    (generic-cmd :opts opts
+                 :cmd (format "git fetch origin tag %s --no-tags" lock-name))))
 
 (defn read-tag [opts]
   (let [{:keys [::lock-name]} opts
         cmd (format "git cat-file -p %s" lock-name)]
-    (generic-cmd opts cmd ::tag-content)))
+    (generic-cmd :opts opts
+                 :cmd cmd
+                 :key ::tag-content)))
 
 (defn parse-tag-content [tag-content]
   (-> tag-content
@@ -74,7 +80,8 @@
 (defn check-remote-tag [opts]
   (let [{:keys [::lock-name]} opts
         cmd (format "git ls-remote --exit-code origin  refs/tags/%s" lock-name)
-        {:keys [::bc/exit ::bc/err] :as opts} (generic-cmd opts cmd)]
+        {:keys [::bc/exit ::bc/err] :as opts} (generic-cmd :opts opts
+                                                           :cmd cmd)]
     (merge opts (if (= exit 2)
                   {::bc/exit 0
                    ::bc/err nil}

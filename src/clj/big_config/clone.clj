@@ -35,13 +35,16 @@
                              (bling-print :green.bold "\ueabc" msg))))}))
 
 (defn mkdir [opts]
-  (let [{:keys [::dir] :as opts} (generic-cmd opts "mktemp -d" ::dir)
+  (let [{:keys [::dir] :as opts} (generic-cmd :opts opts
+                                              :cmd "mktemp -d"
+                                              :key ::dir)
         dir (str/trim-newline dir)
         shell-opts {::run/shell-opts {:dir dir}}]
     (merge opts shell-opts)))
 
 (defn clean [{:keys [::dir] :as opts}]
-  (generic-cmd opts (format "rm -rf %s" dir)))
+  (generic-cmd :opts opts
+               :cmd (format "rm -rf %s" dir)))
 
 (def run-clone
   (->workflow {:first-step ::mkdir

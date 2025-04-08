@@ -58,7 +58,8 @@
                                (println (bling [:red.bold (p/render (str "{{ prefix }} " msg) {:prefix prefix})]))))))}))
 
 (defn mkdir [{:keys [::run/dir] :as opts}]
-  (generic-cmd opts (format "mkdir -p %s" dir)))
+  (generic-cmd :opts opts
+               :cmd (format "mkdir -p %s" dir)))
 
 (defn run-action [step-fns {:keys [::action] :as opts}]
   (let [opts (assoc opts ::run/cmds (case action

@@ -5,10 +5,6 @@
    [big-config.core :refer [->workflow ok]]
    [clojure.string :as str]))
 
-(def default-opts {:continue true
-                   :out :string
-                   :err :string})
-
 (defn handle-cmd [opts proc]
   (let [res (-> (select-keys proc [:exit :out :err :cmd])
                 (update-vals (fn [v] (if (string? v)
@@ -21,16 +17,16 @@
                    (select-keys [:exit :err])
                    (update-keys (fn [k] (keyword "big-config" (name k)))))))))
 
-(defn generic-cmd
-  ([opts cmd]
-   (let [proc (process/shell default-opts cmd)]
-     (handle-cmd opts proc)))
-  ([opts cmd key]
-   (let [proc (process/shell default-opts cmd)]
-     (-> opts
-         (assoc key (-> (:out proc)
-                        str/trim-newline))
-         (handle-cmd proc)))))
+(defn generic-cmd [& {:keys [opts cmd key shell-opts]
+                      :or {shell-opts {:continue true
+                                       :out :string
+                                       :err :string}}}]
+  (let [proc (process/shell shell-opts cmd)
+        opts (handle-cmd opts proc)]
+    (if key
+      (assoc opts key (-> (:out proc)
+                          str/trim-newline))
+      opts)))
 
 (defn run-cmd [{:keys [::bc/env ::shell-opts ::cmds] :as opts}]
   (let [shell-opts (assoc shell-opts :continue true)

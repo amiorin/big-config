@@ -12,17 +12,23 @@
                                                                                        :key key
                                                                                        :opts opts})))
         cmd (format "git rev-parse %s" revision)]
-    (generic-cmd opts cmd key)))
+    (generic-cmd :opts opts
+                 :cmd cmd
+                 :key key)))
 
 (defn fetch-origin [opts]
-  (generic-cmd opts "git fetch origin"))
+  (generic-cmd :opts opts
+               :cmd "git fetch origin"))
 
 (defn upstream-name [key opts]
   (let [cmd "git rev-parse --abbrev-ref @{upstream}"]
-    (generic-cmd opts cmd key)))
+    (generic-cmd :opts opts
+                 :cmd cmd
+                 :key key)))
 
 (defn git-diff [opts]
-  (generic-cmd opts "git diff --quiet"))
+  (generic-cmd :opts opts
+               :cmd "git diff --quiet"))
 
 (defn compare-revisions [opts]
   (let [{:keys [::prev-revision

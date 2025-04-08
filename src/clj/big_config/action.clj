@@ -7,7 +7,8 @@
    [big-config.unlock :as unlock]))
 
 (defn git-push [opts]
-  (generic-cmd opts "git push"))
+  (generic-cmd :opts opts
+               :cmd "git push"))
 
 (defn run-action-with-lock [action step-fns opts]
   (let [wf (->workflow {:first-step ::check
