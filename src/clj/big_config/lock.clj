@@ -4,7 +4,7 @@
    [big-config :as bc]
    [big-config.core :as utils :refer [->workflow choice]]
    [big-config.run :refer [generic-cmd handle-cmd]]
-   [big-config.utils :refer [nested-sort-map]]
+   [big-config.utils :refer [sort-nested-map]]
    [clojure.edn :as edn]
    [clojure.string :as str]))
 
@@ -12,7 +12,7 @@
   (let [{:keys [::lock-keys ::owner]} opts
         lock-details (select-keys opts lock-keys)
         lock-name (-> lock-details
-                      nested-sort-map
+                      sort-nested-map
                       hash
                       (->> (format "%X"))
                       (as-> $ (str "LOCK-" $)))]

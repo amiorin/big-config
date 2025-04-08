@@ -9,15 +9,15 @@
               (last xs)))]
     (reduce m maps)))
 
-(defn nested-sort-map [m]
+(defn sort-nested-map [m]
   (cond
     (map? m) (into (sorted-map)
                    (for [[k v] m]
                      [k (cond
-                          (map? v) (nested-sort-map v)
+                          (map? v) (sort-nested-map v)
                           (or (vector? v)
-                              (seq? v)) (mapv nested-sort-map v)
+                              (seq? v)) (mapv sort-nested-map v)
                           :else v)]))
     (or (vector? m)
-        (seq? m)) (mapv nested-sort-map m)
+        (seq? m)) (mapv sort-nested-map m)
     :else m))

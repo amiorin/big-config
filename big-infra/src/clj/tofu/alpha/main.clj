@@ -1,6 +1,6 @@
 (ns tofu.alpha.main
   (:require
-   [big-config.utils :refer [deep-merge nested-sort-map]]
+   [big-config.utils :refer [deep-merge sort-nested-map]]
    [big-tofu.core :refer [add-suffix construct]]
    [clojure.pprint :as pp]
    [clojure.string :as str]
@@ -19,7 +19,7 @@
          (into kms)
          (into queues)
          (apply deep-merge)
-         nested-sort-map)))
+         sort-nested-map)))
 
 (comment
   (-> {:aws-account-id "251213589273"
