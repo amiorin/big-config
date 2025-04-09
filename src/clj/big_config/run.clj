@@ -17,16 +17,27 @@
                    (select-keys [:exit :err])
                    (update-keys (fn [k] (keyword "big-config" (name k)))))))))
 
-(defn generic-cmd [& {:keys [opts cmd key shell-opts]
-                      :or {shell-opts {:continue true
-                                       :out :string
-                                       :err :string}}}]
-  (let [proc (process/shell shell-opts cmd)
+(defn generic-cmd [& {:keys [opts cmd key shell-opts]}]
+  (let [shell-opts (merge shell-opts {:continue true
+                                      :out :string
+                                      :err :string})
+        proc (process/shell shell-opts cmd)
         opts (handle-cmd opts proc)]
     (if key
       (assoc opts key (-> (:out proc)
                           str/trim-newline))
       opts)))
+
+(defn mktemp-create-dir [opts]
+  (let [{:keys [::dir] :as opts} (generic-cmd :opts opts
+                                              :cmd "mktemp -d"
+                                              :key ::dir)
+        shell-opts {::shell-opts {:dir dir}}]
+    (merge opts shell-opts)))
+
+(defn mktemp-remove-dir [{:keys [::dir] :as opts}]
+  (generic-cmd :opts opts
+               :cmd (format "rm -rf %s" dir)))
 
 (defn run-cmd [{:keys [::bc/env ::shell-opts ::cmds] :as opts}]
   (let [shell-opts (assoc shell-opts :continue true)

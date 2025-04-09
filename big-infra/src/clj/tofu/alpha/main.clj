@@ -2,9 +2,9 @@
   (:require
    [big-config.utils :refer [deep-merge sort-nested-map]]
    [big-tofu.core :refer [add-suffix construct]]
+   [big-tofu.create :as create]
    [clojure.pprint :as pp]
-   [clojure.string :as str]
-   [big-tofu.create :as create]))
+   [clojure.string :as str]))
 
 (defn invoke [{:keys [aws-account-id region] :as opts}]
   (let [bucket (str/join "-" (vector "tf-state" aws-account-id region))
