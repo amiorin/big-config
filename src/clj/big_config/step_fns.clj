@@ -3,7 +3,8 @@
    [big-config :as bc]
    [big-config.core :refer [->step-fn]]
    [bling.core :refer [bling]]
-   [selmer.parser :as p]))
+   [selmer.parser :as p]
+   [selmer.util :as util]))
 
 (defn exit-with-code [n]
   (shutdown-agents)
@@ -30,7 +31,8 @@
   (->step-fn {:before-f (fn [step _]
                           (let [prefix "\ueabc"
                                 color :green.bold]
-                            (binding [*out* *err*]
+                            (binding [*out* *err*
+                                      util/*escape-variables* false]
                               (println (bling [color (p/render "{{ prefix }} {{ msg }}" {:prefix prefix
                                                                                          :msg (name step)})])))))
               :after-f (fn [step {:keys [::bc/exit
@@ -38,7 +40,8 @@
                          (let [prefix "\uf05c"
                                color :red.bold]
                            (when (> exit 0)
-                             (binding [*out* *err*]
+                             (binding [*out* *err*
+                                       util/*escape-variables* false]
                                (println (bling [color (p/render "{{ prefix }} {{ msg }}: {{ err }}" {:prefix prefix
                                                                                                      :msg (name step)
                                                                                                      :err err})]))))))}))
