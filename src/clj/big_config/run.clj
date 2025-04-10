@@ -30,7 +30,7 @@
 
 (defn mktemp-create-dir [opts]
   (let [{:keys [::dir] :as opts} (generic-cmd :opts opts
-                                              :cmd "mktemp -d"
+                                              :cmd "bash -c 'readlink -f $(mktemp -d)'"
                                               :key ::dir)
         shell-opts {::shell-opts {:dir dir}}]
     (merge opts shell-opts)))
