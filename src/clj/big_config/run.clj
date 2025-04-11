@@ -18,9 +18,9 @@
                    (update-keys (fn [k] (keyword "big-config" (name k)))))))))
 
 (defn generic-cmd [& {:keys [opts cmd key shell-opts]}]
-  (let [shell-opts (merge shell-opts {:continue true
-                                      :out :string
-                                      :err :string})
+  (let [shell-opts (merge {:continue true
+                           :out :string
+                           :err :string} shell-opts)
         proc (process/shell shell-opts cmd)
         opts (handle-cmd opts proc)]
     (if key
@@ -43,8 +43,8 @@
   (let [shell-opts (assoc shell-opts :continue true)
         shell-opts (case env
                      :shell shell-opts
-                     :repl (merge shell-opts {:out :string
-                                              :err :string})
+                     :repl (merge {:out :string
+                                   :err :string} shell-opts)
                      (throw (ex-info ":big-config/env not defined in opts" opts)))
         cmd (first cmds)
         proc (process/shell shell-opts cmd)]
