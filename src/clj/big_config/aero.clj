@@ -3,6 +3,7 @@
    [aero.core :as aero]
    [big-config :as bc]
    [big-config.utils :refer [deep-merge]]
+   [clojure.java.io :as io]
    [clojure.string :as str]
    [clojure.walk :as walk]
    [selmer.parser :as p]))
@@ -41,7 +42,7 @@
   (when (some nil? [config module profile])
     (throw (ex-info "Either config, module, or profile are nil" opts)))
   (let [msg (p/render "Module {{ big-config..aero/module }} does not exist in config {{ big-config..aero/config | str }}" opts)
-        config (-> (aero/read-config config {:profile (or profile :default)})
+        config (-> (aero/read-config (io/resource config) {:profile (or profile :default)})
                    module)]
     (when (nil? config)
       (throw (ex-info msg {})))

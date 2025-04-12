@@ -4,12 +4,13 @@
    [big-config.aero :as aero]
    [big-config.call :as call]
    [big-config.run :as run]
+   [clojure.java.io :as io]
    [clojure.test :refer [deftest is testing]]
    [tofu.aero-readers :refer [modules]]))
 
 (defn dynamic-modules []
   (reset! modules #{})
-  (read-config "big-config.edn")
+  (read-config (io/resource "big-config.edn"))
   @modules)
 
 (deftest main-stability-test

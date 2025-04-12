@@ -72,5 +72,5 @@ Options
   (cli/dispatch table args))
 
 (comment
-  (cli/dispatch table ["tofu" "init" "alpha" "prod" "--config" "foo.edn"])
+  (cli/dispatch table ["tofu" "init" "alpha" "prod" "--config" "big-config.edn"])
   (cli/dispatch table []))
