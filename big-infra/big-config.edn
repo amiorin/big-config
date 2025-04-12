@@ -26,7 +26,8 @@
            :big-config.lock/lock-keys [:big-config.tofu/aws-account-id
                                        :big-config.tofu/region
                                        :big-config.aero/module]
-           :big-config.run/shell-opts {:dir #ref [:default :big-config.run/dir]
+           :big-config.run/shell-opts {:dir [:big-config.aero/join
+                                             :big-config.run/dir]
                                        :extra-env {"AWS_PROFILE" #or [#env AWS_PROFILE [:big-config.aero/join
                                                                                         :big-config.tofu/aws-account-id]]}}
            :big-config.run/dir [:big-config.aero/join
