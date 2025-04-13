@@ -278,3 +278,9 @@ A: You cannot. `big-config` is a library plus some ideas about modern software d
 Q: How do you develop workflows?
 
 A: I work in the terminal. I use `clojure`, `emacs`, and `cider` during development. I use `babashka` and `just` during operations. `babashka` is amazing for the startup time. `clojure` developer experience is still better than `babashka`. For example the `cider-inspector` works only with `clojure` and not with `babashka` and the `compilation` step of `clojure` is very convenient to catch bugs while developing.
+
+## License
+
+Copyright © 2025 Alberto Miorin
+
+`big-config` is released under the [MIT License](https://opensource.org/licenses/MIT).
