@@ -1,13 +1,17 @@
-(ns amiorin.big-config)
+(ns amiorin.big-config
+  (:require
+   [clojure.pprint :as pp]
+   [clojure.string :as str]))
 
 (defn data-fn
-  "Example data-fn handler.
-
-  Result is merged onto existing options data."
-  [data]
-  ;; returning nil means no changes to options data
-  (println "data-fn returning nil")
-  nil)
+  [{:keys [aws-account-id aws-assume-role region bucket] :as data}]
+  (let [aws-account-id (str (or aws-account-id "111111111111"))
+        region (str (or region "eu-west-1"))
+        bucket (or bucket (str/join "-" ["tf-state" aws-account-id region]))]
+    (merge data {:aws-account-id aws-account-id
+                 :region region
+                 :bucket bucket
+                 :aws-assume-role aws-assume-role})))
 
 (defn template-fn
   "Example template-fn handler.
@@ -15,12 +19,10 @@
   Result is used as the EDN for the template."
   [edn data]
   ;; must return the whole EDN hash map
-  (println "template-fn returning edn")
   edn)
 
 (defn post-process-fn
   "Example post-process-fn handler.
 
   Can programmatically modify files in the generated project."
-  [edn data]
-  (println "post-process-fn not modifying" (:target-dir data)))
+  [edn data])
