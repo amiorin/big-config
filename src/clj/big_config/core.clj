@@ -29,12 +29,11 @@
 (defn try-f [f step opts]
   (try (f step opts)
        (catch Exception e
-         (-> (if-let [ex-opts (ex-data e)]
-               ex-opts
-               opts)
-             (merge {::bc/err (ex-message e)
-                     ::bc/exit 1
-                     ::bc/stack-trace (apply str (interpose "\n" (map str (.getStackTrace e))))})))))
+         (merge opts
+                (ex-data e)
+                {::bc/err (ex-message e)
+                 ::bc/exit 1
+                 ::bc/stack-trace (apply str (interpose "\n" (map str (.getStackTrace e))))}))))
 
 (defn resolve-next-fn [next-fn last-step]
   (if (nil? next-fn)

@@ -132,12 +132,14 @@
                             ::call-fns [(partial call/call-fns step-fns) ::run-action]
                             ::run-action [(partial run-action step-fns) ::end]
                             ::end [identity]))
-               :next-fn (fn [step next-step {:keys [::action] :as opts}]
+               :next-fn (fn [step next-step {:keys [::action ::exit] :as opts}]
                           (cond
                             (= step ::end) [nil opts]
                             (and (= action :clean)
+                                 (= exit 0)
                                  (= step ::mkdir))  [::run-action opts]
                             (and (= step ::read-module)
+                                 (= exit 0)
                                  (#{:opts :lock :unlock-any} action)) [::run-action opts]
                             :else (choice {:on-success next-step
                                            :on-failure ::end
@@ -171,8 +173,7 @@
   (require '[user :refer [debug-atom]])
   (main {:args [:plan :alpha :dev]
          :config "big-infra/big-config.edn"
-         :step-fns [log-step-fn
-                    tap-step-fn
+         :step-fns [stack-trace-step-fn
                     print-step-fn
                     (block-destroy-prod-step-fn ::start)
                     (->exit-step-fn ::end)]
