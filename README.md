@@ -1,5 +1,7 @@
 <h1 align=center><code>big-config</code></h1>
 
+[![project chat](https://img.shields.io/badge/slack-join_chat-brightgreen.svg)](https://clojurians.slack.com/archives/C08LGCKAK8C)
+
 `big-config` is an alternative to traditional configuration languages, schema languages, and workflow engines for operations. Its goal is to replace solutions like: `atlantis`, `cdk`, `helm`, `hcl`, `jsonschema`, `yaml`, `toml`, `json`, `aws step functions`, `kustomize`, `argocd`, `pkl`, `cud`, `dhall`, `jsonet`, `make`.
 
 At the moment, it can be used to replace `atlantis` and `cdk`.
