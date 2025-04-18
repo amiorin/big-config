@@ -7,7 +7,7 @@ At the moment, it can be used to replace `atlantis` and `cdk`.
 ![screenshot](https://raw.githubusercontent.com/amiorin/big-config/main/screenshot.png)
 
 ## Screenshot
-`just tofu ci alpha dev` is a workflow implemented in `big-config` and invoked using `just` for convenience. `ci` is the action to trigger the `continuous integration` of the module `alpha`. `alpha` is responsible for creating some AWS resources, and `dev` is the profile used for development.
+`bb tofu ci alpha dev` is a workflow implemented in `big-config` and invoked using `babashka`. `ci` is the action to trigger the `continuous integration` of the module `alpha`. `alpha` is responsible for creating some AWS resources, and `dev` is the profile used for development.
 
 ### Steps executed
 * Load and validate the configuration.
@@ -22,10 +22,10 @@ At the moment, it can be used to replace `atlantis` and `cdk`.
 * Compared to `cdk`, `big-config` supports only `clojure` and `tofu`. The problem of generating `json` files should not be blown out of proportion.
 
 ## Install
-The core idea of `big-config` is that you should not write configuration files manually but you should write the code that generates them and Clojure is the best language for this task. A `deps-new` template is provided to get started
+The core idea of `big-config` is that you should not write configuration files manually but you should write the code that generates them and Clojure is the best language for this task. A `deps-new` template is provided to get started.
 
 ``` shell
-clojure -Sdeps '{:deps {io.github.amiorin/big-config {:git/sha "e2d395f14e2c8b8cccaed7d8cf3fe625476231df"}}}' \
+clojure -Sdeps '{:deps {io.github.amiorin/big-config {:git/sha "f7aec168e54b453ae74d10a13121a7a7e2bcba1f"}}}' \
   -Tnew create \
   :template amiorin/big-config \
   :name amiorin/big-infra \
@@ -34,9 +34,9 @@ clojure -Sdeps '{:deps {io.github.amiorin/big-config {:git/sha "e2d395f14e2c8b8c
   :overwrite :delete
 ```
 
-This will create a folder `repo` where you can run
-
 ``` shell
+cd big-infra
+
 # List all tasks
 bb tasks
 
@@ -45,6 +45,9 @@ bb tofu help
 
 # Create the bucket for tofu
 bb create-bucket
+
+# Create 2 SQS and a 1 KMS and destroy them
+bb tofu ci alpha dev
 
 # The if your code generates tofu tf.json with null or that are different after a refactoring
 bb test
@@ -242,17 +245,7 @@ Declarative infrastructure like `tofu` and `k8s` make testing and refactoring tr
 ```
 
 ## Libraries instead of tools
-`clojure` is used to develop and share libraries. During operations, `babashka` and `just` are used to expose these libraries through shell commands. `big-config` lives in the subfolder conventionally called `big-infra` in every repository. Every repository becomes a producer and consumer of code and data. DRY becomes trivial.
-
-``` just
-# tofu opts|init|plan|apply|destroy|lock|unlock-any
-[group('tofu')]
-tofu action module profile:
-    #!/usr/bin/env -S bb --config big-infra/bb.edn
-    (require '[big-config.tofu :refer [main]])
-    (main {:args [:{{ action }} :{{ module }} :{{ profile }}]
-           :config "big-infra/big-config.edn"})
-```
+`clojure` is used to develop and share libraries. During operations, `babashka` is used to expose these libraries through `babashka` tasks. `big-config` lives in the subfolder conventionally called `big-infra` in every repository. Every repository becomes a producer and consumer of code and data. DRY becomes trivial.
 
 ## Fast feedback loop
 When quality goes down the feedback loop time goes up because bugs are discovered much later after creation. To catch bugs as soon as they are created we need to increase the time available for writing test code. Instead of adding more developers the focus should be on the automation of manual steps. Developers should spend more time in development than operations and this is possible if operations are automated and tests are catching bugs before they become an incident. It doesn't pay to fix bugs without writing a test to avoid a regression because of the lack of time. Another outcome of the lack of automation is when a change to one repository needs to be repeated in other N repositories manually. Eventually a developer will forget to do it and an incident will happen. Efficiency and effectiveness are keys to quality. DRY and fast feedback loop will enable fast changes and high quality.
@@ -291,7 +284,7 @@ A: You cannot. `big-config` is a library plus some ideas about modern software d
 
 Q: How do you develop workflows?
 
-A: I work in the terminal. I use `clojure`, `emacs`, and `cider` during development. I use `babashka` and `just` during operations. `babashka` is amazing for the startup time. `clojure` developer experience is still better than `babashka`. For example the `cider-inspector` works only with `clojure` and not with `babashka` and the `compilation` step of `clojure` is very convenient to catch bugs while developing.
+A: I work in the terminal. I use `clojure`, `emacs`, and `cider` during development. I use `babashka` during operations. `babashka` is amazing for the startup time. `clojure` developer experience is still better than `babashka`. For example the `cider-inspector` works only with `clojure` and not with `babashka` and the `compilation` step of `clojure` is very convenient to catch bugs while developing.
 
 ## License
 
