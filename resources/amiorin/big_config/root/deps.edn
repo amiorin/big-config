@@ -1,7 +1,7 @@
 {:paths   ["src" "resources"]
 
  :deps    {org.clojure/clojure          {:mvn/version "1.12.0"}
-           io.github.amiorin/big-config {:git/sha "673db6e8fdd3cfc32771c7c95aaab901d9a50ca2"}}
+           io.github.amiorin/big-config {:git/sha "368847ec9ab409457be8444e8ce8aa6db5e0bbee"}}
 
  :aliases {:build {:deps       {io.github.clojure/tools.build       {:mvn/version "0.9.6"}}
                    :ns-default build}

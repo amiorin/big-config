@@ -1,4 +1,4 @@
-{:deps {amiorin/big-infra {:local/root "."}}
+{:deps {{{name}} {:local/root "."}}
  :tasks
  {:requires ([big-config.tofu :refer [main]]
              [{{main/ns}} .aero-readers])
