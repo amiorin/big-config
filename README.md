@@ -22,19 +22,33 @@ At the moment, it can be used to replace `atlantis` and `cdk`.
 * Compared to `cdk`, `big-config` supports only `clojure` and `tofu`. The problem of generating `json` files should not be blown out of proportion.
 
 ## Install
-Star, fork and clone the repository. Run `just` overriding `AWS_ACCOUNT_ID` and `AWS_PROFILE`. The `AWS_ASSUME_ROLE` is optional.
+The core idea of `big-config` is that you should not write configuration files manually but you should write the code that generates them and Clojure is the best language for this task. A `deps-new` template is provided to get started
 
 ``` shell
-# crate the bucket for tofu states
-just create-bucket 111111111111 eu-west-1
-# run ci for module alpha in dev
-just AWS_PROFILE=aaaaaaaaaaaa \
-     AWS_ACCOUNT_ID=111111111111 \
-     AWS_ASSUME_ROLE=arn:aws:iam::111111111111:role/aaaaaaaaaaaa \
-     tofu ci alpha dev
+clojure -Sdeps '{:deps {io.github.amiorin/big-config {:git/sha "e2d395f14e2c8b8cccaed7d8cf3fe625476231df"}}}' \
+  -Tnew create \
+  :template amiorin/big-config \
+  :name org/repo \
+  :aws-account-id 251213589273 \
+  :region eu-west-1 \
+  :overwrite :delete
 ```
 
-![screenshot](https://raw.githubusercontent.com/amiorin/big-config/main/just.png)
+This will create a folder `repo` where you can run
+
+``` shell
+# List all tasks
+bb tasks
+
+# The main task with multiple subcommands to operate tofu
+bb tofu help
+
+# Create the bucket for tofu
+bb create-bucket
+
+# The if your code generates tofu tf.json with null or that are different after a refactoring
+bb test
+```
 
 ## Workflow
 `workflows` are implemented in code, and they are `flow control expression` like `if`. They are composable and extendable with `step-fns`. There is no workflow language. `workflows` are composed of `steps`. A `step` is identified by a `qualified keyword`, and it is wired to a `function` and to a `next-step`. The `opts` map is shared between all `steps` and all keys are `qualified keywords` to avoid collision when composing different `steps` in a new `workflow`. This pattern resembles the implementation HTTP server with middlewares and `clojure.test` fixtures. A `next-fn` is used to implement branching when the `next-step` is not always the only possible flow of execution. `step-fns` are used to extend the behavior of `workflows` without modifying them. For example, the `guardrail` that stops a workflow from destroying production AWS resources is implemented as a `step-fn`. The order of execution of `step-fns` is LIFO (`A B ... fn ... B A`).
