@@ -8,7 +8,7 @@
    [big-config.git :as git]
    [big-config.lock :as lock]
    [big-config.run :as run :refer [generic-cmd]]
-   [big-config.step-fns :refer [->exit-step-fn log-step-fn tap-step-fn]]
+   [big-config.step-fns :refer [->exit-step-fn ->print-error-step-fn]]
    [big-config.unlock :as unlock]
    [bling.core :refer [bling]]
    [clojure.pprint :as pp]
@@ -18,8 +18,7 @@
    [selmer.util :as util]))
 
 (def print-step-fn
-  (->step-fn {:before-f (fn [step {:keys [::bc/err
-                                          ::bc/exit] :as opts}]
+  (->step-fn {:before-f (fn [step {:keys [::bc/exit] :as opts}]
                           (binding [util/*escape-variables* false]
                             (let [[lock-start-step] (lock/lock)
                                   [unlock-start-step] (unlock/unlock-any)
@@ -37,10 +36,6 @@
                                         (= step ::run/run-cmd) (p/render "Running:\n> {{ big-config..run/cmds | first}}" opts)
                                         (= step ::call/call-fn) (p/render "Calling fn: {{ desc }}" (first (::call/fns opts)))
                                         (= step ::push) "Pushing last commit"
-                                        (and (= step ::end)
-                                             (> exit 0)
-                                             (string? err)
-                                             (not (str/blank? err))) err
                                         :else nil)]
                               (when msg
                                 (binding [*out* *err*]
@@ -157,10 +152,10 @@
   (let [action action
         module module
         profile profile
-        step-fns (or step-fns [stack-trace-step-fn
-                               print-step-fn
+        step-fns (or step-fns [print-step-fn
                                (block-destroy-prod-step-fn ::start)
-                               (->exit-step-fn ::end)])
+                               (->exit-step-fn ::end)
+                               (->print-error-step-fn ::end)])
         env (or env :shell)]
     (->> (run-tofu step-fns {::action action
                              ::bc/env (or env :shell)

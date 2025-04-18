@@ -3,6 +3,8 @@
    [big-config :as bc]
    [big-config.core :refer [->step-fn]]
    [bling.core :refer [bling]]
+   [clojure.java.io :as io]
+   [clojure.string :as str]
    [selmer.parser :as p]
    [selmer.util :as util]))
 
@@ -16,6 +18,29 @@
                          (when (and (= step end)
                                     ((complement #{:repl}) env))
                            (exit-with-code exit)))}))
+
+(defn ->print-error-step-fn [end]
+  (->step-fn {:before-f (fn [step {:keys [::bc/err
+                                          ::bc/exit
+                                          ::bc/stack-trace]}]
+                          (let [color :red.bold
+                                prefix "\uf05c"
+                                msg (when (and (= step end)
+                                               (> exit 0)
+                                               (string? err)
+                                               (not (str/blank? err))) err)
+                                stack-trace (when (and (= step end)
+                                                       (> exit 0)
+                                                       (not (str/blank? stack-trace))) stack-trace)]
+                            (when msg
+                              (binding [*out* *err*]
+                                (println (bling [color (p/render (str "{{ prefix }} " msg) {:prefix prefix})]))))
+                            (when stack-trace
+                              (let [temp-file (java.io.File/createTempFile "big-config-" ".txt" (java.io.File. "/tmp"))]
+                                (with-open [writer (io/writer temp-file)]
+                                  (.write writer (str stack-trace)))
+                                (binding [*out* *err*]
+                                  (println (bling [color (p/render "\nThe stack-trace has been written to {{temp-file}}" {:temp-file (.getAbsolutePath temp-file)})])))))))}))
 
 (def tap-step-fn
   (let [f (fn [label step opts]

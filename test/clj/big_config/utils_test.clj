@@ -80,8 +80,7 @@
                      :wire-fn (fn [step _]
                                 (case step
                                   ::foo [#(throw (Exception. "Java exception") #_%) ::end]
-                                  ::end [identity]))
-                     :next-fn ::end}) {::bar :baz})
+                                  ::end [identity]))}) [(->print-error-step-fn ::end)] {::bar :baz})
        (into (sorted-map)))
 
 #_(->> ((->workflow {:first-step ::foo
