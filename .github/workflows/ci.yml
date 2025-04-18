@@ -70,7 +70,3 @@ jobs:
           ZELLIJ_SESSION_NAME: test-${{ matrix.os }}-temurin-${{ matrix.java-version }}
         run: |
           just test
-
-      - name: Run big-config tests
-        run: |
-          just tofu opts alpha dev

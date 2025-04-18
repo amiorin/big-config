@@ -1,1 +1,29 @@
-{:deps {amiorin/big-infra {:local/root "."}}}
+{:deps {amiorin/big-infra {:local/root "."}}
+ :tasks
+ {:requires ([big-config.tofu :refer [main]]
+             [big-infra .aero-readers])
+  tofu {:doc "bb tofu help"
+        :task (cond
+                (= (first *command-line-args*) "help")
+                (println "Usage: bb tofu <action> <module> <profile>
+
+Main actions:
+  opts        Print the options
+  init        Like tofu
+  plan        Like tofu
+  apply       Like tofu
+  destroy     Like tofu
+  lock        Acquire the lock
+  unlock-any  Release the lock (ignore the owner)
+  ci          init, apply -auto-approve, destroy -auto-approve
+  reset       rm .terraform, init, plan
+  auto-apply  apply -auto-approve")
+                :else (main {:args (map keyword *command-line-args*)
+                             :config "big-infra.edn"}))}
+  create-bucket {:doc "Create the S3 bucket for the state"
+                 :task (shell "aws s3 mb s3://tf-state-251213589273-eu-west-1")}
+  test {:doc "Run the tests"
+        :extra-paths ["test"]
+        :extra-deps {io.github.cognitect-labs/test-runner
+                     {:git/tag "v0.5.1" :git/sha "dfb30dd"}}
+        :task cognitect.test-runner/-main}}}

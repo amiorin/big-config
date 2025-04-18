@@ -28,7 +28,7 @@ The core idea of `big-config` is that you should not write configuration files m
 clojure -Sdeps '{:deps {io.github.amiorin/big-config {:git/sha "e2d395f14e2c8b8cccaed7d8cf3fe625476231df"}}}' \
   -Tnew create \
   :template amiorin/big-config \
-  :name org/repo \
+  :name amiorin/big-infra \
   :aws-account-id 251213589273 \
   :region eu-west-1 \
   :overwrite :delete
