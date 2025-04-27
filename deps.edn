@@ -6,7 +6,8 @@
            io.github.paintparty/bling {:mvn/version "0.5.2"}
            selmer/selmer              {:mvn/version "1.12.62"}
            cheshire/cheshire          {:mvn/version "5.13.0"}
-           org.babashka/cli           {:mvn/version "0.8.62"}}
+           org.babashka/cli           {:mvn/version "0.8.62"}
+           babashka/fs                {:mvn/version "0.5.24"}}
 
  :aliases {:build {:deps       {io.github.clojure/tools.build       {:mvn/version "0.9.6"}}
                    :ns-default build}

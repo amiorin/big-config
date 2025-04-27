@@ -1,0 +1,9 @@
+{:transform [["app" "/apps/{{ app-user }}"
+              {"envrc" ".{{ app-user }}/envrc"}
+              {:notify ["foo"]
+               :args {:owner "{{ app-user }}"
+                      :group "{{ app-user }}"
+                      :mode "0755"}}
+              {:args {:owner "{{ app-user }}"
+                      :group "{{ app-user }}"
+                      :mode "0644"}}]]}
