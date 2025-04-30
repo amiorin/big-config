@@ -13,7 +13,7 @@
                                                            :big-config.tofu/region]
                                                   :module [:big-config.aero/join
                                                            :big-config.aero/module]
-                                                  :assume-role #or [#env AWS_ASSUME_ROLE ]}]}]}
+                                                  :assume-role #or [#env AWS_ASSUME_ROLE]}]}]}
                                  {:f "big-config.call/mkdir-and-spit"
                                   :desc "spit user_data.sh"
                                   :args [{:out  [:big-config.aero/join

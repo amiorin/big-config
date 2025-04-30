@@ -4,9 +4,9 @@
    [big-config.aero :as aero]
    [big-config.call :as call]
    [big-config.run :as run]
+   [big-infra.aero-readers :refer [modules]]
    [clojure.java.io :as io]
-   [clojure.test :refer [deftest is testing]]
-   [big-infra.aero-readers :refer [modules]]))
+   [clojure.test :refer [deftest is testing]]))
 
 (def config "big-infra.edn")
 
