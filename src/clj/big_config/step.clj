@@ -9,6 +9,7 @@
    [big-config.run :as run]
    [big-config.unlock :as unlock]
    [bling.core :refer [bling]]
+   [clojure.string :as str]
    [selmer.parser :as parser]
    [selmer.util :as util]))
 
@@ -44,6 +45,46 @@
                                            (> exit 0))
                                   (binding [*out* *err*]
                                     (println (bling [:red.bold (parser/render (str "{{ prefix }} " msg) {:prefix prefix})]))))))}))
+
+(defn parse [s]
+  (loop [xs s
+         token nil
+         steps []
+         cmds []
+         module nil
+         profile nil
+         global-args nil]
+    (cond
+      (string? xs)
+      (let [xs (-> (str/trim xs)
+                   (str/split #"\s+"))]
+        (recur (rest xs) (first xs) steps cmds module profile global-args))
+
+      (#{"lock" "git-check" "build" "exec" "git-push" "unlock-any"} token)
+      (let [steps (into steps [token])]
+        (recur (rest xs) (first xs) steps cmds module profile global-args))
+
+      (= "--" token)
+      (recur (drop 2 xs) (second xs) steps cmds (first xs) profile global-args)
+
+      (and module (nil? profile))
+      (let [global-args (if (seq xs)
+                          (str/join ":" xs)
+                          nil)
+            cmds (if (seq cmds)
+                   (mapv #(apply str % (if global-args
+                                         [":" global-args]
+                                         nil)) cmds)
+                   [global-args])
+            cmds (mapv #(str/replace % ":" " ") cmds)]
+        [steps cmds module token])
+
+      (nil? module)
+      (let [steps (if (some #{"exec"} steps)
+                    steps
+                    (into steps ["exec"]))
+            cmds (into cmds [token])]
+        (recur (rest xs) (first xs) steps cmds module profile global-args)))))
 
 (defn run-step
   [build-fn step-fns {:keys [::steps] :as opts}]
