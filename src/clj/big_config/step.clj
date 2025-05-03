@@ -75,7 +75,9 @@
                    (mapv #(apply str % (if global-args
                                          [":" global-args]
                                          nil)) cmds)
-                   [global-args])
+                   (if global-args
+                     [global-args]
+                     []))
             cmds (mapv #(str/replace % ":" " ") cmds)]
         [steps cmds module token])
 
