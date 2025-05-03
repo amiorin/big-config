@@ -1,10 +1,10 @@
 (ns amiorin.big-config-test
-  (:require [clojure.edn :as edn]
-            [clojure.java.io :as io]
-            [clojure.spec.alpha :as s]
-            [clojure.test :refer :all]
-            [org.corfield.new] ; for the Specs
-            [amiorin.big-config :refer :all]))
+  (:require
+   [clojure.edn :as edn]
+   [clojure.java.io :as io]
+   [clojure.spec.alpha :as s]
+   [clojure.test :refer [deftest is testing]]
+   [org.corfield.new]))
 
 (deftest valid-template-test
   (testing "template.edn is valid."

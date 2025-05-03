@@ -1,29 +1,62 @@
 {:deps {{{name}} {:local/root "."}}
  :tasks
- {:requires ([big-config.tofu :refer [main]]
-             [{{main/ns}} .aero-readers])
-  tofu {:doc "bb tofu help"
-        :task (cond
-                (= (first *command-line-args*) "help")
-                (println "Usage: bb tofu <action> <module> <profile>
+ {:requires ([{{top/ns}}.{{main/ns}} :as {{main/ns}}]
+             [clojure.string :as str])
+  :init (defn run-steps [first-step]
+          (-> [first-step]
+              (into *command-line-args*)
+              (->> (str/join " "))
+              ({{main/ns}}/run-steps nil)))
+  show-help {:doc "the workflow help"
+             :task (println "Usage: bb <step|cmd>+ -- <module> <profile> [global-args]
 
-Main actions:
-  opts        Print the options
-  init        Like tofu
-  plan        Like tofu
-  apply       Like tofu
-  destroy     Like tofu
-  lock        Acquire the lock
-  unlock-any  Release the lock (ignore the owner)
-  ci          init, apply -auto-approve, destroy -auto-approve
-  reset       rm .terraform, init, plan
-  auto-apply  apply -auto-approve")
-                :else (main {:args (map keyword *command-line-args*)
-                             :config "{{main}}.edn"}))}
-  create-bucket {:doc "Create the S3 bucket for the state"
-                 :task (shell "aws s3 mb s3://{{bucket}}")}
-  test {:doc "Run the tests"
-        :extra-paths ["test"]
-        :extra-deps {io.github.cognitect-labs/test-runner
-                     {:git/tag "v0.5.1" :git/sha "dfb30dd"}}
-        :task cognitect.test-runner/-main}}}
+The available steps are listed below. Anything that is not a step is considered
+a cmd where `:` is replaced with ` `
+
+Steps
+  build           use `deps-new` to generate the configuration files
+  git-check       check if the working directory is clean and if have pulled all
+                  commits from origin
+  git-push        push your changes
+  lock            acquire the lock
+  unlock-any      release the lock from any owner
+  exec            you can either multiple cmds or a single exec where the cmd
+                  will be provided in the global-args
+
+These two are equivalent
+  bb exec -- alpha prod ansible-playbook main.yml
+  bb ansible-playbook:main.yml -- alpha prod
+
+These two are also equivalent
+  bb tofu:apply tofu:destroy -- alpha prod -auto-approve
+  bb tofu:apply:-auto-approve tofu:destroy:-auto-approve -- alpha prod
+
+Example of cmds:
+  tofu:init                    tofu init
+  tofu:plan                    tofu plan
+  tofu:applay:-auto-approve    tofu apply -auto-approve
+  ansible-playbook:main.yml    ansible-playbook main.yml
+")}
+  git-check {:doc "the working dir is clean"
+             :task (run-steps "git-check")}
+  git-push {:doc "git push"
+            :task (run-steps "git-push")}
+  build {:doc "build the dist folder"
+         :task (run-steps "build")}
+  lock {:doc "acquire the lock"
+        :task (run-steps "lock")}
+  unlock-any {:doc "release the lock (any owner)"
+              :task (run-steps "unlock-any")}
+  tidy {:doc "tidy clojure files"
+        :task (do (shell "clojure-lsp clean-ns")
+                  (shell "clojure-lsp format"))}
+  test {:doc "run test with clojure"
+        :task (apply clojure "-X:test" *command-line-args*)}
+  test:bb {:doc "run test with babashka"
+           :extra-paths ["test"]
+           :extra-deps {io.github.cognitect-labs/test-runner
+                        {:git/tag "v0.5.1" :git/sha "dfb30dd"}}
+           :task (exec 'cognitect.test-runner.api/test)
+           :exec-args {:dirs ["test"]}
+           :org.babashka/cli {:coerce {:nses [:symbol]
+                                       :vars [:symbol]}}}}}

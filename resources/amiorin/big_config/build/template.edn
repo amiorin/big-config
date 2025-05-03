@@ -1,0 +1,5 @@
+{:data-fn <<top/ns>>.<<main/ns>>/data-fn
+ :template-fn <<top/ns>>.<<main/ns>>/template-fn
+ :post-process-fn <<top/ns>>.<<main/ns>>/post-process-fn
+ :transform [["build" ""
+              {"projectile" ".projectile"}]]}

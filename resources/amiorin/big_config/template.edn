@@ -1,15 +1,17 @@
-{:data-fn amiorin.big-config/data-fn
- :template-fn amiorin.big-config/template-fn
- :post-process-fn amiorin.big-config/post-process-fn
- :transform
- [["build" ""
-   {"envrc" ".envrc"
-    "projectile" ".projectile"}]
-  ["resources" "resources"
-   {"big-config.edn" "{{main}}.edn"}]
-  ["src" "src"
-   {"aero_readers.clj" "{{main/file}}/aero_readers.clj"
-    "main.clj" "{{main/file}}/alpha/main.clj"
-    "user_data.clj" "{{main/file}}/alpha/user_data.clj"}]
-  ["test" "test"
-   {"tofu_test.clj" "{{main/file}}/tofu_test.clj"}]]}
+{:transform
+ [["resources" "resources/{{top/file}}/{{main/file}}" {} ["<<" ">>"]]
+  ["build" ""
+   {"bb.edn" "bb.edn"
+    "envrc" ".envrc"
+    "projectile" ".projectile"}
+   :only]
+  ["build" ""
+   {"template.edn" "resources/{{top/file}}/{{main/file}}/template.edn"
+    "config.edn" "resources/{{top/file}}/{{main/file}}/config.edn"
+    "user_data.sh" "resources/{{top/file}}/{{main/file}}/files/user_data.sh"}
+   ["<<" ">>"]
+   :only]
+  ["src" "src/{{top/file}}"
+   {"main.clj" "{{main/file}}.clj"}]
+  ["test" "test/{{top/file}}"
+   {"main_test.clj" "{{main/file}}_test.clj"}]]}

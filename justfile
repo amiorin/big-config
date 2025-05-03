@@ -8,6 +8,9 @@ create name:
     -Tnew create \
     :template amiorin/big-config \
     :name {{ name }} \
-    :aws-account-id 251213589273 \
-    :region eu-west-1 \
+    :target-dir dist \
+    :aws-account-id-dev 228169653347 \
+    :aws-account-id-prod 706922411989 \
+    :aws-profile big_admin_dacore_role_v2_dev \
+    :aws-region eu-west-1 \
     :overwrite :delete

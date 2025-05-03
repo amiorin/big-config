@@ -1,17 +1,14 @@
 # Intro
 
-Welcome to your project to provision modules in AWS using `big-config` and `tofu`.
+Welcome to your project to provision modules in AWS using `big-config` and `deps-new`.
 
 ``` shell
 bb tasks
 
-bb create-bucket
+bb build -- alpha prod
 
-bb tofu reset alpha dev
-
-bb test
+bb build -- beta prod
 ```
-
 
 ## License
 
