@@ -4,55 +4,52 @@
 
 `big-config` is an alternative to traditional configuration languages, schema languages, and workflow engines for operations. Its goal is to replace solutions like: `atlantis`, `cdk`, `helm`, `hcl`, `jsonschema`, `yaml`, `toml`, `json`, `aws step functions`, `kustomize`, `argocd`, `pkl`, `cud`, `dhall`, `jsonet`, `make`.
 
-At the moment, it can be used to replace `atlantis` and `cdk`.
+It can be used to add a `build` step to any `devops` tool and it provides solutions for common problems in `devops` like `workflow` and `lock`.
 
 ![screenshot](https://raw.githubusercontent.com/amiorin/big-config/main/screenshot.png)
 
 ## Screenshot
-`bb tofu ci alpha dev` is a workflow implemented in `big-config` and invoked using `babashka`. `ci` is the action to trigger the `continuous integration` of the module `alpha`. `alpha` is responsible for creating some AWS resources, and `dev` is the profile used for development.
-
-### Steps executed
-* Load and validate the configuration.
-* Compile the `main.tf.json` (like `cdk`).
-* Check that the working directory is clean.
-* Lock module `alpha` for profile `dev`.
-* Run `tofu init|apply|destroy`.
-* Unlock module `alpha` for profile `dev`.
+`bb build lock git-check tofu:init tofu:apply:-auto-approve git-push unlock-any -- alpha prod` is a workflow defined in the command line using `big-config` and invoked using `babashka`. The `build` step will use `deps-new` to generate the `tofu` module `alpha` with profile `prod`. The `lock` step will acquire a lock to make sure that we are the only one running like `atlantis`. The `git-check` step will make sure that our working directory is clean and not behind `origin`. The `tofu:init` step will run `tofu init` in the `target-dir`. The `tofu:apply:-auto-approve` step will run `tofu apply -auto-approve` in the `target-dir`. The `git-push` step will push our commits. The `unlock-any` step will release the lock.
 
 ### Advantages
-* Compared to `atlantis`, `big-config` enables a faster `inner loop`. Only two accounts are needed, `prod` and `dev`. The `lock` workflow enables developers and CI to share the same AWS account for development and integration. Refactoring the code that generates the configuration files is trivial because of the test for catching `nils` gg in `json` files and because of the test for comparing the previous version for any files with the new version. 
+* Compared to `atlantis`, `big-config` enables a faster `inner loop`. Only two accounts are needed, `prod` and `dev`. The `lock` step enables developers and CI to share the same AWS account for development and integration. Refactoring the code that generates the configuration files is trivial because the `dist` dir is committed and we can track with `git` any change made by mistake in it.
 * Compared to `cdk`, `big-config` supports only `clojure` and `tofu`. The problem of generating `json` files should not be blown out of proportion.
 
 ## Install
-The core idea of `big-config` is that you should not write configuration files manually but you should write the code that generates them and Clojure is the best language for this task. A `deps-new` template is provided to get started.
+The core idea of `big-config` is that you should not write configuration files manually but you should write the code that generates them and Clojure is the best language for this task. A meta `deps-new` template is provided to get started that contains examples for `tofu` and `ansible`.
 
 ``` shell
-clojure -Sdeps '{:deps {io.github.amiorin/big-config {:git/sha "f7aec168e54b453ae74d10a13121a7a7e2bcba1f"}}}' \
-  -Tnew create \
-  :template amiorin/big-config \
-  :name amiorin/big-infra \
-  :aws-account-id 251213589273 \
-  :region eu-west-1 \
-  :overwrite :delete
+clojure -Sdeps '{:deps {io.github.amiorin/big-config {:git/sha "1cb7afa2eeb959a0b30106d4871750713efce2a4"}}}' \
+    -Tnew create \
+    :template amiorin/big-config \
+    :name my-org/my-artifact \
+    :target-dir my-project \
+    :aws-account-id-dev 111111111111 \
+    :aws-account-id-prod 222222222222 \
+    :aws-profile default \
+    :aws-region eu-west-1 \
+    :overwrite :delete
 ```
 
 ``` shell
-cd big-infra
+cd my-project
 
 # List all tasks
 bb tasks
 
-# The main task with multiple subcommands to operate tofu
-bb tofu help
+# How to create workflow in the cli
+bb show-help
 
-# Create the bucket for tofu
-bb create-bucket
+# List the files of module alpha profile prod
+bb build exec -- alpha prod ls -l
 
-# Create 2 SQS and a 1 KMS and destroy them
-bb tofu ci alpha dev
+# List the files of module beta profile prod
+bb build exec -- beta prod ls -l
 
-# The if your code generates tofu tf.json with null or that are different after a refactoring
-bb test
+# List the files of module gamma profile prod
+bb build exec -- gamma prod ls -l
+
+bb test:bb
 ```
 
 ## Workflow
