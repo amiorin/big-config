@@ -2,24 +2,69 @@
 
 [![project chat](https://img.shields.io/badge/slack-join_chat-brightgreen.svg)](https://clojurians.slack.com/archives/C08LGCKAK8C)
 
-`big-config` is an alternative to traditional configuration languages, schema languages, and workflow engines for operations. Its goal is to replace solutions like: `atlantis`, `cdk`, `helm`, `hcl`, `jsonschema`, `yaml`, `toml`, `json`, `aws step functions`, `kustomize`, `argocd`, `pkl`, `cud`, `dhall`, `jsonet`, `make`.
-
-It can be used to add a `build` step to any `devops` tool and it provides solutions for common problems in `devops` like `workflow` and `lock`.
+`big-config` adds a zero-cost `build` step to any `devops` tool like `terraform`, `k8s`, and `ansible`.
 
 ![screenshot](https://raw.githubusercontent.com/amiorin/big-config/main/screenshot.png)
 
-## Screenshot
-`bb build lock git-check tofu:init tofu:apply:-auto-approve git-push unlock-any -- alpha prod` is a workflow defined in the command line using `big-config` and invoked using `babashka`. The `build` step will use `deps-new` to generate the `tofu` module `alpha` with profile `prod`. The `lock` step will acquire a lock to make sure that we are the only one running like `atlantis`. The `git-check` step will make sure that our working directory is clean and not behind `origin`. The `tofu:init` step will run `tofu init` in the `target-dir`. The `tofu:apply:-auto-approve` step will run `tofu apply -auto-approve` in the `target-dir`. The `git-push` step will push our commits. The `unlock-any` step will release the lock.
+## Tier-1 workflow language
+
+The tier-1 workflow language is a simple DSL that allows developer to compose different steps into a workflow to make the `build` step a zero-cost operation. Other steps available in the tier-1 workflow language are:
+* Acquire/release the lock
+* Check if the working directory is clean and if we have pulled all commits from origin
+* Push the changes inside a transaction
+
+These primitives are necessary to enable multiple developers to work at the same time on the same infrastructure without any further coordination.
+
+### Manual
+```
+Usage: bb <step|cmd>+ -- <module> <profile> [global-args]
+
+The available steps are listed below. Anything that is not a step is considered
+a cmd where `:` is replaced with ` `
+
+Steps
+  build           use `deps-new` to generate the configuration files
+  git-check       check if the working directory is clean and if have pulled all
+                  commits from origin
+  git-push        push your changes
+  lock            acquire the lock
+  unlock-any      release the lock from any owner
+  exec            you can either multiple cmds or a single exec where the cmd
+                  will be provided in the global-args
+
+These two are equivalent
+  bb exec -- alpha prod ansible-playbook main.yml
+  bb ansible-playbook:main.yml -- alpha prod
+
+These two are also equivalent
+  bb tofu:apply tofu:destroy -- alpha prod -auto-approve
+  bb tofu:apply:-auto-approve tofu:destroy:-auto-approve -- alpha prod
+
+Example of cmds:
+  tofu:init                    tofu init
+  tofu:plan                    tofu plan
+  tofu:applay:-auto-approve    tofu apply -auto-approve
+  ansible-playbook:main.yml    ansible-playbook main.yml
+
+```
+
+### Example
+
+```
+bb build lock git-check tofu:init tofu:apply:-auto-approve git-push unlock-any -- alpha prod
+```
+
+is a tier-1 workflow defined in the command line using `big-config` and invoked using `babashka`. The `build` step will use `deps-new` to generate the `alpha` module using the `prod` profile. The `lock` step will acquire a lock to make sure that we are the only one running (same capability of `atlantis`). The `git-check` step will make sure that our working directory is clean and not behind `origin`. The `tofu:init` step will run `tofu init` in the `target-dir`. The `tofu:apply:-auto-approve` step will run `tofu apply -auto-approve` in the `target-dir`. The `git-push` step will push our commits. The `unlock-any` step will release the lock.
 
 ### Advantages
 * Compared to `atlantis`, `big-config` enables a faster `inner loop`. Only two accounts are needed, `prod` and `dev`. The `lock` step enables developers and CI to share the same AWS account for development and integration. Refactoring the code that generates the configuration files is trivial because the `dist` dir is committed and we can track with `git` any change made by mistake in it.
 * Compared to `cdk`, `big-config` supports only `clojure` and `tofu`. The problem of generating `json` files should not be blown out of proportion.
 
 ## Install
-The core idea of `big-config` is that you should not write configuration files manually but you should write the code that generates them and Clojure is the best language for this task. A meta `deps-new` template is provided to get started that contains examples for `tofu` and `ansible`.
+The core idea of `big-config` is that you should not write configuration files manually but you should have `build` step that generates them. [`deps-new`](https://github.com/seancorfield/deps-new) is used to create a `big-config` project.
 
 ``` shell
-clojure -Sdeps '{:deps {io.github.amiorin/big-config {:git/sha "ce4bb441cac5450e5d7c3aef02dd8333eeb06d20"}}}' \
+clojure -Sdeps '{:deps {io.github.amiorin/big-config {:git/sha "1fce90d876cfee853b01a1329a8ddadb5f7b4c99"}}}' \
     -Tnew create \
     :template amiorin/big-config \
     :name my-org/my-artifact \
@@ -28,7 +73,8 @@ clojure -Sdeps '{:deps {io.github.amiorin/big-config {:git/sha "ce4bb441cac5450e
     :aws-account-id-prod 222222222222 \
     :aws-profile default \
     :aws-region eu-west-1 \
-    :overwrite :delete
+    :overwrite :delete \
+    && cd my-project && bb smoke-test
 ```
 
 ``` shell
@@ -49,11 +95,16 @@ bb build exec -- beta prod ls -l
 # List the files of module gamma profile prod
 bb build exec -- gamma prod ls -l
 
+# Run the tests, you need to have at least 2 commits
 bb test:bb
 ```
 
+# Development
+
+The rest of this document is about how `big-config` works and it's not necessary if you are only interested in using `big-config` to add a `build` step to your `devops` repository.
+
 ## Workflow
-`workflows` are implemented in code, and they are `flow control expression` like `if`. They are composable and extendable with `step-fns`. There is no workflow language. `workflows` are composed of `steps`. A `step` is identified by a `qualified keyword`, and it is wired to a `function` and to a `next-step`. The `opts` map is shared between all `steps` and all keys are `qualified keywords` to avoid collision when composing different `steps` in a new `workflow`. This pattern resembles the implementation HTTP server with middlewares and `clojure.test` fixtures. A `next-fn` is used to implement branching when the `next-step` is not always the only possible flow of execution. `step-fns` are used to extend the behavior of `workflows` without modifying them. For example, the `guardrail` that stops a workflow from destroying production AWS resources is implemented as a `step-fn`. The order of execution of `step-fns` is LIFO (`A B ... fn ... B A`).
+Tier-0 `workflows` are implemented in code, and they are `flow control expression` like `if`. They are composable and extendable with `step-fns`. There is no workflow language. `workflows` are composed of `steps`. A `step` is identified by a `qualified keyword`, and it is wired to a `function` and to a `next-step`. The `opts` map is shared between all `steps` and all keys are `qualified keywords` to avoid collision when composing different `steps` in a new `workflow`. This pattern resembles the implementation HTTP server with middlewares and `clojure.test` fixtures. A `next-fn` is used to implement branching when the `next-step` is not always the only possible flow of execution. `step-fns` are used to extend the behavior of `workflows` without modifying them. For example, the `guardrail` that stops a workflow from destroying production AWS resources is implemented as a `step-fn`. The order of execution of `step-fns` is LIFO (`A B ... fn ... B A`).
 
 * Workflow `hello world`.
 ``` clojure
@@ -285,7 +336,18 @@ Q: How do you develop workflows?
 
 A: I work in the terminal. I use `clojure`, `emacs`, and `cider` during development. I use `babashka` during operations. `babashka` is amazing for the startup time. `clojure` developer experience is still better than `babashka`. For example the `cider-inspector` works only with `clojure` and not with `babashka` and the `compilation` step of `clojure` is very convenient to catch bugs while developing.
 
-## License
+# Branches
+
+| branch       | description                                            |
+|--------------|--------------------------------------------------------|
+| ansible      | wip for a clojure only lib to generate ansible code    |
+| gh-action    | zero-code build step to create a GitHub action         |
+| main         | big-config home                                        |
+| deps-new     | deps-new template for any big-config project           |
+| orphan       | orphan branch to start new worktrees                   |
+| odoyle-rules | old version of big-config integrated with odoyle-rules |
+
+# License
 
 Copyright © 2025 Alberto Miorin
 
