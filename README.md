@@ -19,7 +19,7 @@ It can be used to add a `build` step to any `devops` tool and it provides soluti
 The core idea of `big-config` is that you should not write configuration files manually but you should write the code that generates them and Clojure is the best language for this task. A meta `deps-new` template is provided to get started that contains examples for `tofu` and `ansible`.
 
 ``` shell
-clojure -Sdeps '{:deps {io.github.amiorin/big-config {:git/sha "1cb7afa2eeb959a0b30106d4871750713efce2a4"}}}' \
+clojure -Sdeps '{:deps {io.github.amiorin/big-config {:git/sha "ce4bb441cac5450e5d7c3aef02dd8333eeb06d20"}}}' \
     -Tnew create \
     :template amiorin/big-config \
     :name my-org/my-artifact \

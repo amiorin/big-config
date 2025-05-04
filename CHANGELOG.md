@@ -9,6 +9,18 @@ The patch number is calculated with `git rev-list --count HEAD`
 
 ## [Unreleased]
 
+### Added
+
+- `deps-new` is now a pillar of `big-config` developer experience and it enables the support for any `devops` tool (`tofu`, `ansible`, `helm`, `gh-actions`, ...).
+- `step` workflow to enable users to express `workflow` in the cli.
+- `build-fn` to provide a hook for running `deps-new` in the `step` workflow
+- `step/parse` to parse the DSL workflows in the cli.
+- `dist` as default `target-dir` for `deps-new`
+- `module` and `profile` as convention for multiple outputs and multiple environments
+
+### Changed
+- `deps-new` in now creating a `deps-new + big-config`.
+
 ## [0.1.169] - 2025-04-18
 
 ### Added
