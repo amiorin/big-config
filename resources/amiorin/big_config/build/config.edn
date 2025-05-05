@@ -1,2 +1,1 @@
-{:big-config/env :repl
- :big-config.lock/owner #or [#env ZELLIJ_SESSION_NAME "CI"]}
+{:big-config.lock/owner #or [#env ZELLIJ_SESSION_NAME "CI"]}

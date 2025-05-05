@@ -1,6 +1,6 @@
 {:paths   ["src" "resources"]
  :deps    {org.clojure/clojure             {:mvn/version "1.12.0"}
-           io.github.amiorin/big-config    {:git/sha "bb9357a202bffe1515cc3ed2ee12a11502d3aca9"}
+           io.github.amiorin/big-config    {:git/sha "{{big-config-latest-rev}}"}
            io.github.seancorfield/deps-new {:git/sha "558f790c843c31cfeaeda2bf59241c8d16ad02ef"}
            selmer/selmer                   {:mvn/version "1.12.62"}
            babashka/fs                     {:mvn/version "0.5.24"}}

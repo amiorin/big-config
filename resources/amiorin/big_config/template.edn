@@ -1,7 +1,9 @@
-{:transform
+{:data-fn amiorin.big-config/data-fn
+ :transform
  [["resources" "resources/{{top/file}}/{{main/file}}" {} ["<<" ">>"]]
   ["build" ""
    {"bb.edn" "bb.edn"
+    "deps.edn" "deps.edn"
     "envrc" ".envrc"
     "projectile" ".projectile"}
    :only]
