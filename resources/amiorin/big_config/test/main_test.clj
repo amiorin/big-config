@@ -23,7 +23,7 @@
                        (map str)
                        (map #(str/replace-first % "dist/prod/" "")))]
       (doseq [module modules]
-        (run-steps (format "build -- %s prod" module) [] {:big-config/env :repl}))
+        (run-steps (format "build -- %s prod" module) [] {::bc/env :repl}))
       (as-> (shell {:continue true} "git diff --quiet") $
         (:exit $)
         (is (= $ 0) "The working directory is not clean")))))

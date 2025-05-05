@@ -6,7 +6,7 @@
           (-> [first-step]
               (into *command-line-args*)
               (->> (str/join " "))
-              ({{main/ns}}/run-steps nil)))
+              ({{main/ns}}/run-steps {:big-config/env :shell})))
   show-help {:doc "the workflow help"
              :task (println "Usage: bb <step|cmd>+ -- <module> <profile> [global-args]
 
@@ -50,6 +50,13 @@ Example of cmds:
   tidy {:doc "tidy clojure files"
         :task (do (shell "clojure-lsp clean-ns")
                   (shell "clojure-lsp format"))}
+  smoke-test {:doc "test to validate the template"
+              :task (doseq [cmd ["bb build exec -- alpha prod ls -l"
+                                 "bb build exec -- beta prod ls -l"
+                                 "bb build exec -- gamma prod ls -l"
+                                 "bb show-help"]]
+                      (println (str "> " cmd))
+                      (shell cmd))}
   test {:doc "run test with clojure"
         :task (apply clojure "-X:test" *command-line-args*)}
   test:bb {:doc "run test with babashka"

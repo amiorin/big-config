@@ -60,6 +60,8 @@
                                  :extra-env {"AWS_PROFILE" "{{aws-profile}}"}}}))
 
 (defn run-steps
+  ([s]
+   (run-steps s nil))
   ([s opts]
    (run-steps s [step/print-step-fn
                  (step-fns/->exit-step-fn ::step/end)
@@ -70,8 +72,8 @@
    (let [opts (-> "{{top/file}}/{{main/file}}/config.edn"
                   io/resource
                   aero/read-config
-                  (merge (or opts {::bc/env :shell}))
-                  (merge {::step/steps steps
+                  (merge (or opts {::bc/env :repl})
+                         {::step/steps steps
                           ::run/cmds cmds
                           ::module module
                           ::profile profile})

@@ -14,3 +14,4 @@ create name:
     :aws-profile big_admin_dacore_role_v2_dev \
     :aws-region eu-west-1 \
     :overwrite :delete
+    cd dist && bb smoke-test
