@@ -1,0 +1,26 @@
+{:deps {amiorin/big-config {:local/root "."}}
+ :tasks
+ {:requires ([amiorin.big-config :as big-config]
+             [clojure.string :as str])
+  :init (defn run-steps [first-step]
+          (-> [first-step]
+              (into *command-line-args*)
+              (->> (str/join " "))
+              (big-config/run-steps {:big-config/env :shell})))
+  readme {:doc "build the README.md"
+          :task (shell "bb build -- readme prod")}
+  build {:doc "build the dist folder"
+         :task (run-steps "build")}
+  tidy {:doc "tidy clojure files"
+        :task (do (shell "clojure-lsp clean-ns")
+                  (shell "clojure-lsp format"))}
+  test {:doc "run test with clojure"
+        :task (apply clojure "-X:test" *command-line-args*)}
+  test:bb {:doc "run test with babashka"
+           :extra-paths ["test"]
+           :extra-deps {io.github.cognitect-labs/test-runner
+                        {:git/tag "v0.5.1" :git/sha "dfb30dd"}}
+           :task (exec 'cognitect.test-runner.api/test)
+           :exec-args {:dirs ["test"]}
+           :org.babashka/cli {:coerce {:nses [:symbol]
+                                       :vars [:symbol]}}}}}
