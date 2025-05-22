@@ -2,63 +2,37 @@
 
 [![project chat](https://img.shields.io/badge/slack-join_chat-brightgreen.svg)](https://clojurians.slack.com/archives/C08LGCKAK8C)
 
-`big-config` adds a zero-cost `build` step to any `devops` tool like `terraform`, `k8s`, and `ansible`.
+`big-config` introduces an efficient, automated `build` step for your DevOps tools (like Terraform, Kubernetes, and Ansible). This helps you generate configurations using Clojure code rather than writing them manually.
 
 ![screenshot](https://raw.githubusercontent.com/amiorin/big-config/main/screenshot.png)
 
-## Tier-1 workflow language
+## Table of Contents
 
-The tier-1 workflow language is a simple DSL that allows developer to compose different steps into a workflow to make the `build` step a zero-cost operation. Other steps available in the tier-1 workflow language are:
-* Acquire/release the lock
-* Check if the working directory is clean and if we have pulled all commits from origin
-* Push the changes inside a transaction
-
-These primitives are necessary to enable multiple developers to work at the same time on the same infrastructure without any further coordination.
-
-### Manual
-```
-Usage: bb <step|cmd>+ -- <module> <profile> [global-args]
-
-The available steps are listed below. Anything that is not a step is considered
-a cmd where `:` is replaced with ` `
-
-Steps
-  build           use `deps-new` to generate the configuration files
-  git-check       check if the working directory is clean and if have pulled all
-                  commits from origin
-  git-push        push your changes
-  lock            acquire the lock
-  unlock-any      release the lock from any owner
-  exec            you can either multiple cmds or a single exec where the cmd
-                  will be provided in the global-args
-
-These two are equivalent
-  bb exec -- alpha prod ansible-playbook main.yml
-  bb ansible-playbook:main.yml -- alpha prod
-
-These two are also equivalent
-  bb tofu:apply tofu:destroy -- alpha prod -auto-approve
-  bb tofu:apply:-auto-approve tofu:destroy:-auto-approve -- alpha prod
-
-Example of cmds:
-  tofu:init                    tofu init
-  tofu:plan                    tofu plan
-  tofu:applay:-auto-approve    tofu apply -auto-approve
-  ansible-playbook:main.yml    ansible-playbook main.yml
-
-```
-
-### Example
-
-```
-bb build lock git-check tofu:init tofu:apply:-auto-approve git-push unlock-any -- alpha prod
-```
-
-is a tier-1 workflow defined in the command line using `big-config` and invoked using `babashka`. The `build` step will use `deps-new` to generate the `alpha` module using the `prod` profile. The `lock` step will acquire a lock to make sure that we are the only one running (same capability of `atlantis`). The `git-check` step will make sure that our working directory is clean and not behind `origin`. The `tofu:init` step will run `tofu init` in the `target-dir`. The `tofu:apply:-auto-approve` step will run `tofu apply -auto-approve` in the `target-dir`. The `git-push` step will push our commits. The `unlock-any` step will release the lock.
-
-### Advantages
-* Compared to `atlantis`, `big-config` enables a faster `inner loop`. Only two accounts are needed, `prod` and `dev`. The `lock` step enables developers and CI to share the same AWS account for development and integration. Refactoring the code that generates the configuration files is trivial because the `dist` dir is committed and we can track with `git` any change made by mistake in it.
-* Compared to `cdk`, `big-config` supports only `clojure` and `tofu`. The problem of generating `json` files should not be blown out of proportion.
+*   [Install](#install)
+*   [Tier-1 workflow language](#tier-1-workflow-language)
+    *   [Manual](#manual)
+    *   [Example](#example)
+    *   [Advantages](#advantages)
+*   [Advanced Topics](#advanced-topics)
+    *   [Development](#development)
+        *   [Workflow](#workflow)
+        *   [Rationale](#rationale)
+            *   [Configuration Languages vs. Programming Languages](#configuration-languages-vs-programming-languages)
+            *   [Managing Code and Configuration Across Repositories](#managing-code-and-configuration-across-repositories)
+            *   [The Role of Code in Managing Complexity](#the-role-of-code-in-managing-complexity)
+            *   [Workflows as Code: Composition and Control](#workflows-as-code-composition-and-control)
+            *   [Error Handling: Exit Codes, Not Exceptions](#error-handling-exit-codes-not-exceptions)
+            *   [Testability and Refactoring Confidence](#testability-and-refactoring-confidence)
+            *   [Reusable Libraries Over Standalone Tools](#reusable-libraries-over-standalone-tools)
+            *   [Maintaining a Fast Feedback Loop](#maintaining-a-fast-feedback-loop)
+            *   [The Role of Clojure](#the-role-of-clojure)
+*   [Real-World Example: Preventing Common Infrastructure Errors](#real-world-example-preventing-common-infrastructure-errors)
+    *   [Analysis of the Problem](#analysis-of-the-problem)
+    *   [How big-config Addresses Such Issues](#how-big-config-addresses-such-issues)
+*   [Q&A](#qa)
+*   [Branches](#branches)
+*   [Contributing](#contributing)
+*   [License](#license)
 
 ## Install
 The core idea of `big-config` is that you should not write configuration files manually but you should have `build` step that generates them. [`deps-new`](https://github.com/seancorfield/deps-new) is used to create a `big-config` project.
@@ -99,14 +73,107 @@ bb build exec -- gamma prod ls -l
 bb test:bb
 ```
 
-# Development
+## Tier-1 workflow language
 
-The rest of this document is about how `big-config` works and it's not necessary if you are only interested in using `big-config` to add a `build` step to your `devops` repository.
+The Tier-1 workflow language is a simple Domain-Specific Language (DSL) used via the `bb` (Babashka) command-line tool. It allows developers to combine various operations into a cohesive workflow. This approach streamlines the process of generating and managing configurations.
 
-## Workflow
-Tier-0 `workflows` are implemented in code, and they are `flow control expression` like `if`. They are composable and extendable with `step-fns`. There is no workflow language. `workflows` are composed of `steps`. A `step` is identified by a `qualified keyword`, and it is wired to a `function` and to a `next-step`. The `opts` map is shared between all `steps` and all keys are `qualified keywords` to avoid collision when composing different `steps` in a new `workflow`. This pattern resembles the implementation HTTP server with middlewares and `clojure.test` fixtures. A `next-fn` is used to implement branching when the `next-step` is not always the only possible flow of execution. `step-fns` are used to extend the behavior of `workflows` without modifying them. For example, the `guardrail` that stops a workflow from destroying production AWS resources is implemented as a `step-fn`. The order of execution of `step-fns` is LIFO (`A B ... fn ... B A`).
+Key operations available in the Tier-1 workflow language include:
+* Generating configuration files (the `build` step).
+* Acquiring or releasing a lock to prevent conflicting changes.
+* Checking if the local Git working directory is clean and synchronized with the remote repository.
+* Pushing changes to the remote repository within a transaction.
 
-* Workflow `hello world`.
+These fundamental operations help teams collaborate effectively on infrastructure management without needing extensive manual coordination.
+
+### Manual
+```
+Usage: bb <step|cmd>+ -- <module> <profile> [global-args]
+```
+
+In this syntax:
+* `bb` refers to Babashka, a fast-starting scripting environment for Clojure.
+* `<step|cmd>+` means one or more steps or commands.
+* Steps are predefined actions like `build` or `lock`.
+* Commands are direct calls to tools (e.g., `tofu:apply`), where `:` is replaced with a space in the actual execution (e.g., `tofu apply`).
+* `--` separates the `big-config` steps/commands from the arguments passed to them.
+* `<module>` refers to a specific configuration module you're working with (e.g., a specific service or environment).
+* `<profile>` refers to a variation of a module (e.g., `dev`, `prod`).
+* `[global-args]` are any additional arguments needed by the commands.
+
+The available steps are listed below. Anything that is not a step is considered a command.
+
+Steps
+  build           use `deps-new` to generate the configuration files
+  git-check       check if the working directory is clean and if have pulled all
+                  commits from origin
+  git-push        push your changes
+  lock            acquire the lock
+  unlock-any      release the lock from any owner
+  exec            you can either multiple cmds or a single exec where the cmd
+                  will be provided in the global-args
+
+These two are equivalent
+  bb exec -- alpha prod ansible-playbook main.yml
+  bb ansible-playbook:main.yml -- alpha prod
+
+These two are also equivalent
+  bb tofu:apply tofu:destroy -- alpha prod -auto-approve
+  bb tofu:apply:-auto-approve tofu:destroy:-auto-approve -- alpha prod
+
+Example of cmds:
+  tofu:init                    tofu init
+  tofu:plan                    tofu plan
+  tofu:apply:-auto-approve     tofu apply -auto-approve
+  ansible-playbook:main.yml    ansible-playbook main.yml
+
+```
+
+### Example
+
+```
+bb build lock git-check tofu:init tofu:apply:-auto-approve git-push unlock-any -- alpha prod
+```
+
+This command demonstrates a Tier-1 workflow defined and run directly in the command line using `babashka` (the `bb` command). Let's break it down:
+* `build`: Uses `deps-new` (a Clojure project templating tool) to generate configuration files for the `alpha` module with the `prod` profile.
+* `lock`: Acquires a lock, ensuring that only one process modifies the infrastructure at a time (similar to a feature in Atlantis).
+* `git-check`: Verifies that your local Git repository is clean (no uncommitted changes) and up-to-date with the `origin` (remote repository).
+* `tofu:init`: Runs `tofu init` in the target directory for the `alpha` module.
+* `tofu:apply:-auto-approve`: Runs `tofu apply -auto-approve` in that same target directory.
+* `git-push`: Pushes your committed changes to the remote repository.
+* `unlock-any`: Releases the lock, allowing others to make changes.
+
+This entire sequence is executed for the `alpha` module and `prod` profile.
+
+### Advantages
+* **Faster Development Cycle:** Compared to tools like Atlantis, `big-config` can speed up the "inner loop" (the iterative cycle of coding, building, and testing).
+* **Simplified Account Management:** Typically, only two cloud provider accounts (e.g., `prod` and `dev`) are needed. The `lock` feature allows developers and CI/CD systems to safely share the same AWS account for development and integration.
+* **Safer Refactoring:** Because the generated configuration files (often in a `dist` or `target` directory) are committed to Git, you can easily track any unintended changes introduced when refactoring the Clojure code that generates these files. This makes refactoring much less risky.
+* **Focused Tooling:** Compared to tools like AWS CDK, `big-config` primarily focuses on Clojure for logic and OpenTofu (or Terraform) for infrastructure definition. It aims to simplify the generation of necessary JSON/YAML configurations without overcomplicating the process.
+
+## Advanced Topics
+
+## Development
+
+The following sections detail the inner workings of `big-config`. This information is for those interested in understanding its design or extending its core capabilities, not for everyday use of the Tier-1 workflows.
+
+### Workflow
+Tier-0 workflows in `big-config` are defined directly in Clojure code. Think of them not as a separate language, but as Clojure functions that control the flow of operations, similar to how an `if` statement directs program execution. These workflows are designed to be modular (composable) and adaptable through "step functions" (`step-fns`).
+
+Here's a breakdown of the core concepts:
+*   **Workflows and Steps:** Workflows are made up of individual `steps`. Each step performs a specific action.
+*   **Step Identification:** Each `step` is identified by a Clojure `qualified keyword` (e.g., `::my-org/my-step`). This helps avoid naming conflicts.
+*   **Wiring Steps:** Each step is "wired" to a Clojure `function` that executes its logic, and then to a `next-step` that defines what happens next.
+*   **Shared Options (`opts` map):** An `opts` map (a Clojure map holding options) is passed through all steps. Keys in this map are also `qualified keywords` to prevent clashes when combining different steps and workflows.
+*   **Inspiration:** This design is similar to how HTTP servers use middlewares to process requests or how `clojure.test` uses fixtures to set up and tear down test environments.
+*   **Branching (`next-fn`):** When a step can lead to different outcomes, a `next-fn` (next function) is used to decide the subsequent step based on the current situation.
+*   **Extensibility (`step-fns`):** `step-fns` (step functions) are a powerful feature allowing you to inject custom behavior before or after a standard workflow step runs, without altering the original workflow code. For example, a `guardrail` to prevent accidental destruction of production resources can be implemented as a `step-fn`.
+*   **Order of Execution for `step-fns`:** `step-fns` are executed in a Last-In, First-Out (LIFO) order. If you have multiple `step-fns` (e.g., A and B) modifying a core function (`fn`), they execute as `A (before) -> B (before) -> fn (core step) -> B (after) -> A (after)`.
+
+Below are examples illustrating these concepts.
+
+* **Simple Workflow: `hello world`**
+  This example defines a basic workflow with two steps: `::start` prints "Hello world!" and then transitions to `::end`.
 ``` clojure
 (->workflow {:first-step ::start
              :wire-fn (fn [step _]
@@ -116,7 +183,8 @@ Tier-0 `workflows` are implemented in code, and they are `flow control expressio
                           ::end [identity]))})
 ```
 
-* Workflow `tofu` where the `next-fs` is needed.
+* **Conditional Workflow: `tofu`**
+  This demonstrates a more complex workflow for OpenTofu operations, where a `next-fn` is used for conditional branching. For instance, certain steps might be skipped depending on the specified `action` (e.g., if the action is `:clean`, it might jump from `::mkdir` to `::run-action`).
 ``` clojure
 (->workflow {:first-step ::start
              :wire-fn (fn [step step-fns]
@@ -140,18 +208,20 @@ Tier-0 `workflows` are implemented in code, and they are `flow control expressio
                                          :opts opts})))})
 ```
 
-* `step-fn` to print green and red messages.
+* **Example of a `step-fn`: Printing Status Messages**
+  This `step-fn`, called `print-step-fn`, is designed to print colorful status messages (green for success, red for failure/error) before and after certain workflow steps execute. It inspects the `opts` map to provide context-specific messages.
 ``` clojure
 (def print-step-fn
   (->step-fn {:before-f (fn [step {:keys [::bc/err
                                           ::bc/exit] :as opts}]
-                          (binding [util/*escape-variables* false]
-                            (let [[lock-start-step] (lock/lock)
-                                  [unlock-start-step] (unlock/unlock-any)
-                                  [check-start-step] (git/check)
-                                  [prefix color] (if (= exit 0)
-                                                   ["\ueabc" :green.bold]
-                                                   ["\uf05c" :red.bold])
+                          (binding [util/*escape-variables* false] ; Temporarily disable variable escaping for message rendering
+                            (let [[lock-start-step] (lock/lock)      ; Get the keyword for the lock start step
+                                  [unlock-start-step] (unlock/unlock-any)  ; Get the keyword for the unlock start step
+                                  [check-start-step] (git/check)        ; Get the keyword for the git check step
+                                  [prefix color] (if (= exit 0)      ; Determine message prefix and color based on exit status
+                                                   ["\ueabc" :green.bold] ; Success: green checkmark
+                                                   ["\uf05c" :red.bold])   ; Failure: red X
+                                  ;; Conditional messages based on the current step:
                                   msg (cond
                                         (= step ::read-module) (p/render "Action {{ big-config..tofu/action|default:nil }} | Module {{ big-config..aero/module|default:nil }} | Profile {{ big-config..aero/profile|default:nil }} | Config {{ big-config..aero/config|default:nil }}" opts)
                                         (= step ::mkdir) (p/render "Making dir {{ big-config..run/dir }}" opts)
@@ -162,39 +232,57 @@ Tier-0 `workflows` are implemented in code, and they are `flow control expressio
                                         (= step ::run/run-cmd) (p/render "Running:\n> {{ big-config..run/cmds | first}}" opts)
                                         (= step ::call/call-fn) (p/render "Calling fn: {{ desc }}" (first (::call/fns opts)))
                                         (= step ::push) "Pushing last commit"
-                                        (and (= step ::end)
+                                        (and (= step ::end) ; If it's the end step and there was an error message
                                              (> exit 0)
                                              (string? err)
                                              (not (str/blank? err))) err
-                                        :else nil)]
-                              (when msg
-                                (binding [*out* *err*]
-                                  (println (bling [color (p/render (str "{{ prefix }} " msg) {:prefix prefix})])))))))
-              :after-f (fn [step {:keys [::bc/exit] :as opts}]
-                         (let [[_ check-end-step] (git/check)
-                               prefix "\uf05c"
+                                        :else nil)] ; Default: no message
+                              (when msg ; If a message was generated
+                                (binding [*out* *err*] ; Print to standard error
+                                  (println (bling [color (p/render (str "{{ prefix }} " msg) {:prefix prefix})]))))))) ; Print the formatted, colored message
+              :after-f (fn [step {:keys [::bc/exit] :as opts}] ; Function to run AFTER the step
+                         (let [[_ check-end-step] (git/check) ; Get the keyword for the git check end step
+                               prefix "\uf05c" ; Default prefix for error messages
+                               ;; Conditional messages for failures after certain steps:
                                msg (cond
                                      (= step check-end-step) "Working directory is NOT clean"
                                      (= step ::run/run-cmd) (p/render "Failed running:\n> {{ big-config..run/cmds | first }}" opts)
-                                     :else nil)]
-                           (when (and msg
-                                      (> exit 0))
-                             (binding [*out* *err*]
-                               (println (bling [:red.bold (p/render (str "{{ prefix }} " msg) {:prefix prefix})]))))))}))
+                                     :else nil)] ; Default: no message
+                           (when (and msg ; If a message was generated
+                                      (> exit 0)) ; And the step indicated failure
+                             (binding [*out* *err*] ; Print to standard error
+                               (println (bling [:red.bold (p/render (str "{{ prefix }} " msg) {:prefix prefix})]))))))})) ; Print the formatted, colored error message
 ```
 
-# Rationale
-## Configuration languages
-Configuration languages are misused in modern software development. Developers are stuck with them even when programming languages would be a better solution. `clojure` should be the only programming language used to generate configurations. New tools like `tofu` or `helm` include new configuration languages, increasing the cognitive load. Most of the time, a workflow library can implement the functionality provided by these new tools saving the overhead of learning a new configuration language. `atlantis`'s core feature is the lock, and it was implemented in 100 lines of code. `cdk` was implemented in 20 lines of code. Tools will always require integration, `big-config` workflow library upgrades `programs` to `functions` enabling the transformation of `tools` into `libraries`. `tools` should not be used directly by `developers` only `workflows` should be used by developers and agents. `atlantis`'s lock feature is not reusable while the `lock` workflow can be reused.
+### Rationale
 
-## Number of repositories
-Software development is a solved problem, but we have software like Postgres, Git, and Emacs where the quality is high and apps on our smartphone where the quality is low. There is a correlation between the number of repositories of an organization and the quality of their main product. The DRY (don't repeat yourself) principle is trivial to implement in a single repository that uses a single programming language, but it becomes difficult when there are multiple repositories written in multiple languages. `clojure` can be used in a subfolder of every repository to enable the economies that we have in projects with a single repository and a single language. Sharing data and code will become trivial again. The workflow library enables the interoperability of software written in different languages.
+This section outlines some of the thinking behind `big-config`'s design and its approach to infrastructure management.
 
-## No-code or low-code solutions
-Only code-intensive solutions scale with complexity of the domain. We are wasting a generation of developers by distracting them with no-code and low-code tools. The `YAML` developer is the pinnacle of this nonsense where years of training are wasted by using their talent to manually curate configuration files that are implemented in failed programming languages.
+#### Configuration Languages vs. Programming Languages
+Often, configuration languages are used in situations where general-purpose programming languages could offer more power and flexibility. `big-config` advocates for using Clojure to generate configurations for several reasons:
+*   **Leveraging Clojure's Strengths:** Clojure's data manipulation capabilities and REPL-driven development can simplify the creation and management of complex configurations.
+*   **Reducing Cognitive Load:** New infrastructure tools (like OpenTofu, Helm, etc.) often introduce their own specialized configuration languages. Learning and managing these different languages can be burdensome. `big-config` proposes that a robust workflow library in a single language (Clojure) can often provide the necessary functionality, reducing this overhead.
+*   **Reusability and Integration:** `big-config` aims to provide reusable components. For example, its internal implementation of a locking mechanism (similar to Atlantis's core feature) or a configuration generation approach (akin to CDK) is concise and integrated within its Clojure framework.
+*   **Treating Tools as Libraries:** The `big-config` workflow library allows you to treat external command-line tools (like `tofu` or `ansible`) as if they were functions within your Clojure code. This "upgrades" standalone programs into composable library components, making them easier to integrate into automated workflows.
+*   **Controlled Execution via Workflows:** Instead of developers or CI agents interacting directly and potentially inconsistently with various tools, `big-config` promotes the use of defined workflows. These workflows provide a safer, more controlled, and repeatable way to apply changes. The `lock` workflow in `big-config`, for instance, is a reusable component, unlike some features tied to specific tools.
 
-## Workflows as flow control expressions
-The design of `big-config` requires using `qualified keywords` in the map shared between `step-fns`. During every `step`, the `step-fns` provided by the user of the `workflow` are composed with the `step-fn` associated with the `step` defined in the `workflow` through the `wire-fn`. The result is the following flow `A B ... fn ... B A` where `A` and `B` are example of functions provider by the user and `fn` is the function provided by the `workflow`. The composability is obtained because both `workflows`, `step-fns`, and `fns` accept `opts` with `qualified keywords`. A complex `workflows` can be implemented with simple and nested `workflows`. The `tofu workflow` for CI is 39 `steps`, it's composed of 7 `workflows` (`tofu`, `call`, `action`, `git`, `lock`, `run`, and `unlock`) and it is 3 levels deep.
+#### Managing Code and Configuration Across Repositories
+While many foundational aspects of software development are well-understood, maintaining quality and consistency across a large codebase, especially one spanning multiple repositories and languages, remains challenging.
+*   **The DRY Principle:** The "Don't Repeat Yourself" (DRY) principle is more straightforward to apply within a single repository using a single language. It becomes significantly harder with multiple repositories and languages.
+*   **Clojure for Consistency:** `big-config` suggests that by embedding Clojure (e.g., in a dedicated subfolder like `big-infra/`) within each repository, organizations can achieve better consistency and code/data sharing, similar to the benefits seen in monorepos or single-language projects.
+*   **Interoperability:** A common workflow library (like the one in `big-config`) can facilitate interoperability even when different parts of a system are managed by different tools or written in other languages.
+
+#### The Role of Code in Managing Complexity
+`big-config` posits that solutions involving direct coding are often more scalable and adaptable to complex problem domains than no-code or low-code alternatives.
+*   **Limitations of Declarative Approaches:** While valuable, relying solely on declarative markup languages (like YAML) for managing intricate systems can become challenging. As complexity grows, the expertise required to maintain these configurations effectively can resemble that of a programmer, but without the full power of a programming language.
+*   **Empowering Developers:** The argument is that developers' skills are best utilized when they can apply programmatic solutions to complex configuration and infrastructure challenges, rather than being constrained by the limitations of purely declarative or GUI-driven tools.
+
+#### Workflows as Code: Composition and Control
+The architecture of `big-config` workflows emphasizes explicit control flow and composability, using standard Clojure features:
+*   **Qualified Keywords for Uniqueness:** `Qualified keywords` (e.g., `:namespace/name`) are used extensively, especially in the shared `opts` (options) map that is passed through `step-fns`. This practice prevents naming collisions when different modules or steps introduce their own options, ensuring that `:my-company/timeout` doesn't clash with `:another-tool/timeout`.
+*   **Composition of Step Functions:** As mentioned in the "Workflow" section, user-provided `step-fns` are combined with the main function of a workflow step (defined via `wire-fn`). This creates the `A B ... fn ... B A` execution chain (Last-In, First-Out for before/after logic). This allows behavior to be layered and extended without altering core workflow definitions.
+*   **Composability through Consistent Interfaces:** Workflows, `step-fns`, and the underlying functions are all designed to accept an `opts` map. This consistent interface, combined with qualified keywords, is key to how `big-config` allows for the creation of complex workflows by nesting or sequencing simpler ones.
+*   **Example of Complexity Managed:** For instance, the primary OpenTofu workflow used for CI/CD in `big-config` is itself composed of 39 distinct steps, which are organized into 7 smaller, focused workflows (handling concerns like Tofu operations, function calls, Git interactions, locking, command execution, and unlocking). This demonstrates how more complex behaviors are built from simpler, reusable parts, with nesting up to 3 levels deep.
 
 ``` clojure
 :big-config.tofu/start
@@ -238,8 +326,11 @@ The design of `big-config` requires using `qualified keywords` in the map shared
 :big-config.tofu/end
 ```
 
-## Errors instead of exceptions
-Errors are implemented like exit code in the shell. 0 for success and anything else for failure. The last step success or failure is stored in the `opts` and the `choice` function uses it to decide the `next-step`. Exception are converted to Errors.
+#### Error Handling: Exit Codes, Not Exceptions
+`big-config` adopts an error handling strategy similar to shell command exit codes:
+*   A `0` signifies success.
+*   Any non-zero value indicates a failure.
+Standard Clojure exceptions are caught and converted into this error code model. The success or failure of the last executed step is recorded in the `opts` map (typically under a key like `::bc/exit`). Functions like `choice` then use this value to determine the next step in the workflow, allowing for explicit error handling paths.
 
 ``` clojure
 (defn ok [opts]
@@ -247,8 +338,11 @@ Errors are implemented like exit code in the shell. 0 for success and anything e
                ::bc/err nil}))
 ```
 
-## Testability
-Declarative infrastructure like `tofu` and `k8s` make testing and refactoring trivial. There are two functions (`stability` and `catch-nils`) ready to be used in your tests to catch bugs and nil values during refactoring. The `modules` are discovered dynamically using the tag `#module` in the `edn` config file.
+#### Testability and Refactoring Confidence
+Managing infrastructure as code, especially with declarative tools like OpenTofu and Kubernetes, can make testing and refactoring more manageable and reliable compared to manual changes.
+*   **Predictable Outputs:** Since configurations are generated from code, changes are more predictable.
+*   **Built-in Test Utilities:** `big-config` provides helper functions like `stability` (which might compare generated configurations against committed versions) and `catch-nils` (to detect missing values) that can be integrated into your tests. These help catch unintended changes or errors early during refactoring or development.
+*   **Dynamic Module Discovery:** Modules for testing can be discovered dynamically by looking for a specific tag (e.g., `#module`) in their `edn` configuration files, simplifying test setup.
 
 ``` clojure
 (ns tofu-test
@@ -294,26 +388,48 @@ Declarative infrastructure like `tofu` and `k8s` make testing and refactoring tr
          (is true))))))
 ```
 
-## Libraries instead of tools
-`clojure` is used to develop and share libraries. During operations, `babashka` is used to expose these libraries through `babashka` tasks. `big-config` lives in the subfolder conventionally called `big-infra` in every repository. Every repository becomes a producer and consumer of code and data. DRY becomes trivial.
+#### Reusable Libraries Over Standalone Tools
+A core tenet of `big-config` is to favor the development and sharing of Clojure libraries for infrastructure tasks, rather than relying on a multitude of disparate command-line tools.
+*   **Operational Scripting with Babashka:** During operations (e.g., in CI/CD or local execution), Babashka is used to expose these Clojure libraries as fast-executing tasks.
+*   **Embedded Infrastructure Logic:** `big-config` is typically intended to reside in a subfolder (e.g., `big-infra/`) within each repository. This encourages each repository to become both a producer (defining its specific infrastructure needs as Clojure code) and a consumer (reusing shared libraries and workflows).
+*   **Simplified DRY:** This approach can make it easier to adhere to the DRY (Don't Repeat Yourself) principle by promoting code reuse and consistency.
 
-## Fast feedback loop
-When quality goes down the feedback loop time goes up because bugs are discovered much later after creation. To catch bugs as soon as they are created we need to increase the time available for writing test code. Instead of adding more developers the focus should be on the automation of manual steps. Developers should spend more time in development than operations and this is possible if operations are automated and tests are catching bugs before they become an incident. It doesn't pay to fix bugs without writing a test to avoid a regression because of the lack of time. Another outcome of the lack of automation is when a change to one repository needs to be repeated in other N repositories manually. Eventually a developer will forget to do it and an incident will happen. Efficiency and effectiveness are keys to quality. DRY and fast feedback loop will enable fast changes and high quality.
+#### Maintaining a Fast Feedback Loop
+The speed at which developers can get feedback on their changes is crucial for maintaining quality and productivity.
+*   **Impact of Quality on Feedback Time:** Lower quality often leads to longer feedback loops because bugs are typically discovered later in the development or deployment process.
+*   **Automation and Testing:** To catch issues early, `big-config` emphasizes automation of operational tasks and an increased focus on writing tests for infrastructure code.
+*   **Developer Focus:** By automating manual operational steps, developers can spend more time on development and less on firefighting. Automated tests help catch regressions before they escalate into incidents.
+*   **Value of Regression Tests:** Investing time in writing tests to prevent regressions is crucial, even when time seems scarce, as it pays off in the long run by preventing repeated errors.
+*   **Consistency Across Repositories:** Lack of automation can also lead to inconsistencies when changes need to be manually propagated across multiple repositories, risking errors and incidents.
+*   **Efficiency and Quality:** Efficiency, effectiveness, adherence to DRY principles, and a fast feedback loop are seen as key enablers of rapid, high-quality software and infrastructure delivery.
 
-## Clojure
-`clojure` is not yet a mainstream programming language, but its potential remains significant. To accelerate its adoption, `clojure` could benefit from a "killer application" — a compelling use case or tool that positions it uniquely in the software ecosystem. One promising direction might be to establish `clojure` as an alternative to traditional configuration languages by developing a library of reusable infrastructure modules alongside a robust framework for workflows-as-code. This combination could create a powerful, streamlined solution for managing complex systems, potentially driving broader adoption and sparking the momentum needed to grow its ecosystem.
+#### The Role of Clojure
+While Clojure is not yet as widespread as some other programming languages, `big-config` sees significant potential in its application to infrastructure management.
+*   **A "Killer Application" for Clojure?:** `big-config` aims to showcase Clojure's strengths in this domain. The idea is that a compelling use case—like a robust framework for "workflows-as-code" combined with a library of reusable infrastructure modules—could establish Clojure as a strong alternative to traditional configuration languages.
+*   **Streamlining Complex Systems:** This combination could offer a powerful and streamlined solution for managing complex systems, potentially driving broader Clojure adoption and ecosystem growth.
 
-# Real world example
-How to avoid incidents like the one described in [Tale of 'metadpata': the revenge of the supertools](https://engineering.zalando.com/posts/2024/01/tale-of-metadpata-the-revenge-of-the-supertools.html) 
+# Real-World Example: Preventing Common Infrastructure Errors
 
-## Analysis
-Reading the article we can identify this problem:
-1. A validation error with `metadpata` instead of `metadata` led to a broken change.
+Consider an incident like the one described in the Zalando Engineering blog post: [Tale of 'metadpata': the revenge of the supertools](https://engineering.zalando.com/posts/2024/01/tale-of-metadpata-the-revenge-of-the-supertools.html). This section outlines how `big-config`'s approach could help prevent similar issues.
 
-## Solution
-1. Changes should be implemented in a declarative way. `tofu` should be used instead of talking directly to the AWS API. This will allow implementing static analysis to correct bugs during development.
-1. No need to invent a new category Supertools for software. These software solutions belong to the 3 categories (generate configuration, validate, and implement workflows to automate) and they should be implemented in a single programming language that is `clojure`.
-1. "Large scale changes" is not actionable. `big-config` allows implementing `guardrails` rules with code. For example, it doesn't allow destroying `modules` in `prod`. A change is compliant with rules and compliance can be by design or by behavior. `guardrails` enable compliance by design. Manual reviews are slow and error-prone, but they are needed when compliance is by behavior.
+## Analysis of the Problem
+In the described incident, a simple typographical error (`metadpata` instead of `metadata`) in a configuration led to a significant broken change. This highlights a common class of problems in managing infrastructure.
+
+## How `big-config` Addresses Such Issues
+`big-config` promotes several practices that can mitigate these risks:
+
+1.  **Declarative Changes and Static Analysis:**
+    *   Infrastructure changes should ideally be implemented declaratively. This means using tools like OpenTofu (or Terraform) to define the desired state, rather than making direct, imperative calls to cloud provider APIs (e.g., AWS API).
+    *   By generating the declarative configuration (e.g., OpenTofu HCL or JSON) from Clojure code, you can introduce validation and static analysis steps *before* the configuration is ever applied. This can catch typos, structural errors, or policy violations early in the development cycle.
+
+2.  **Unified Tooling with Clojure:**
+    *   `big-config` advocates for using a single programming language, Clojure, to manage the different facets of infrastructure management: generating configurations, validating them, and implementing automation workflows.
+    *   This perspective suggests that instead of relying on a collection of disparate "Supertools," a cohesive approach within one language can simplify the toolchain and improve consistency. The argument is that most infrastructure tasks fall into these three categories (generation, validation, workflow).
+
+3.  **Actionable Guardrails with Code:**
+    *   Vague mandates like "prevent large-scale changes" are difficult to enforce. `big-config` allows you to implement concrete `guardrails` as code within your workflows.
+    *   For example, you can write a `step-fn` (as shown below) that explicitly blocks any attempt to destroy modules tagged as `prod` or `production`.
+    *   This is an example of **compliance by design**: the system itself prevents undesirable actions. This is often more reliable than **compliance by behavior**, which relies on manual reviews that can be slow and error-prone.
 
 ``` clojure
 (defn block-destroy-prod-step-fn [start-step]
@@ -328,13 +444,33 @@ Reading the article we can identify this problem:
 ![screenshot](https://raw.githubusercontent.com/amiorin/big-config/main/destroy.png)
 
 # Q&A
-Q: I don't know `clojure`, how can I use `big-config`?
 
-A: You cannot. `big-config` is a library plus some ideas about modern software development. You could adopt the ideas and reimplement `big-config` in another language. Or you could make an initial investment in learning `clojure`. It could be worth it.
+**Q: What is `big-config` in a nutshell?**
+A: `big-config` is a tool that adds a `build` step to your devops tools like Terraform, Kubernetes, and Ansible. This allows you to generate configuration files from Clojure code, promoting consistency and reducing manual errors. It also provides a workflow system to manage infrastructure changes safely, especially in team environments.
 
-Q: How do you develop workflows?
+**Q: Do I need to know Clojure to use `big-config`?**
+A: Yes, `big-config` leverages Clojure for its core functionality. While the tier-1 workflow language provides a simpler DSL for common operations, deeper customization and understanding of the system require Clojure knowledge. If you're new to Clojure but interested in `big-config`'s approach, it might be a good opportunity to learn.
 
-A: I work in the terminal. I use `clojure`, `emacs`, and `cider` during development. I use `babashka` during operations. `babashka` is amazing for the startup time. `clojure` developer experience is still better than `babashka`. For example the `cider-inspector` works only with `clojure` and not with `babashka` and the `compilation` step of `clojure` is very convenient to catch bugs while developing.
+**Q: What are the "tier-1 workflow language" and "tier-0 workflows"?**
+A:
+*   **Tier-1 workflow language:** This is a command-line DSL for composing pre-defined steps (like `build`, `lock`, `git-check`, `tofu:apply`). It's designed for ease of use in daily operations and CI/CD pipelines.
+*   **Tier-0 workflows:** These are the underlying Clojure functions and data structures that define the actual logic of each step and how they connect. You'd interact with tier-0 if you need to create new, complex workflow behaviors beyond what tier-1 offers.
+
+**Q: When should I consider using `big-config`?**
+A: `big-config` is beneficial if you:
+*   Manage infrastructure with tools like Terraform, Kubernetes, or Ansible.
+*   Want to move away from manually editing large configuration files.
+*   Prefer using a programming language (Clojure) for configuration logic.
+*   Need a robust system for collaborative infrastructure development, including locking and git integration.
+*   Are interested in a "workflows-as-code" approach built on Clojure.
+
+**Q: How is `big-config` different from tools like Atlantis or CDK?**
+A:
+*   **Atlantis:** `big-config` provides similar locking capabilities to prevent concurrent modifications but aims for a faster inner development loop and uses Clojure for configuration generation.
+*   **CDK (Cloud Development Kit):** While CDK allows defining infrastructure with familiar programming languages, `big-config` specifically focuses on Clojure and integrates a tier-1 workflow language for operational tasks. `big-config` argues that its approach to generating JSON/YAML is more straightforward for its supported tools.
+
+**Q: How do I get started with developing or customizing workflows?**
+A: Workflow development typically involves working with Clojure in a text editor like Emacs with CIDER for an interactive experience. For running operational tasks, `babashka` is used for its fast startup times. The "Advanced Topics" section of this README delves into the tier-0 workflow implementation details.
 
 # Branches
 
@@ -346,6 +482,35 @@ A: I work in the terminal. I use `clojure`, `emacs`, and `cider` during developm
 | deps-new     | deps-new template for any big-config project           |
 | orphan       | orphan branch to start new worktrees                   |
 | odoyle-rules | old version of big-config integrated with odoyle-rules |
+
+# Contributing
+
+Contributions to `big-config` are welcome and encouraged! Whether you're reporting a bug, suggesting a new feature, or submitting code changes, your input is valuable.
+
+Please consider the following guidelines:
+
+## Reporting Bugs or Suggesting Features
+
+*   If you encounter a bug or have an idea for a new feature, please check the existing [issues on GitHub](https://github.com/amiorin/big-config/issues) to see if it has already been reported or discussed.
+*   If not, please open a new issue. Provide as much detail as possible:
+    *   For bugs: Steps to reproduce, expected behavior, actual behavior, your `big-config` version, and relevant environment details.
+    *   For features: A clear description of the proposed feature and why it would be beneficial.
+
+## Submitting Pull Requests
+
+1.  **Fork the repository:** Create your own fork of the `big-config` repository on GitHub.
+2.  **Create a new branch:** For each new feature or bug fix, create a new branch in your fork, preferably with a descriptive name (e.g., `feat/add-new-command` or `fix/resolve-locking-issue`).
+3.  **Make your changes:** Write your code, ensuring you follow the existing code style and conventions.
+4.  **Add tests:** If you're adding a new feature or fixing a bug, please include relevant tests to ensure correctness and prevent regressions.
+5.  **Ensure tests pass:** Run the existing test suite to make sure your changes haven't introduced any regressions. (Details on running tests would ideally be in a `CONTRIBUTING.md` or testing documentation.)
+6.  **Write clear commit messages:** Follow standard practices for writing informative commit messages.
+7.  **Submit the pull request:** Push your changes to your fork and then open a pull request against the `main` branch of the `amiorin/big-config` repository. Provide a clear description of your changes in the pull request.
+
+## Contribution Guidelines File
+
+For more detailed contribution guidelines, coding standards, and information about the development process, please look for a `CONTRIBUTING.md` file in the root of the repository. (If this file doesn't exist yet, following the general guidelines above is a good start.)
+
+We appreciate your contributions to making `big-config` better!
 
 # License
 
