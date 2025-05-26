@@ -4,7 +4,9 @@
 
 `big-config` adds a zero-cost `build` step to any `devops` tool like `terraform`, `k8s`, and `ansible`.
 
-![screenshot](https://raw.githubusercontent.com/amiorin/big-config/main/screenshot.png)
+## YouTube demo
+[![Watch the video](https://img.youtube.com/vi/8KR99_DAgRI/hqdefault.jpg)](https://www.youtube.com/watch?v=8KR99_DAgRI)
+
 
 ## Install
 The core idea of `big-config` is that you should not write configuration files manually but you should have `build` step that generates them. [`deps-new`](https://github.com/seancorfield/deps-new) is used to create a `big-config` project.
