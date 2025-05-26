@@ -108,7 +108,10 @@ The primary problem `big-config` addresses is the significant repetition encount
 * The **Tier 1 Workflow** language supplies a flexible CLI for defining and executing configuration workflows—integrating the `big-config` build step.
 * Combined, they offer a generic Git-based coordination mechanism for shared resources, potentially replacing specialized tools such as Atlantis.
 * The overall goal is to improve developer experience by simplifying both the creation and execution of complex infrastructure configurations.
-## Tier-1 workflow language
+* Compared to `atlantis`, `big-config` enables a faster `inner loop`. Only two accounts are needed, `prod` and `dev`. The `lock` step enables developers and CI to share the same AWS account for development and integration. Refactoring the code that generates the configuration files is trivial because the `dist` dir is committed and we can track with `git` any change made by mistake in it.
+* Compared to `cdk`, `big-config` supports only `clojure` and `tofu`. The problem of generating `json` files should not be blown out of proportion.
+
+## Tier-1 workflow language deep dive
 
 The tier-1 workflow language is a simple DSL that allows developer to compose different steps into a workflow to make the `build` step a zero-cost operation. Other steps available in the tier-1 workflow language are:
 * Acquire/release the lock
@@ -116,6 +119,14 @@ The tier-1 workflow language is a simple DSL that allows developer to compose di
 * Push the changes inside a transaction
 
 These primitives are necessary to enable multiple developers to work at the same time on the same infrastructure without any further coordination.
+
+### Example
+
+```
+bb build lock git-check tofu:init tofu:apply:-auto-approve git-push unlock-any -- alpha prod
+```
+
+is a tier-1 workflow defined in the command line using `big-config` and invoked using `babashka`. The `build` step will use `deps-new` to generate the `alpha` module using the `prod` profile. The `lock` step will acquire a lock to make sure that we are the only one running (same capability of `atlantis`). The `git-check` step will make sure that our working directory is clean and not behind `origin`. The `tofu:init` step will run `tofu init` in the `target-dir`. The `tofu:apply:-auto-approve` step will run `tofu apply -auto-approve` in the `target-dir`. The `git-push` step will push our commits. The `unlock-any` step will release the lock.
 
 ### Manual
 ```
@@ -149,17 +160,3 @@ Example of cmds:
   ansible-playbook:main.yml    ansible-playbook main.yml
 
 ```
-
-### Example
-
-```
-bb build lock git-check tofu:init tofu:apply:-auto-approve git-push unlock-any -- alpha prod
-```
-
-is a tier-1 workflow defined in the command line using `big-config` and invoked using `babashka`. The `build` step will use `deps-new` to generate the `alpha` module using the `prod` profile. The `lock` step will acquire a lock to make sure that we are the only one running (same capability of `atlantis`). The `git-check` step will make sure that our working directory is clean and not behind `origin`. The `tofu:init` step will run `tofu init` in the `target-dir`. The `tofu:apply:-auto-approve` step will run `tofu apply -auto-approve` in the `target-dir`. The `git-push` step will push our commits. The `unlock-any` step will release the lock.
-
-### Advantages
-* Compared to `atlantis`, `big-config` enables a faster `inner loop`. Only two accounts are needed, `prod` and `dev`. The `lock` step enables developers and CI to share the same AWS account for development and integration. Refactoring the code that generates the configuration files is trivial because the `dist` dir is committed and we can track with `git` any change made by mistake in it.
-* Compared to `cdk`, `big-config` supports only `clojure` and `tofu`. The problem of generating `json` files should not be blown out of proportion.
-
-
