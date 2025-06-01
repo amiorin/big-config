@@ -4,7 +4,7 @@
    [selmer.filters :refer [add-filter!]]
    [selmer.parser :as p]))
 
-(defn ^:export add-suffix [fqn suffix]
+(defn add-suffix [fqn suffix]
   (let [a-namespace (namespace fqn)
         a-name (name fqn)]
     (keyword a-namespace (str a-name suffix))))

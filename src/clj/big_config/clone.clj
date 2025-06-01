@@ -55,7 +55,7 @@
                             ::clean [clean ::end]
                             ::end [identity]))}))
 
-(defn ^:export main [{[action module profile] :args
+(defn main [{[action module profile] :args
                       step-fns :step-fns
                       repo :repo
                       env :env}]

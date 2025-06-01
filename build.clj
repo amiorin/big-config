@@ -37,7 +37,7 @@
            :main main-cls
            :basis basis}))
 
-(defn ^:export all [_]
+(defn all [_]
   (clean nil)
   (prep nil)
   (uber nil))

@@ -25,7 +25,7 @@
                                      ::bc/test-mode true
                                      ::bc/env :repl})
 
-(defn ^:export a-step-fn [f step opts]
+(defn a-step-fn [f step opts]
   (let [opts (update opts ::bc/steps (fnil conj []) [step :start-a])
         opts (f step opts)]
     (update opts ::bc/steps (fnil conj []) [step :end-a])))

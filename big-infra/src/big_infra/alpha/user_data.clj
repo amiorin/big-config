@@ -5,7 +5,7 @@
 
 (def text "Hello world!")
 
-(defn ^:export invoke []
+(defn invoke []
   (-> "user_data.sh"
       io/resource
       slurp

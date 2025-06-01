@@ -145,10 +145,10 @@
     (println stack-trace))
   (f step opts))
 
-(defn ^:export main [{[action module profile] :args
-                      step-fns :step-fns
-                      config :config
-                      env :env}]
+(defn main [{[action module profile] :args
+             step-fns :step-fns
+             config :config
+             env :env}]
   (let [action action
         module module
         profile profile

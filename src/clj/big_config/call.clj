@@ -36,7 +36,7 @@
                             (= step ::end) [nil opts]
                             :else [::end opts]))}))
 
-(defn ^:export mkdir-and-spit [{:keys [out type f args]}]
+(defn mkdir-and-spit [{:keys [out type f args]}]
   (-> (fs/parent out)
       (fs/create-dirs))
   (let [res (-> (symbol f)
@@ -47,7 +47,7 @@
               :json (json/generate-string res {:pretty true}))]
     (spit out res)))
 
-(defn ^:export stability
+(defn stability
   "Use this function in your tests to make sure that your code is always
   producing the same configuration files. The configurations files must be
   committed."
@@ -64,7 +64,7 @@
         files-v2 (mapv #(slurp %) files)
         _ (when-not (= files-v1 files-v2) (throw (ex-info (format "Module %s has changed" module) opts)))]))
 
-(defn ^:export catch-nils
+(defn catch-nils
   "Use this function in your tests to make sure that your code is not generating
   nils. The configurations files must be committed."
   [opts module]

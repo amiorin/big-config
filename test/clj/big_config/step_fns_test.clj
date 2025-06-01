@@ -5,7 +5,7 @@
    [big-config.step-fns :refer [->exit-step-fn]]
    [clojure.test :refer [deftest is testing]]))
 
-(defn ^:export wf-exit []
+(defn wf-exit []
   (let [step-fns [(->exit-step-fn ::end)
                   (->step-fn {:before-f (fn [step _]
                                           (println step))

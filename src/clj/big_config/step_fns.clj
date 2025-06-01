@@ -52,7 +52,7 @@
   (->> (update opts ::bc/steps (fnil conj []) step)
        (f step)))
 
-(def ^:export bling-step-fn
+(def bling-step-fn
   (->step-fn {:before-f (fn [step _]
                           (let [prefix "\ueabc"
                                 color :green.bold]
