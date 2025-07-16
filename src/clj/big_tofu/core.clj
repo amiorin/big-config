@@ -21,7 +21,9 @@
 (defprotocol To
   (reference [this property])
   (construct [this])
-  (arn [this aws-account-id])
+  (arn
+    [this aws-account-id]
+    [this aws-account-id region])
   (root-arn [this]))
 
 (add-filter! :remove-https
@@ -45,6 +47,13 @@
              (= type :aws_iam_role)) (p/render "arn:aws:iam::{{ aws-account-id }}:role/{{ block.name }}" this)
         (and (= group :resource)
              (= type :aws_iam_openid_connect_provider)) (p/render "arn:aws:iam::{{ aws-account-id }}:oidc-provider/{{ block.url|remove-https }}" this))))
+  (arn [{:keys [type] :as this} aws-account-id region]
+    (let [this (-> this
+                   (assoc :aws-account-id aws-account-id)
+                   (assoc :region region))]
+      (cond
+        (and (= group :resource)
+             (= type :aws_secretsmanager_secret)) (p/render "arn:aws:secretsmanager:{{ region }}:{{ aws-account-id }}:secret/{{ block.name }}" this))))
   (root-arn [{:keys [group type fqn block] :as this}]
     (cond
       (and (= group :data)
