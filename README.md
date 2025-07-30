@@ -2,7 +2,7 @@
 
 [![project chat](https://img.shields.io/badge/slack-join_chat-brightgreen.svg)](https://clojurians.slack.com/archives/C08LGCKAK8C)
 
-`big-config` adds a zero-cost `build` step to any `devops` tool like `terraform`, `k8s`, and `ansible`.
+`big-config` adds a zero-cost `build` step to any `devops` tool like `Makefile`, `terraform`, `k8s`, and `ansible`.
 
 ## YouTube demo
 [![Watch the video](https://img.youtube.com/vi/8KR99_DAgRI/hqdefault.jpg)](https://www.youtube.com/watch?v=8KR99_DAgRI)

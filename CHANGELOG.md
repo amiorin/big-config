@@ -9,6 +9,8 @@ The patch number is calculated with `git rev-list --count HEAD`
 
 ## [Unreleased]
 
+## [0.2.187] - 2025-07-30
+
 ### Added
 
 - `deps-new` is now a pillar of `big-config` developer experience and it enables the support for any `devops` tool (`tofu`, `ansible`, `helm`, `gh-actions`, ...).
@@ -17,6 +19,8 @@ The patch number is calculated with `git rev-list --count HEAD`
 - `step/parse` to parse the DSL workflows in the cli.
 - `dist` as default `target-dir` for `deps-new`
 - `module` and `profile` as convention for multiple outputs and multiple environments
+- `port-assigner` to assign always the same port based on the path of the project
+- `secrets-manager` to retrieve credentials from AWS
 
 ### Changed
 - `deps-new` in now creating a `deps-new + big-config`.
