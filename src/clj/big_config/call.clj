@@ -86,6 +86,9 @@
                   %))))))))
 
 (comment
+  (mkdir-and-spit nil)
+  (stability nil nil)
+  (catch-nils nil nil)
   (call-fns [(fn [f step opts]
                (println step)
                (f step opts))]

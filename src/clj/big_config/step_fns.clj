@@ -70,3 +70,7 @@
                                (println (bling [color (p/render "{{ prefix }} {{ msg }}: {{ err }}" {:prefix prefix
                                                                                                      :msg (name step)
                                                                                                      :err err})]))))))}))
+
+(comment
+  [tap-step-fn bling-step-fn]
+  (log-step-fn nil nil nil))

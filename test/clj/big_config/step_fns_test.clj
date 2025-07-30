@@ -36,3 +36,6 @@
           expect [exit out]]
 
       (is (= expect actual)))))
+
+(comment
+  (wf-exit))

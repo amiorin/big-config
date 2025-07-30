@@ -56,9 +56,9 @@
                             ::end [identity]))}))
 
 (defn main [{[action module profile] :args
-                      step-fns :step-fns
-                      repo :repo
-                      env :env}]
+             step-fns :step-fns
+             repo :repo
+             env :env}]
   (let [ctx {::repo repo
              ::action (name action)
              ::module (name module)
@@ -73,3 +73,6 @@
                            (p/render cmd ctx))}]
     (->> (run-clone step-fns opts)
          (into (sorted-map)))))
+
+(comment
+  (main nil))

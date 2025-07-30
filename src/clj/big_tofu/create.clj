@@ -54,6 +54,7 @@
                  :required_version ">= 1.8.0"}}))
 
 (comment
+  (provider nil)
   (->> (kms :alpha/big-kms)
        (map construct)
        (apply deep-merge)

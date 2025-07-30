@@ -3,6 +3,8 @@
    [big-config :as bc]
    [big-config.core :refer [->workflow]]
    [big-config.run :as run]
+   [big-config.step-fns :refer [->print-error-step-fn]]
+   [bling.core :refer [bling]]
    [clojure.test :refer [deftest is testing]]))
 
 (defn test-step-fn [end-steps xs f step opts]
@@ -49,7 +51,10 @@
                       (into (sorted-map)))]
       (is (= expect actual)))))
 
-#_(let [trace (fn [f step opts]
+(comment
+  (a-step-fn nil nil nil)
+
+  (let [trace (fn [f step opts]
                 (binding [*out* *err*]
                   (println (bling [:blue.bold step])))
                 (f step (update opts ::bc/steps (fnil conj []) step)))
@@ -76,14 +81,14 @@
                                      ::end [identity]))})]
     (->> (wf {::bar :baz})
          (into (sorted-map))))
-#_(->> ((->workflow {:first-step ::foo
+  (->> ((->workflow {:first-step ::foo
                      :wire-fn (fn [step _]
                                 (case step
                                   ::foo [#(throw (Exception. "Java exception") #_%) ::end]
                                   ::end [identity]))}) [(->print-error-step-fn ::end)] {::bar :baz})
        (into (sorted-map)))
 
-#_(->> ((->workflow {:first-step ::foo
+  (->> ((->workflow {:first-step ::foo
                      :wire-fn (fn [step _]
                                 (case step
                                   ::foo [#(throw (ex-info "Error" %)) ::end]
@@ -92,6 +97,6 @@
         {::bar :baz})
        (into (sorted-map)))
 
-#_(try (throw (Exception. "Java exception"))
+  (try (throw (Exception. "Java exception"))
        (catch Exception e
-         [(apply str (interpose "\n" (map str (.getStackTrace e))))]))
+         [(apply str (interpose "\n" (map str (.getStackTrace e))))])))

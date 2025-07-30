@@ -111,3 +111,7 @@
                                (case step
                                  ::start [(partial run-step build-fn step-fns) ::end]
                                  ::end [identity]))}))
+
+(comment
+  [print-step-fn]
+  (->run-steps nil))

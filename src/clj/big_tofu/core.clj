@@ -66,6 +66,7 @@
 (def caller-identity (->Construct :data :aws_caller_identity :current {}))
 
 (comment
+  (arn nil nil)
   (let [c (map->Construct {:group :data
                            :type :aws_iam_policy_document
                            :fqn ::foo
