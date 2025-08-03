@@ -1,12 +1,12 @@
 {:deps {{{name}} {:local/root "."}}
  :tasks
- {:requires ([{{top/ns}}.{{main/ns}} :as {{main/ns}}]
+ {:requires ([{{top/ns}} . {{main/ns}} :as {{main/ns}}]
              [clojure.string :as str])
   :init (defn run-steps [first-step]
           (-> [first-step]
               (into *command-line-args*)
               (->> (str/join " "))
-              ({{main/ns}}/run-steps {:big-config/env :shell})))
+              ({{main/ns}} /run-steps {:big-config/env :shell})))
   show-help {:doc "the workflow help"
              :task (println "Usage: bb <step|cmd>+ -- <module> <profile> [global-args]
 
@@ -34,7 +34,7 @@ These two are also equivalent
 Example of cmds:
   tofu:init                    tofu init
   tofu:plan                    tofu plan
-  tofu:apply:-auto-approve    tofu apply -auto-approve
+  tofu:apply:-auto-approve     tofu apply -auto-approve
   ansible-playbook:main.yml    ansible-playbook main.yml
 ")}
   git-check {:doc "the working dir is clean"
