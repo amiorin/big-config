@@ -30,6 +30,10 @@
   (generic-cmd :opts opts
                :cmd "git diff --quiet"))
 
+(defn git-push [opts]
+  (generic-cmd :opts opts
+               :cmd "git push"))
+
 (defn compare-revisions [opts]
   (let [{:keys [::prev-revision
                 ::current-revision

@@ -1,7 +1,6 @@
 (ns big-config.step
   (:require
    [big-config :as bc]
-   [big-config.action :as action]
    [big-config.build :as build]
    [big-config.core :as core]
    [big-config.git :as git]
@@ -97,7 +96,7 @@
                                          :git-check (git/check step-fns opts)
                                          :build ((build/->build build-fn) step-fns opts)
                                          :exec (run/run-cmds step-fns opts)
-                                         :git-push (action/git-push opts)
+                                         :git-push (git/git-push opts)
                                          :unlock-any (unlock/unlock-any step-fns opts))]
       (cond
         (and (seq (rest steps))
