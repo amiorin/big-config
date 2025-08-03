@@ -41,8 +41,8 @@
         (#{"beta"} module) (render-module data)))
 
 (defn opts->dir
-  [{:keys [::module ::profile]}]
-  (format "dist/%s/%s" profile module))
+  [{:keys [::module ::profile ::bc/target-dir]}]
+  (or target-dir (format "dist/%s/%s" profile module)))
 
 (defn build-fn [{:keys [::module ::profile] :as opts}]
   (binding [*out* (java.io.StringWriter.)]
@@ -81,4 +81,6 @@
          run-steps (step/->run-steps build-fn)]
      (run-steps step-fns opts))))
 
-(comment)
+(comment
+  (run-steps "build -- alpha prod"
+             {::bc/env :repl}))
