@@ -1,0 +1,69 @@
+{:deps {amiorin/big-infra-v2 {:local/root "."}}
+ :tasks
+ {:requires ([amiorin.big-infra-v2 :as big-infra-v2]
+             [clojure.string :as str])
+  :init (defn run-steps [first-step]
+          (-> [first-step]
+              (into *command-line-args*)
+              (->> (str/join " "))
+              (big-infra-v2/run-steps {:big-config/env :shell})))
+  show-help {:doc "the workflow help"
+             :task (println "Usage: bb <step|cmd>+ -- <module> <profile> [global-args]
+
+The available steps are listed below. Anything that is not a step is considered
+a cmd where `:` is replaced with ` `
+
+Steps
+  build           use `deps-new` to generate the configuration files
+  git-check       check if the working directory is clean and if have pulled all
+                  commits from origin
+  git-push        push your changes
+  lock            acquire the lock
+  unlock-any      release the lock from any owner
+  exec            you can either multiple cmds or a single exec where the cmd
+                  will be provided in the global-args
+
+These two are equivalent
+  bb exec -- alpha prod ansible-playbook main.yml
+  bb ansible-playbook:main.yml -- alpha prod
+
+These two are also equivalent
+  bb tofu:apply tofu:destroy -- alpha prod -auto-approve
+  bb tofu:apply:-auto-approve tofu:destroy:-auto-approve -- alpha prod
+
+Example of cmds:
+  tofu:init                    tofu init
+  tofu:plan                    tofu plan
+  tofu:applay:-auto-approve    tofu apply -auto-approve
+  ansible-playbook:main.yml    ansible-playbook main.yml
+")}
+  git-check {:doc "the working dir is clean"
+             :task (run-steps "git-check")}
+  git-push {:doc "git push"
+            :task (run-steps "git-push")}
+  build {:doc "build the dist folder"
+         :task (run-steps "build")}
+  lock {:doc "acquire the lock"
+        :task (run-steps "lock")}
+  unlock-any {:doc "release the lock (any owner)"
+              :task (run-steps "unlock-any")}
+  tidy {:doc "tidy clojure files"
+        :task (do (shell "clojure-lsp clean-ns")
+                  (shell "clojure-lsp format"))}
+  smoke-test {:doc "test to validate the template"
+              :task (doseq [cmd ["bb build exec -- alpha prod ls -l"
+                                 "bb build exec -- beta prod ls -l"
+                                 "bb build exec -- gamma prod ls -l"
+                                 "bb show-help"]]
+                      (println (str "> " cmd))
+                      (shell cmd))}
+  test {:doc "run test with clojure"
+        :task (apply clojure "-X:test" *command-line-args*)}
+  test:bb {:doc "run test with babashka"
+           :extra-paths ["test"]
+           :extra-deps {io.github.cognitect-labs/test-runner
+                        {:git/tag "v0.5.1" :git/sha "dfb30dd"}}
+           :task (exec 'cognitect.test-runner.api/test)
+           :exec-args {:dirs ["test"]}
+           :org.babashka/cli {:coerce {:nses [:symbol]
+                                       :vars [:symbol]}}}}}

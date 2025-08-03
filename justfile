@@ -20,12 +20,12 @@ test-big-config:
 # test big-infra
 [group('tofu')]
 test-big-infra:
-    cd big-infra && clojure -M:test
+    cd big-infra-v2 && clojure -M:test
 
 # invoked by recipe test
 [group('private')]
 test-wf-exit:
-    #!/usr/bin/env -S bb --config big-infra/bb.edn
+    #!/usr/bin/env -S bb --config big-infra-v2/bb.edn
     (require '[babashka.classpath :refer [add-classpath get-classpath]]
              '[clojure.string :as str])
     (add-classpath (str (System/getProperty "user.dir") "/test/clj"))

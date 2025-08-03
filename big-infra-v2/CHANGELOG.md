@@ -5,7 +5,7 @@ All notable changes to this project will be documented in this file. This change
 ### Changed
 - Add a new arity to `make-widget-async` to provide a different widget shape.
 
-## [0.1.1] - 2025-04-18
+## [0.1.1] - 2025-08-03
 ### Changed
 - Documentation on how to make the widgets.
 
@@ -15,10 +15,10 @@ All notable changes to this project will be documented in this file. This change
 ### Fixed
 - Fixed widget maker to keep working when daylight savings switches over.
 
-## 0.1.0 - 2025-04-18
+## 0.1.0 - 2025-08-03
 ### Added
 - Files from the new template.
 - Widget maker public API - `make-widget-sync`.
 
-[Unreleased]: https://github.com/amiorin/big-infra/compare/0.1.1...HEAD
-[0.1.1]: https://github.com/amiorin/big-infra/compare/0.1.0...0.1.1
+[Unreleased]: https://github.com/amiorin/big-infra-v2/compare/0.1.1...HEAD
+[0.1.1]: https://github.com/amiorin/big-infra-v2/compare/0.1.0...0.1.1

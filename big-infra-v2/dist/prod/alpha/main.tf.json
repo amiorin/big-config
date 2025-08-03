@@ -46,7 +46,7 @@
       "s3" : {
         "bucket" : "tf-state-251213589273-eu-west-1",
         "encrypt" : true,
-        "key" : "alpha.tfstate",
+        "key" : "beta.tfstate",
         "region" : "eu-west-1"
       }
     },

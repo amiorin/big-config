@@ -1,0 +1,5 @@
+{:data-fn amiorin.big-infra-v2/data-fn
+ :template-fn amiorin.big-infra-v2/template-fn
+ :post-process-fn amiorin.big-infra-v2/post-process-fn
+ :transform [["build" ""
+              {"projectile" ".projectile"}]]}
