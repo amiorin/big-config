@@ -34,9 +34,9 @@
       response)))
 
 (defn secrets->map
-  [& {:keys [credentials-provider secret-id]}]
+  [& {:keys [credentials-provider region secret-id]}]
   (let [client (aws/client {:api :secretsmanager
-                            :region "eu-west-1"
+                            :region region
                             :credentials-provider credentials-provider})]
     (-> (invoke client :GetSecretValue {:SecretId secret-id
                                         :Query :SecretString})
