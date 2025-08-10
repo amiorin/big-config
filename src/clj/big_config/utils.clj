@@ -1,9 +1,6 @@
 (ns big-config.utils
   (:require
-   [babashka.fs :as fs]
-   [cheshire.core :as json]
-   [com.grzm.awyeah.client.api :as aws]
-   [com.grzm.awyeah.credentials :refer [profile-credentials-provider]]))
+   [babashka.fs :as fs]))
 
 (defn deep-merge
   "Recursively merges maps."
@@ -27,22 +24,6 @@
         (seq? m)) (mapv sort-nested-map m)
     :else m))
 
-(defn invoke [client operation request]
-  (let [response (aws/invoke client {:op operation :request request})]
-    (if (contains? response :cognitect.anomalies/category)
-      (throw (ex-info "AWS operation failed" {:operation operation :request request :response response}))
-      response)))
-
-(defn secrets->map
-  [& {:keys [credentials-provider region secret-id]}]
-  (let [client (aws/client {:api :secretsmanager
-                            :region region
-                            :credentials-provider credentials-provider})]
-    (-> (invoke client :GetSecretValue {:SecretId secret-id
-                                        :Query :SecretString})
-        :SecretString
-        (json/decode true))))
-
 (defn port-assigner [service]
   (-> (fs/cwd)
       (str service)
@@ -52,6 +33,4 @@
       (+ 1024)))
 
 (comment
-  (secrets->map :credentials-provider (profile-credentials-provider "data_lake_dacore")
-                :secret-id "arn:aws:secretsmanager:region:111111111111:secret:prod/squad/system-suffix")
   (port-assigner ["postgres"]))
