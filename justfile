@@ -2,6 +2,10 @@
 help:
     @just -f {{ justfile() }} --list --unsorted
 
+# render README.md
+readme:
+    cd .big-config && bb readme
+
 # test all
 test: test-big-infra test-big-config
 

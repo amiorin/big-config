@@ -17,7 +17,7 @@
 The core idea of `big-config` is that you should not write configuration files manually but you should have `build` step that generates them. [`deps-new`](https://github.com/seancorfield/deps-new) is used to create a `big-config` project.
 
 ``` shell
-clojure -Sdeps '{:deps {io.github.amiorin/big-config {:git/sha "ed2a68df802a808a5de15ec7716bd419737669e6"}}}' \
+clojure -Sdeps '{:deps {io.github.amiorin/big-config {:git/sha "81aec53608e63a97564cd5e7f05cd400fdd5bac7"}}}' \
     -Tnew create \
     :template amiorin/big-config \
     :name my-org/my-artifact \
