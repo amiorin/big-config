@@ -70,3 +70,21 @@ jobs:
           ZELLIJ_SESSION_NAME: test-${{ matrix.os }}-temurin-${{ matrix.java-version }}
         run: |
           just test
+
+  tag:
+    needs:
+      - test
+    runs-on: ubuntu-latest
+    steps:
+      - name: "Checkout code"
+        uses: "actions/checkout@v4"
+        with:
+          fetch-depth: 0
+
+      - id: set-artifact-tag-version
+        run: echo "ARTIFACT_TAG_VERSION=$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
+
+      - id: create-tag
+        uses: rickstaa/action-create-tag@v1
+        with:
+          tag: ${{ steps.set-artifact-tag-version.outputs.ARTIFACT_TAG_VERSION }}
