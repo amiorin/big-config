@@ -88,3 +88,4 @@ jobs:
         uses: rickstaa/action-create-tag@v1
         with:
           tag: ${{ steps.set-artifact-tag-version.outputs.ARTIFACT_TAG_VERSION }}
+          force_push_tag: true
