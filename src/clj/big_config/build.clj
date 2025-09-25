@@ -10,14 +10,6 @@
    (java.nio.file Files)
    (java.nio.file.attribute FileAttribute)))
 
-(defn ->build
-  [build-fn]
-  (core/->workflow {:first-step ::start
-                    :wire-fn (fn [step _]
-                               (case step
-                                 ::start [build-fn ::end]
-                                 ::end [identity]))}))
-
 (s/def ::files (s/map-of (s/or :kw keyword? :str string?) string?))
 (s/def ::tag-open char?)
 (s/def ::tag-close char?)
@@ -98,25 +90,32 @@
                            (not raw) (merge {:data data
                                              :delimiters delimiters}))))))))
 
-
 (defn create [{:keys [::recipes] :as opts}]
-    (loop [counter 0
-           xs recipes]
-      (when-not (empty? xs)
-        (let [{:keys [template target-dir data-fn post-process-fn root transform]} (first xs)
-              ^java.net.URL url (io/resource template)
-              template-dir (-> url .getPath io/file .getCanonicalPath)
-              data-fn (if (symbol? data-fn)
-                        (requiring-resolve data-fn)
-                        (constantly {}))
-              data (data-fn opts counter)
-              post-process-fn (if (symbol? post-process-fn)
-                                (requiring-resolve post-process-fn)
-                                (constantly nil))
-              transform (if transform
-                          (s/conform ::transform transform)
-                          [{:src [:str (or root "root")]}])]
-          (run! #(copy-template-dir template-dir target-dir % data) transform)
-          (post-process-fn)
-          (recur (inc counter) (rest xs)))))
-    opts)
+  (loop [counter 0
+         xs recipes]
+    (when-not (empty? xs)
+      (let [{:keys [template target-dir data-fn post-process-fn root transform]} (first xs)
+            ^java.net.URL url (io/resource template)
+            template-dir (-> url .getPath io/file .getCanonicalPath)
+            data-fn (if (symbol? data-fn)
+                      (requiring-resolve data-fn)
+                      (constantly {}))
+            data (data-fn opts counter)
+            post-process-fn (if (symbol? post-process-fn)
+                              (requiring-resolve post-process-fn)
+                              (constantly nil))
+            transform (if transform
+                        (s/conform ::transform transform)
+                        [{:src [:str (or root "root")]}])]
+        (run! #(copy-template-dir template-dir target-dir % data) transform)
+        (post-process-fn)
+        (recur (inc counter) (rest xs)))))
+  (core/ok opts))
+
+(defn ->build
+  [build-fn]
+  (core/->workflow {:first-step ::start
+                    :wire-fn (fn [step _]
+                               (case step
+                                 ::start [build-fn ::end]
+                                 ::end [identity]))}))

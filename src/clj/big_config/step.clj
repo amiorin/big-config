@@ -59,7 +59,7 @@
                    (str/split #"\s+"))]
         (recur (rest xs) (first xs) steps cmds module profile global-args))
 
-      (#{"lock" "git-check" "build" "exec" "git-push" "unlock-any"} token)
+      (#{"lock" "git-check" "build" "create" "exec" "git-push" "unlock-any"} token)
       (let [steps (into steps [token])]
         (recur (rest xs) (first xs) steps cmds module profile global-args))
 
@@ -88,29 +88,52 @@
         (recur (rest xs) (first xs) steps cmds module profile global-args)))))
 
 (defn run-step
-  [build-fn step-fns {:keys [::steps] :as opts}]
-  (loop [steps (map keyword steps)
-         opts opts]
-    (let [{:keys [::bc/exit] :as opts} (case (first steps)
-                                         :lock (lock/lock step-fns opts)
-                                         :git-check (git/check step-fns opts)
-                                         :build ((build/->build build-fn) step-fns opts)
-                                         :exec (run/run-cmds step-fns opts)
-                                         :git-push (git/git-push opts)
-                                         :unlock-any (unlock/unlock-any step-fns opts))]
-      (cond
-        (and (seq (rest steps))
-             (or (= exit 0)
-                 (nil? exit))) (recur (rest steps) opts)
-        :else opts))))
+  ([step-fns opts]
+   (run-step (fn [opts] (core/ok opts)) step-fns opts))
+  ([build-fn step-fns {:keys [::steps] :as opts}]
+   (loop [steps (map keyword steps)
+          opts opts]
+     (let [{:keys [::bc/exit] :as opts} (case (first steps)
+                                          :lock (lock/lock step-fns opts)
+                                          :git-check (git/check step-fns opts)
+                                          :build ((build/->build build-fn) step-fns opts)
+                                          :create ((build/->build build/create) step-fns opts)
+                                          :exec (run/run-cmds step-fns opts)
+                                          :git-push (git/git-push opts)
+                                          :unlock-any (unlock/unlock-any step-fns opts))]
+       (cond
+         (and (seq (rest steps))
+              (or (= exit 0)
+                  (nil? exit))) (recur (rest steps) opts)
+         :else opts)))))
 
-(defn ->run-steps [build-fn]
-  (core/->workflow {:first-step ::start
-                    :wire-fn (fn [step step-fns]
-                               (case step
-                                 ::start [(partial run-step build-fn step-fns) ::end]
-                                 ::end [identity]))}))
+(defn ->run-steps
+  ([]
+   (->run-steps (fn [opts] (core/ok opts))))
+  ([build-fn]
+   (core/->workflow {:first-step ::start
+                     :wire-fn (fn [step step-fns]
+                                (case step
+                                  ::start [(partial run-step build-fn step-fns) ::end]
+                                  ::end [identity]))})))
+
+(defn run-steps
+  ([s]
+   (run-steps s nil))
+  ([s opts]
+   (run-steps s [] opts))
+  ([s step-fns opts]
+   (apply run-steps step-fns opts (parse s)))
+  ([step-fns opts steps cmds module profile]
+   (let [opts (merge (or opts {::bc/env :repl})
+                     {::steps steps
+                      ::run/cmds cmds
+                      ::module module
+                      ::profile profile})
+         do-run-steps (->run-steps)]
+     (do-run-steps step-fns opts))))
 
 (comment
-  [print-step-fn]
-  (->run-steps nil))
+  (run-steps "create -- foo bar" {::build/recipes [{:template "template"
+                                                    :target-dir "test/dist/target"
+                                                    :data-fn 'big-config.build-test/data-fn}]}))
