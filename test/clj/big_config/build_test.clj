@@ -40,26 +40,28 @@
     (let [prefix "test/fixtures"]
       (loop [counter 0
              xs [['big-config.build-test/->content
-               {:inventory "inventory.json"}]
-              ['big-config.build-test/->content
-               {:inventory "inventory-raw.json"}
-               :raw]
-              ['big-config.build-test/->content
-               {:config "config.json"}
-               {:tag-open \<
-                :tag-close \>
-                :filter-open \<
-                :filter-close \>}]
-              ["root"]
-              ["root" "role"
-               {"root-config.json" "config.json"}
-               {:tag-open \<
-                :tag-close \>
-                :filter-open \<
-                :filter-close \>}]
-              ["root" "{{ module }}"
-               {"root-config.json" "{{ module }}.json"}
-               :only]]]
+                  {:inventory "inventory.json"}]
+                 ['big-config.build-test/->content
+                  {:inventory "inventory-raw.json"}
+                  :raw]
+                 ['big-config.build-test/->content
+                  {:config "config.json"}
+                  {:tag-open \<
+                   :tag-close \>
+                   :filter-open \<
+                   :filter-close \>}]
+                 ["root"]
+                 ["root" "role"
+                  {"root-config.json" "config.json"}
+                  {:tag-open \<
+                   :tag-close \>
+                   :filter-open \<
+                   :filter-close \>}]
+                 ["root" "{{ module }}"
+                  {"root-config.json" "{{ module }}.json"}
+                  :only]
+                 ["nested"]
+                 ["nested" "{{ module }}"]]]
         (when-not (empty? xs)
           (let [template-dir (str prefix "/source")
                 target-dir (format "%s/target/copy-%s" prefix counter)

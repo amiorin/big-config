@@ -45,7 +45,9 @@
                                           _ (fs/create-dirs (fs/parent target-file))
                                           content (cond-> (slurp path)
                                                     data (p/render data delimiters))]
-                                      (spit target-file content))
+                                      (spit target-file content)
+                                      (->> (fs/posix-file-permissions path)
+                                           (fs/set-posix-file-permissions target-file)))
                                     :continue)}))
 
 (defn copy-template-dir
@@ -85,7 +87,7 @@
                                     :src-dir intermediate}
                              (not raw) (merge {:data data
                                                :delimiters delimiters}))))
-               (copy-dir (cond-> {:target-dir target-dir
+               (copy-dir (cond-> {:target-dir (str target-dir target)
                                   :src-dir (str template-dir "/" src)}
                            (not raw) (merge {:data data
                                              :delimiters delimiters}))))))))
@@ -128,6 +130,18 @@
         (post-process-fn)
         (recur (inc counter) (rest xs)))))
   (core/ok opts))
+
+(comment
+  (let [prefix "test/fixtures"
+        template-dir (str prefix "/source")
+        target-dir (format "%s/target/copy-%s" prefix 7)
+        transform [["nested" "{{ module }}"]]]
+    (b/delete {:path target-dir})
+    (run! #(apply copy-template-dir
+                  :template-dir template-dir
+                  :target-dir target-dir
+                  :data {:module "infra"}
+                  (reduce concat (vec %))) (s/conform ::transform transform))))
 
 (defn ->build
   [build-fn]
