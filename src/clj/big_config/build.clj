@@ -110,9 +110,7 @@
             post-process-fn (if (symbol? post-process-fn)
                               (requiring-resolve post-process-fn)
                               (constantly nil))
-            transform (s/conform ::transform (if transform
-                                               transform
-                                               [[(or root "root")]]))]
+            transform (s/conform ::transform (into [[(or root "root")]] transform))]
         (when (.exists (io/file target-dir))
           (if overwrite
             (when (= :delete overwrite)

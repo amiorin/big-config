@@ -69,5 +69,9 @@
       (sut/create {::sut/recipes [{:template "template"
                                    :target-dir target-dir
                                    :overwrite true
-                                   :data-fn 'big-config.build-test/data-fn}]}))
+                                   :data-fn 'big-config.build-test/data-fn
+                                   :transform ["role"
+                                               {"tasks.yml" "tasks.yml"}
+                                               :only
+                                               :raw]}]}))
     (is (check-dir "test/dist") (git-output "test/dist"))))
