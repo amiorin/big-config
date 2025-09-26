@@ -103,6 +103,10 @@
                     transform]} (first xs)
             ^java.net.URL url (io/resource template)
             template-dir (-> url .getPath io/file .getCanonicalPath)
+            target-dir (cond
+                         (string? target-dir) target-dir
+                         (fn? target-dir) (target-dir opts)
+                         (symbol? target-dir) ((requiring-resolve target-dir) opts))
             data-fn (if (symbol? data-fn)
                       (requiring-resolve data-fn)
                       (constantly {}))
