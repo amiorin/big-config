@@ -37,41 +37,53 @@
 
 (deftest all-test
   (testing "Test both copy-template-dir and create"
-    (let [template-dir "test/dist/source"
-          target-dir "test/dist/target"
-          transform [['big-config.build-test/->content
-                      {:inventory "inventory.json"}]
-                     ['big-config.build-test/->content
-                      {:inventory "inventory-raw.json"}
-                      :raw]
-                     ['big-config.build-test/->content
-                      {:config "config.json"}
-                      {:tag-open \<
-                       :tag-close \>
-                       :filter-open \<
-                       :filter-close \>}]
-                     ["root"]
-                     ["root" "role"
-                      {"root-config.json" "config.json"}
-                      {:tag-open \<
-                       :tag-close \>
-                       :filter-open \<
-                       :filter-close \>}]
-                     ["root" "{{ module }}"
-                      {"root-config.json" "{{ module }}.json"}
-                      :only]]]
-      (b/delete {:path target-dir})
-      (run! #(apply sut/copy-template-dir
-                    :template-dir template-dir
-                    :target-dir target-dir
-                    :data {:module "infra"}
-                    (reduce concat (vec %))) (s/conform ::sut/transform transform))
-      (sut/create {::sut/recipes [{:template "template"
-                                   :target-dir target-dir
-                                   :overwrite true
-                                   :data-fn 'big-config.build-test/data-fn
-                                   :transform ["role"
-                                               {"tasks.yml" "tasks.yml"}
-                                               :only
-                                               :raw]}]}))
-    (is (check-dir "test/dist") (git-output "test/dist"))))
+    (let [prefix "test/fixtures"]
+      (loop [counter 0
+             xs [['big-config.build-test/->content
+               {:inventory "inventory.json"}]
+              ['big-config.build-test/->content
+               {:inventory "inventory-raw.json"}
+               :raw]
+              ['big-config.build-test/->content
+               {:config "config.json"}
+               {:tag-open \<
+                :tag-close \>
+                :filter-open \<
+                :filter-close \>}]
+              ["root"]
+              ["root" "role"
+               {"root-config.json" "config.json"}
+               {:tag-open \<
+                :tag-close \>
+                :filter-open \<
+                :filter-close \>}]
+              ["root" "{{ module }}"
+               {"root-config.json" "{{ module }}.json"}
+               :only]]]
+        (when-not (empty? xs)
+          (let [template-dir (str prefix "/source")
+                target-dir (format "%s/target/copy-%s" prefix counter)
+                transform [(first xs)]]
+            (b/delete {:path target-dir})
+            (run! #(apply sut/copy-template-dir
+                          :template-dir template-dir
+                          :target-dir target-dir
+                          :data {:module "infra"}
+                          (reduce concat (vec %))) (s/conform ::sut/transform transform))
+            (recur (inc counter) (rest xs)))))
+      (loop [counter 0
+             xs [{:template "template"
+                  :overwrite true
+                  :data-fn 'big-config.build-test/data-fn
+                  :transform [["role" "role"
+                               {"tasks.yml" "tasks.yml"}
+                               :only
+                               :raw]]}]]
+        (when-not (empty? xs)
+          (let [target-dir (format "%s/target/create-%s" prefix counter)]
+            (b/delete {:path target-dir})
+            (sut/create {::sut/recipes [(-> xs
+                                            first
+                                            (assoc :target-dir target-dir))]})
+            (recur (inc counter) (rest xs)))))
+      (is (check-dir prefix) (git-output prefix)))))
