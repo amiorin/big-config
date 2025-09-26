@@ -61,7 +61,8 @@
                   {"root-config.json" "{{ module }}.json"}
                   :only]
                  ["nested"]
-                 ["nested" "{{ module }}"]]]
+                 ["nested" "{{ module }}"]
+                 ["{{ module }}" "{{ module }}"]]]
         (when-not (empty? xs)
           (let [template-dir (str prefix "/source")
                 target-dir (format "%s/target/copy-%s" prefix counter)

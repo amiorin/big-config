@@ -67,7 +67,7 @@
                          (spit target-file content)))
                      files)
                (throw (ex-info "Files is required when src is a symbol" {}))))
-      :str (let [src (second src)]
+      :str (let [src (p/render (second src) data)]
              (if (seq files)
                (let [intermediate (-> (Files/createTempDirectory
                                        "big-config" (into-array FileAttribute []))
