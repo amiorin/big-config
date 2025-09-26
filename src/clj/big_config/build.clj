@@ -102,20 +102,22 @@
                     data-fn
                     post-process-fn
                     root
-                    transform]} (first xs)
+                    transform] :as edn} (first xs)
             ^java.net.URL url (io/resource template)
             template-dir (-> url .getPath io/file .getCanonicalPath)
             target-dir (cond
                          (string? target-dir) target-dir
                          (fn? target-dir) (target-dir opts)
                          (symbol? target-dir) ((requiring-resolve target-dir) opts))
-            data-fn (if (symbol? data-fn)
-                      (requiring-resolve data-fn)
-                      (constantly {}))
+            data-fn (cond
+                      (nil? data-fn) (constantly {})
+                      (fn? data-fn) data-fn
+                      (symbol? data-fn) (requiring-resolve data-fn))
             data (data-fn opts counter)
-            post-process-fn (if (symbol? post-process-fn)
-                              (requiring-resolve post-process-fn)
-                              (constantly nil))
+            post-process-fn (cond
+                              (nil? post-process-fn) (constantly nil)
+                              (fn? post-process-fn) post-process-fn
+                              (symbol? post-process-fn) (requiring-resolve post-process-fn))
             transform (s/conform ::transform (into [[(or root "root")]] transform))]
         (when (.exists (io/file target-dir))
           (if overwrite
@@ -127,7 +129,7 @@
                       :target-dir target-dir
                       :data data
                       (reduce concat (vec %))) transform)
-        (post-process-fn)
+        (post-process-fn edn data)
         (recur (inc counter) (rest xs)))))
   (core/ok opts))
 
