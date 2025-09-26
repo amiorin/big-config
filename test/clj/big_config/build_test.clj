@@ -61,8 +61,13 @@
                       {"root-config.json" "{{ module }}.json"}
                       :only]]]
       (b/delete {:path target-dir})
-      (run! #(sut/copy-template-dir template-dir target-dir % {:module "infra"}) (s/conform ::sut/transform transform))
+      (run! #(apply sut/copy-template-dir
+                    :template-dir template-dir
+                    :target-dir target-dir
+                    :data {:module "infra"}
+                    (reduce concat (vec %))) (s/conform ::sut/transform transform))
       (sut/create {::sut/recipes [{:template "template"
-                               :target-dir target-dir
-                               :data-fn 'big-config.build-test/data-fn}]}))
+                                   :target-dir target-dir
+                                   :overwrite true
+                                   :data-fn 'big-config.build-test/data-fn}]}))
     (is (check-dir "test/dist") (git-output "test/dist"))))

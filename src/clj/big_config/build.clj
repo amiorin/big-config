@@ -49,7 +49,7 @@
                                     :continue)}))
 
 (defn copy-template-dir
-  [template-dir target-dir {:keys [src target files delimiters opts]} data]
+  [& {:keys [template-dir target-dir data src target files delimiters opts]}]
   (let [target (if target (str "/" (p/render target data)) "")
         opts (set opts)
         raw (:raw opts)
@@ -94,7 +94,13 @@
   (loop [counter 0
          xs recipes]
     (when-not (empty? xs)
-      (let [{:keys [template target-dir data-fn post-process-fn root transform]} (first xs)
+      (let [{:keys [template
+                    target-dir
+                    overwrite
+                    data-fn
+                    post-process-fn
+                    root
+                    transform]} (first xs)
             ^java.net.URL url (io/resource template)
             template-dir (-> url .getPath io/file .getCanonicalPath)
             data-fn (if (symbol? data-fn)
@@ -104,10 +110,19 @@
             post-process-fn (if (symbol? post-process-fn)
                               (requiring-resolve post-process-fn)
                               (constantly nil))
-            transform (if transform
-                        (s/conform ::transform transform)
-                        [{:src [:str (or root "root")]}])]
-        (run! #(copy-template-dir template-dir target-dir % data) transform)
+            transform (s/conform ::transform (if transform
+                                               transform
+                                               [[(or root "root")]]))]
+        (when (.exists (io/file target-dir))
+          (if overwrite
+            (when (= :delete overwrite)
+              (b/delete {:path target-dir}))
+            (throw (ex-info (str target-dir " already exists (and :overwrite was not true).") {}))))
+        (run! #(apply copy-template-dir
+                      :template-dir template-dir
+                      :target-dir target-dir
+                      :data data
+                      (reduce concat (vec %))) transform)
         (post-process-fn)
         (recur (inc counter) (rest xs)))))
   (core/ok opts))
