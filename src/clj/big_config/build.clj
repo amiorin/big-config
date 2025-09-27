@@ -92,6 +92,8 @@
                                              :delimiters delimiters}))))))))
 
 (defn create [{:keys [::templates] :as opts}]
+  (when (nil? templates)
+    (throw (IllegalArgumentException. ":big-config.build/templates should never be nil")))
   (loop [counter 0
          xs templates]
     (when-not (empty? xs)
