@@ -62,7 +62,8 @@
                   :only]
                  ["nested"]
                  ["nested" "{{ module }}"]
-                 ["{{ module }}" "{{ module }}"]]]
+                 ["{{ module }}" "{{ module }}"]
+                 ["binary"]]]
         (when-not (empty? xs)
           (let [template-dir (str prefix "/source")
                 target-dir (format "%s/target/copy-%s" prefix counter)
@@ -86,7 +87,13 @@
           (let [target-dir (format "%s/target/create-%s" prefix counter)]
             (b/delete {:path target-dir})
             (sut/create {::sut/templates [(-> xs
-                                            first
-                                            (assoc :target-dir target-dir))]})
+                                              first
+                                              (assoc :target-dir target-dir))]})
             (recur (inc counter) (rest xs)))))
       (is (check-dir prefix) (git-output prefix)))))
+
+(deftest binary-files-test
+  (testing "empty *non-replaced-ext*"
+    (is (thrown? clojure.lang.ExceptionInfo
+                 (binding [sut/*non-replaced-exts* #{}]
+                   (sut/copy-dir :src-dir "test/fixtures/source/binary" :target-dir "test/fixtures/target/copy-9" :data {}))))))
