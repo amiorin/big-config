@@ -84,36 +84,35 @@
                                        :target (str inter-target "/" (p/render to data))}))
                        files)
                  (copy-dir (cond-> {:target-dir target-dir
-                                    :src-dir intermediate}
-                             (not raw) (merge {:data data
-                                               :delimiters delimiters}))))
+                                    :src-dir intermediate} (not raw) (merge {:data data
+                                                                             :delimiters delimiters}))))
                (copy-dir (cond-> {:target-dir (str target-dir target)
                                   :src-dir (str template-dir "/" src)}
                            (not raw) (merge {:data data
                                              :delimiters delimiters}))))))))
 
-(defn create [{:keys [::recipes] :as opts}]
+(defn create [{:keys [::templates] :as opts}]
   (loop [counter 0
-         xs recipes]
+         xs templates]
     (when-not (empty? xs)
-      (let [{:keys [template
-                    target-dir
-                    overwrite
-                    data-fn
-                    post-process-fn
-                    root
-                    transform] :as edn} (first xs)
-            ^java.net.URL url (io/resource template)
-            template-dir (-> url .getPath io/file .getCanonicalPath)
-            target-dir (cond
-                         (string? target-dir) target-dir
-                         (fn? target-dir) (target-dir opts)
-                         (symbol? target-dir) ((requiring-resolve target-dir) opts))
+      (let [{:keys [data-fn template-fn] :as edn} (first xs)
             data-fn (cond
                       (nil? data-fn) (constantly {})
                       (fn? data-fn) data-fn
                       (symbol? data-fn) (requiring-resolve data-fn))
+            template-fn (cond
+                          (nil? template-fn) (constantly edn)
+                          (fn? template-fn) template-fn
+                          (symbol? template-fn) (requiring-resolve template-fn))
             data (data-fn opts counter)
+            {:keys [template
+                    target-dir
+                    overwrite
+                    post-process-fn
+                    root
+                    transform] :as edn} (template-fn data edn)
+            ^java.net.URL url (io/resource template)
+            template-dir (-> url .getPath io/file .getCanonicalPath)
             post-process-fn (cond
                               (nil? post-process-fn) (constantly nil)
                               (fn? post-process-fn) post-process-fn

@@ -134,6 +134,6 @@
      (do-run-steps step-fns opts))))
 
 (comment
-  (run-steps "create -- foo bar" {::build/recipes [{:template "template"
+  (run-steps "create -- foo bar" {::build/templates [{:template "template"
                                                     :target-dir "test/dist/target"
                                                     :data-fn 'big-config.build-test/data-fn}]}))

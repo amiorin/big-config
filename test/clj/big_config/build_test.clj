@@ -85,7 +85,7 @@
         (when-not (empty? xs)
           (let [target-dir (format "%s/target/create-%s" prefix counter)]
             (b/delete {:path target-dir})
-            (sut/create {::sut/recipes [(-> xs
+            (sut/create {::sut/templates [(-> xs
                                             first
                                             (assoc :target-dir target-dir))]})
             (recur (inc counter) (rest xs)))))
