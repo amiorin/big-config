@@ -34,17 +34,20 @@
                            :only
                            :raw]]))
 
+(def ^:dynamic *non-replaced-exts* #{"jpg" "jpeg" "png" "gif" "bmp"})
+
 (defn copy-dir
   [& {:keys [src-dir target-dir data delimiters]}]
   (fs/walk-file-tree src-dir
                      {:visit-file (fn [path _]
                                     (let [path (str path)
+                                          replacable ((complement *non-replaced-exts*) (fs/extension path))
                                           target-file (->> (fs/relativize src-dir path)
                                                            (fs/path target-dir)
                                                            str)
                                           _ (fs/create-dirs (fs/parent target-file))
                                           content (cond-> (slurp path)
-                                                    data (p/render data delimiters))]
+                                                    (and data replacable) (p/render data delimiters))]
                                       (spit target-file content)
                                       (->> (fs/posix-file-permissions path)
                                            (fs/set-posix-file-permissions target-file)))
