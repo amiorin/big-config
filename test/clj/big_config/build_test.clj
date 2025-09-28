@@ -2,6 +2,7 @@
   (:require
    [babashka.process :refer [shell]]
    [big-config.build :as sut]
+   [big-config.step :as step]
    [clojure.spec.alpha :as s]
    [clojure.string :as str]
    [clojure.test :refer [deftest is testing]]
@@ -11,9 +12,6 @@
   (case kw
     :inventory "{{ module }}"
     :config "<< module >>"))
-
-(defn data-fn [_opts _counter]
-  {:module "infra"})
 
 (defn check-dir
   [dir]
@@ -77,16 +75,21 @@
             (recur (inc counter) (rest xs)))))
       (loop [counter 0
              xs [{:template "template"
-                  :overwrite true
-                  :data-fn 'big-config.build-test/data-fn
+                  :overwrite :delete
                   :transform [["role" "role"
                                {"tasks.yml" "tasks.yml"}
                                :only
-                               :raw]]}]]
+                               :raw]]}
+                 {:template "template"
+                  :overwrite :delete
+                  :transform [["role" "role"
+                               {"tasks.yml" "tasks.yml"}
+                               :only]]}]]
         (when-not (empty? xs)
           (let [target-dir (format "%s/target/create-%s" prefix counter)]
             (b/delete {:path target-dir})
-            (sut/create {::sut/templates [(-> xs
+            (sut/create {::step/module "infra"
+                         ::sut/templates [(-> xs
                                               first
                                               (assoc :target-dir target-dir))]})
             (recur (inc counter) (rest xs)))))
@@ -97,3 +100,5 @@
     (is (thrown? clojure.lang.ExceptionInfo
                  (binding [sut/*non-replaced-exts* #{}]
                    (sut/copy-dir :src-dir "test/fixtures/source/binary" :target-dir "test/fixtures/target/copy-9" :data {}))))))
+
+(-> ::step/module)

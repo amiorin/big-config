@@ -93,23 +93,33 @@
                                   :src-dir (str template-dir "/" src)}
                            (not raw) (merge {:data data
                                              :delimiters delimiters}))))))))
+(def template-keys [:template
+                    :target-dir
+                    :overwrite
+                    :data-fn
+                    :template-fn
+                    :post-process-fn
+                    :root
+                    :transform])
 
-(defn create [{:keys [::templates] :as opts}]
+(defn create [{:keys [::templates :big-config.step/module :big-config.step/profile] :as opts}]
   (when (nil? templates)
     (throw (IllegalArgumentException. ":big-config.build/templates should never be nil")))
-  (loop [counter 0
-         xs templates]
+  (loop [xs templates]
     (when-not (empty? xs)
       (let [{:keys [data-fn template-fn] :as edn} (first xs)
             data-fn (cond
-                      (nil? data-fn) (constantly {})
+                      (nil? data-fn) (fn [data _] data)
                       (fn? data-fn) data-fn
                       (symbol? data-fn) (requiring-resolve data-fn))
             template-fn (cond
                           (nil? template-fn) (constantly edn)
                           (fn? template-fn) template-fn
                           (symbol? template-fn) (requiring-resolve template-fn))
-            data (data-fn opts counter)
+            data (-> (apply dissoc edn template-keys)
+                     (merge {:module module
+                             :profile profile})
+                     (data-fn opts))
             {:keys [template
                     target-dir
                     overwrite
@@ -134,7 +144,7 @@
                       :data data
                       (reduce concat (vec %))) transform)
         (post-process-fn edn data)
-        (recur (inc counter) (rest xs)))))
+        (recur (rest xs)))))
   (core/ok opts))
 
 (comment
