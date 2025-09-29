@@ -4,6 +4,7 @@
    [big-config.core :as core]
    [clojure.java.io :as io]
    [clojure.spec.alpha :as s]
+   [clojure.string :as str]
    [clojure.tools.build.api :as b]
    [selmer.parser :as p]
    [selmer.util :refer [without-escaping]])
@@ -39,7 +40,7 @@
   (without-escaping
    (apply p/render s data delimiters)))
 
-(def ^:dynamic *non-replaced-exts* #{"jpg" "jpeg" "png" "gif" "bmp"})
+(def ^:dynamic *non-replaced-exts* #{"jpg" "jpeg" "png" "gif" "bmp" "bin"})
 
 (defn copy-dir
   [& {:keys [src-dir target-dir data delimiters]}]
@@ -171,3 +172,18 @@
                                (case step
                                  ::start [render ::end]
                                  ::end [identity]))}))
+
+(defn discover
+  "discover all dirs inside a parent dir and return them as list of strings"
+  [parent-dir]
+  (let [profiles (atom [])]
+    (fs/walk-file-tree parent-dir {:max-depth 2
+                                   :pre-visit-dir (fn [dir _]
+                                                    (let [dir (str (fs/relativize parent-dir dir))]
+                                                      (when-not (str/blank? dir)
+                                                        (swap! profiles conj dir)))
+                                                    :continue)})
+    @profiles))
+
+(comment
+  (discover "resources"))
