@@ -139,7 +139,7 @@
    (let [step-fns [print-step-fn
                    (step-fns/->exit-step-fn ::end)
                    (step-fns/->print-error-step-fn ::end)]]
-     (run-steps s step-fns opts)))
+     (run-steps s opts step-fns)))
   ([s opts step-fns]
    (apply run-steps opts step-fns (parse s)))
   ([opts step-fns steps cmds module profile]
