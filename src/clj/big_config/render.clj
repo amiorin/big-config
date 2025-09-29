@@ -160,7 +160,7 @@
         (recur (rest xs)))))
   (core/ok opts))
 
-(defn templates []
+(def templates
   (core/->workflow {:first-step ::start
                     :wire-fn (fn [step _]
                                (case step

@@ -1,5 +1,6 @@
 (ns big-config.step-test
   (:require
+   [big-config.render :as render]
    [big-config.step :as sut]
    [clojure.test :refer [deftest is testing]]))
 
@@ -14,3 +15,9 @@
 
       (doseq [[example expect] (partition 2 xs)]
         (is (= expect (sut/parse example)))))))
+
+(deftest render-test
+  (testing "render step works"
+    (as-> (sut/run-steps "render -- foo bar" {::render/templates []}) $
+      (:big-config/exit $)
+      (is (= 0 $)))))

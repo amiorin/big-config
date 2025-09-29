@@ -139,5 +139,4 @@
      (do-run-steps step-fns opts))))
 
 (comment
-  (run-steps "render -- foo bar" {::render/templates [{:template "template"
-                                                       :target-dir "test/dist/target"}]}))
+  (run-steps "render -- foo bar" {::render/templates []}))
