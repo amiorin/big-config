@@ -148,6 +148,7 @@
                       ::run/cmds cmds
                       ::module module
                       ::profile profile})
+         step-fns (or step-fns [])
          do-run-steps (->run-steps)]
      (do-run-steps step-fns opts))))
 
