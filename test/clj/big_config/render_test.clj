@@ -1,7 +1,7 @@
-(ns big-config.build-test
+(ns big-config.render-test
   (:require
    [babashka.process :refer [shell]]
-   [big-config.build :as sut]
+   [big-config.render :as sut]
    [big-config.step :as step]
    [clojure.spec.alpha :as s]
    [clojure.string :as str]
@@ -12,6 +12,9 @@
   (case kw
     :inventory "{{ module }}"
     :config "<< module >>"))
+
+(comment
+  (->content :intentory {}))
 
 (defn check-dir
   [dir]
@@ -34,15 +37,15 @@
 %s" git-diff git-new-files)))
 
 (deftest all-test
-  (testing "Test both copy-template-dir and create"
+  (testing "Test both copy-template-dir and render"
     (let [prefix "test/fixtures"]
       (loop [counter 0
-             xs [['big-config.build-test/->content
+             xs [['big-config.render-test/->content
                   {:inventory "inventory.json"}]
-                 ['big-config.build-test/->content
+                 ['big-config.render-test/->content
                   {:inventory "inventory-raw.json"}
                   :raw]
-                 ['big-config.build-test/->content
+                 ['big-config.render-test/->content
                   {:config "config.json"}
                   {:tag-open \<
                    :tag-close \>
@@ -86,9 +89,9 @@
                                {"tasks.yml" "tasks.yml"}
                                :only]]}]]
         (when-not (empty? xs)
-          (let [target-dir (format "%s/target/create-%s" prefix counter)]
+          (let [target-dir (format "%s/target/render-%s" prefix counter)]
             (b/delete {:path target-dir})
-            (sut/create {::step/module "infra"
+            (sut/render {::step/module "infra"
                          ::sut/templates [(-> xs
                                               first
                                               (assoc :target-dir target-dir))]})
@@ -100,5 +103,3 @@
     (is (thrown? clojure.lang.ExceptionInfo
                  (binding [sut/*non-replaced-exts* #{}]
                    (sut/copy-dir :src-dir "test/fixtures/source/binary" :target-dir "test/fixtures/target/copy-9" :data {}))))))
-
-(-> ::step/module)

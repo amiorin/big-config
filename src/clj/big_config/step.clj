@@ -3,6 +3,7 @@
    [big-config :as bc]
    [big-config.build :as build]
    [big-config.core :as core]
+   [big-config.render :as render]
    [big-config.git :as git]
    [big-config.lock :as lock]
    [big-config.run :as run]
@@ -19,6 +20,7 @@
                                        [unlock-start-step] (unlock/unlock-any)
                                        [check-start-step] (git/check)
                                        [build-start-step] ((build/->build (fn [])))
+                                       [render-start-step] (render/templates)
                                        [prefix color] (if (and exit
                                                                (not= exit 0))
                                                         ["\uf05c" :red.bold]
@@ -28,6 +30,7 @@
                                              (= step unlock-start-step) "Unlock any"
                                              (= step check-start-step) "Checking if the working directory is clean"
                                              (= step build-start-step) "Building:"
+                                             (= step render-start-step) "Rendering templates:"
                                              (= step ::run/run-cmd) (parser/render "Running:\n> {{ big-config..run/cmds | first}}" opts)
                                              :else nil)]
                                    (when msg
@@ -45,6 +48,8 @@
                                   (binding [*out* *err*]
                                     (println (bling [:red.bold (parser/render (str "{{ prefix }} " msg) {:prefix prefix})]))))))}))
 
+(comment (print-step-fn))
+
 (defn parse [s]
   (loop [xs s
          token nil
@@ -59,7 +64,7 @@
                    (str/split #"\s+"))]
         (recur (rest xs) (first xs) steps cmds module profile global-args))
 
-      (#{"lock" "git-check" "build" "create" "exec" "git-push" "unlock-any"} token)
+      (#{"lock" "git-check" "build" "render" "exec" "git-push" "unlock-any"} token)
       (let [steps (into steps [token])]
         (recur (rest xs) (first xs) steps cmds module profile global-args))
 
@@ -97,7 +102,7 @@
                                           :lock (lock/lock step-fns opts)
                                           :git-check (git/check step-fns opts)
                                           :build ((build/->build build-fn) step-fns opts)
-                                          :create ((build/->build build/create) step-fns opts)
+                                          :render (render/templates step-fns opts)
                                           :exec (run/run-cmds step-fns opts)
                                           :git-push (git/git-push opts)
                                           :unlock-any (unlock/unlock-any step-fns opts))]
@@ -134,6 +139,5 @@
      (do-run-steps step-fns opts))))
 
 (comment
-  (run-steps "create -- foo bar" {::build/templates [{:template "template"
-                                                    :target-dir "test/dist/target"
-                                                    :data-fn 'big-config.build-test/data-fn}]}))
+  (run-steps "render -- foo bar" {::render/templates [{:template "template"
+                                                       :target-dir "test/dist/target"}]}))
