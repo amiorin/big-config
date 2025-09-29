@@ -3,10 +3,11 @@
    [big-config :as bc]
    [big-config.build :as build]
    [big-config.core :as core]
-   [big-config.render :as render]
    [big-config.git :as git]
    [big-config.lock :as lock]
+   [big-config.render :as render]
    [big-config.run :as run]
+   [big-config.step-fns :as step-fns]
    [big-config.unlock :as unlock]
    [bling.core :refer [bling]]
    [clojure.string :as str]
@@ -92,6 +93,15 @@
             cmds (into cmds [token])]
         (recur (rest xs) (first xs) steps cmds module profile global-args)))))
 
+(defn parse-module-and-profile
+  [s]
+  (let [[_ _ module profile] (parse s)]
+    {:module module
+     :profile profile}))
+
+(comment
+  (parse-module-and-profile "render -- dotfiles ubuntu"))
+
 (defn run-step
   ([step-fns opts]
    (run-step (fn [opts] (core/ok opts)) step-fns opts))
@@ -126,7 +136,10 @@
   ([s]
    (run-steps s nil))
   ([s opts]
-   (run-steps s [] opts))
+   (let [step-fns [print-step-fn
+                   (step-fns/->exit-step-fn ::end)
+                   (step-fns/->print-error-step-fn ::end)]]
+     (run-steps s step-fns opts)))
   ([s step-fns opts]
    (apply run-steps step-fns opts (parse s)))
   ([step-fns opts steps cmds module profile]
