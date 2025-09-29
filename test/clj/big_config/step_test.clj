@@ -18,6 +18,6 @@
 
 (deftest render-test
   (testing "render step works"
-    (as-> (sut/run-steps "render -- foo bar" [] {::render/templates []}) $
+    (as-> (sut/run-steps "render -- foo bar" {::render/templates []} []) $
       (:big-config/exit $)
       (is (= 0 $)))))

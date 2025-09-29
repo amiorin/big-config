@@ -140,9 +140,9 @@
                    (step-fns/->exit-step-fn ::end)
                    (step-fns/->print-error-step-fn ::end)]]
      (run-steps s step-fns opts)))
-  ([s step-fns opts]
-   (apply run-steps step-fns opts (parse s)))
-  ([step-fns opts steps cmds module profile]
+  ([s opts step-fns]
+   (apply run-steps opts step-fns (parse s)))
+  ([opts step-fns steps cmds module profile]
    (let [opts (merge (or opts {::bc/env :repl})
                      {::steps steps
                       ::run/cmds cmds
