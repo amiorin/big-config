@@ -5,7 +5,8 @@
    [clojure.java.io :as io]
    [clojure.spec.alpha :as s]
    [clojure.tools.build.api :as b]
-   [selmer.parser :as p])
+   [selmer.parser :as p]
+   [selmer.util :refer [without-escaping]])
   (:import
    (java.nio.file Files)
    (java.nio.file.attribute FileAttribute)))
@@ -34,6 +35,10 @@
                            :only
                            :raw]]))
 
+(defn selmer [s data & delimiters]
+  (without-escaping
+   (apply p/render s data delimiters)))
+
 (def ^:dynamic *non-replaced-exts* #{"jpg" "jpeg" "png" "gif" "bmp"})
 
 (defn copy-dir
@@ -47,7 +52,7 @@
                                                            str)
                                           _ (fs/create-dirs (fs/parent target-file))
                                           content (cond-> (slurp path)
-                                                    (and data replacable) (p/render data delimiters))]
+                                                    (and data replacable) (selmer data delimiters))]
                                       (spit target-file content)
                                       (->> (fs/posix-file-permissions path)
                                            (fs/set-posix-file-permissions target-file)))
@@ -55,7 +60,7 @@
 
 (defn copy-template-dir
   [& {:keys [template-dir target-dir data src target files delimiters opts]}]
-  (let [target (if target (str "/" (p/render target data)) "")
+  (let [target (if target (str "/" (selmer target data)) "")
         opts (set opts)
         raw (:raw opts)
         only (:only opts)]
@@ -64,13 +69,13 @@
              (if (seq files)
                (run! (fn [[kw to]]
                        (let [content (cond-> (f kw data)
-                                       (not raw) (p/render data delimiters))
-                             target-file (str target-dir (p/render target data) "/" (p/render to data))]
+                                       (not raw) (selmer data delimiters))
+                             target-file (str target-dir (selmer target data) "/" (selmer to data))]
                          (fs/create-dirs (fs/parent target-file))
                          (spit target-file content)))
                      files)
                (throw (ex-info "Files is required when src is a symbol" {}))))
-      :str (let [src (p/render (second src) data)]
+      :str (let [src (selmer (second src) data)]
              (if (seq files)
                (let [intermediate (-> (Files/createTempDirectory
                                        "big-config" (into-array FileAttribute []))
@@ -84,7 +89,7 @@
                  (run! (fn [[from to]]
                          (b/delete {:path (str inter-target "/" from)})
                          (b/copy-file {:src (str template-dir "/" src "/" from)
-                                       :target (str inter-target "/" (p/render to data))}))
+                                       :target (str inter-target "/" (selmer to data))}))
                        files)
                  (copy-dir (cond-> {:target-dir target-dir
                                     :src-dir intermediate} (not raw) (merge {:data data
