@@ -5,3 +5,5 @@
 /tofu/*/*/.terraform
 /big-infra/tofu/*/*/.terraform
 /.envrc.private
+/.devenv.flake.nix
+/.devenv/
