@@ -7,24 +7,19 @@ readme:
     cd .big-config && bb readme
 
 # test all
-test: test-big-infra test-big-config
+test: test-big-config
 
 # format and clean-ns all
 tidy:
     clojure-lsp clean-ns
-    cd big-infra && clojure-lsp clean-ns
     clojure-lsp format
-    cd big-infra && clojure-lsp format
+    cd big-infra-v2 && clojure-lsp clean-ns
+    cd big-infra-v2 && clojure-lsp format
 
 # test big-config
 [group('clojure')]
 test-big-config:
     clojure -M:test
-
-# test big-infra
-[group('tofu')]
-test-big-infra:
-    cd big-infra-v2 && clojure -M:test
 
 # invoked by recipe test
 [group('private')]

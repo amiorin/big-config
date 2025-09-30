@@ -1,12 +1,12 @@
 {:deps {amiorin/big-infra-v2 {:local/root "."}}
  :tasks
- {:requires ([amiorin.big-infra-v2 :as big-infra-v2]
+ {:requires ([alpha :as alpha]
              [clojure.string :as str])
   :init (defn run-steps [first-step]
           (-> [first-step]
               (into *command-line-args*)
               (->> (str/join " "))
-              (big-infra-v2/run-steps {:big-config/env :shell})))
+              (alpha/run-steps {:big-config/env :shell})))
   show-help {:doc "the workflow help"
              :task (println "Usage: bb <step|cmd>+ -- <module> <profile> [global-args]
 
@@ -15,6 +15,7 @@ a cmd where `:` is replaced with ` `
 
 Steps
   build           use `deps-new` to generate the configuration files
+  render          use `big-config` to generate the configuration files
   git-check       check if the working directory is clean and if have pulled all
                   commits from origin
   git-push        push your changes
@@ -43,6 +44,8 @@ Example of cmds:
             :task (run-steps "git-push")}
   build {:doc "build the dist folder"
          :task (run-steps "build")}
+  render {:doc "render the dist folder"
+          :task (run-steps "render")}
   lock {:doc "acquire the lock"
         :task (run-steps "lock")}
   unlock-any {:doc "release the lock (any owner)"

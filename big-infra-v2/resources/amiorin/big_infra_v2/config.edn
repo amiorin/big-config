@@ -1,1 +1,0 @@
-{:big-config.lock/owner #or [#env ZELLIJ_SESSION_NAME "CI"]}

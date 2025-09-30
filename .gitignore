@@ -7,3 +7,5 @@
 /.envrc.private
 /.devenv.flake.nix
 /.devenv/
+/big-infra-v2/.devenv.flake.nix
+/big-infra-v2/.devenv/

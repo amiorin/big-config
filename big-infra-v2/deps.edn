@@ -1,9 +1,7 @@
 {:paths   ["src" "resources"]
- :deps    {org.clojure/clojure             {:mvn/version "1.12.0"}
-           io.github.amiorin/big-config    {:git/sha "291a35923a1a289619da16cdfe02292d1e040bea"}
-           io.github.seancorfield/deps-new {:git/sha "558f790c843c31cfeaeda2bf59241c8d16ad02ef"}
-           selmer/selmer                   {:mvn/version "1.12.62"}
-           babashka/fs                     {:mvn/version "0.5.24"}}
+ :deps    {org.clojure/clojure          {:mvn/version "1.12.0"}
+           io.github.amiorin/big-config {:git/sha "920afcfdf49df8075335ba3ee755721001bc2e1b"}
+           cheshire/cheshire            {:mvn/version "6.1.0"}}
  :aliases {:dev  {:extra-paths ["env/dev/clj" "test"]}
            :test {:extra-paths ["test"]
                   :extra-deps {io.github.cognitect-labs/test-runner {:git/tag "v0.5.1" :git/sha "dfb30dd"}}

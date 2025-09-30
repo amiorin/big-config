@@ -1,17 +1,17 @@
 # Intro
 
-Welcome to your project to provision modules in AWS using `big-config` and `deps-new`.
+Welcome to your project to provision modules in AWS using `big-config`.
 
 ``` shell
 bb tasks
 
-bb build -- alpha prod
+bb render -- alpha prod
 
-bb build -- beta prod
+bb render -- beta prod
 ```
 
 ## License
 
-Copyright © 2025 Vscode
+Copyright © 2025 Alberto Miorin
 
 amiorin/big-infra-v2 is released under the [MIT License](https://opensource.org/licenses/MIT).
