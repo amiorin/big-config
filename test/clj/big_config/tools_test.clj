@@ -11,6 +11,7 @@
     (let [prefix "test/fixtures"]
       (loop [counter 0
              xs [[sut/terraform [:opts {::bc/env :repl}
+                                 :post-process-fn nil
                                  :aws-profile "251213589273"
                                  :region "eu-west-1"
                                  :dev "251213589273"

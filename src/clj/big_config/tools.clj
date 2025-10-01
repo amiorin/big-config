@@ -4,7 +4,8 @@
    [big-config.render :as render]
    [big-config.step :as step]
    [clojure.spec.alpha :as s]
-   [clojure.string :as str]))
+   [clojure.string :as str]
+   [babashka.fs :as fs]))
 
 (defn stringify
   [args]
@@ -24,12 +25,24 @@
 (s/def ::prod non-blank-string?)
 (s/def ::terraform (s/keys :req-un [::target-dir ::overwrite ::aws-profile ::region ::dev ::prod]))
 
+(defn rename
+  [{:keys [target-dir]} _]
+  (fs/walk-file-tree target-dir
+                     {:visit-file
+                      (fn
+                        [path _]
+                        (let [path (str path)]
+                          (when (str/ends-with? path ".source")
+                            (fs/move path (str/replace path #".source$"  "") {:replace-existing true})))
+                        :continue)}))
+
 (defn terraform
   [& {:keys [step-fns] :as args}]
   (let [args (stringify args)
         args (merge {:template "big-config"
                      :target-dir "dist"
                      :overwrite true
+                     :post-process-fn rename
                      :transform [["root"
                                   {"projectile" ".projectile"}
                                   {:tag-open \<
