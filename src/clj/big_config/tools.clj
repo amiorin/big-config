@@ -6,6 +6,14 @@
    [clojure.spec.alpha :as s]
    [clojure.string :as str]))
 
+(defn stringify
+  [args]
+  (reduce-kv (fn [a k v]
+               (cond
+                 (#{:step-fns} k) a
+                 (#{:overwrite :opts} k) (assoc a k v)
+                 :else (assoc a k (str v)))) {} args))
+
 (def non-blank-string? (s/and string? (complement str/blank?)))
 (s/def ::target-dir non-blank-string?)
 (def boolean-or-keyword? (s/or :keyword keyword? :boolean boolean?))
@@ -17,11 +25,8 @@
 (s/def ::terraform (s/keys :req-un [::target-dir ::overwrite ::aws-profile ::region ::dev ::prod]))
 
 (defn terraform
-  [& {:keys [] :as args}]
-  (let [args (reduce-kv (fn [a k v]
-                          (if (#{:overwrite :opts} k)
-                            (assoc a k v)
-                            (assoc a k (str v)))) {} args)
+  [& {:keys [step-fns] :as args}]
+  (let [args (stringify args)
         args (merge {:template "big-config"
                      :target-dir "dist"
                      :overwrite true
@@ -39,8 +44,12 @@
         args (update args :overwrite #(second %))
         opts (:opts args)
         template (dissoc args :opts)]
-    (step/run-steps "render -- big-config terraform"
-                    (merge {::render/templates [template]} opts))))
+    (if step-fns
+      (step/run-steps "render -- big-config terraform"
+                      (merge {::render/templates [template]} opts)
+                      step-fns)
+      (step/run-steps "render -- big-config terraform"
+                      (merge {::render/templates [template]} opts)))))
 
 (comment
   (terraform :opts {::bc/env :repl}
@@ -52,16 +61,18 @@
 (s/def ::devenv (s/keys :req-un [::target-dir ::overwrite]))
 
 (defn devenv
-  [& {:keys [] :as args}]
-  (let [args (reduce-kv (fn [a k v]
-                          (if (#{:overwrite :opts} k)
-                            (assoc a k v)
-                            (assoc a k (str v)))) {} args)
+  [& {:keys [step-fns] :as args}]
+  (let [args (stringify args)
+        transform ["root"
+                   {"envrc" ".envrc"
+                    "devenv.nix" "devenv.nix"
+                    "devenv.yml" "devenv.yml"}
+                   :only
+                   :raw]
         args (merge {:template "devenv"
                      :target-dir "."
                      :overwrite true
-                     :transform [["root"
-                                  :raw]]
+                     :transform [transform]
                      :opts {::bc/env :shell}}
                     args)
         args (s/conform ::devenv args)
@@ -70,8 +81,12 @@
         args (update args :overwrite #(second %))
         opts (:opts args)
         template (dissoc args :opts)]
-    (step/run-steps "render -- big-config devenv"
-                    (merge {::render/templates [template]} opts))))
+    (if step-fns
+      (step/run-steps "render -- big-config devenv"
+                      (merge {::render/templates [template]} opts)
+                      step-fns)
+      (step/run-steps "render -- big-config devenv"
+                      (merge {::render/templates [template]} opts)))))
 
 (comment
   (devenv :opts {::bc/env :repl}))

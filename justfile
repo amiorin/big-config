@@ -13,8 +13,6 @@ test: test-big-config
 tidy:
     clojure-lsp clean-ns
     clojure-lsp format
-    cd big-infra-v2 && clojure-lsp clean-ns
-    cd big-infra-v2 && clojure-lsp format
 
 # test big-config
 [group('clojure')]
