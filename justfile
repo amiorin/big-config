@@ -24,7 +24,7 @@ test-big-config:
 # invoked by recipe test
 [group('private')]
 test-wf-exit:
-    #!/usr/bin/env -S bb --config big-infra-v2/bb.edn
+    #!/usr/bin/env -S bb --config bb.edn
     (require '[babashka.classpath :refer [add-classpath get-classpath]]
              '[clojure.string :as str])
     (add-classpath (str (System/getProperty "user.dir") "/test/clj"))

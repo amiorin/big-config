@@ -1,4 +1,4 @@
-{:deps {amiorin/big-infra-v2 {:local/root "."}}
+{:deps {amiorin/big-config {:local/root "."}}
  :tasks
  {:requires ([alpha :as alpha]
              [clojure.string :as str])
@@ -14,7 +14,6 @@ The available steps are listed below. Anything that is not a step is considered
 a cmd where `:` is replaced with ` `
 
 Steps
-  build           use `deps-new` to generate the configuration files
   render          use `big-config` to generate the configuration files
   git-check       check if the working directory is clean and if have pulled all
                   commits from origin
@@ -42,8 +41,6 @@ Example of cmds:
              :task (run-steps "git-check")}
   git-push {:doc "git push"
             :task (run-steps "git-push")}
-  build {:doc "build the dist folder"
-         :task (run-steps "build")}
   render {:doc "render the dist folder"
           :task (run-steps "render")}
   lock {:doc "acquire the lock"

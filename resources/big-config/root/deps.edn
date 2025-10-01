@@ -1,6 +1,6 @@
 {:paths   ["src" "resources"]
  :deps    {org.clojure/clojure          {:mvn/version "1.12.0"}
-           io.github.amiorin/big-config {:git/sha "920afcfdf49df8075335ba3ee755721001bc2e1b"}
+           io.github.amiorin/big-config {:git/sha "816e17a79ce3eec6ad14b82a381e22fcb25b8303"}
            cheshire/cheshire            {:mvn/version "6.1.0"}}
  :aliases {:dev  {:extra-paths ["env/dev/clj" "test"]}
            :test {:extra-paths ["test"]

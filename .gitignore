@@ -9,3 +9,4 @@
 /.devenv/
 /big-infra-v2/.devenv.flake.nix
 /big-infra-v2/.devenv/
+/dist/

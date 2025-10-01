@@ -17,7 +17,7 @@
                     {::lock/owner (or (System/getenv "ZELLIJ_SESSION_NAME") "CI")
                      ::lock/lock-keys [::step/module ::step/profile]
                      ::run/shell-opts {:dir dir
-                                       :extra-env {"AWS_PROFILE" "251213589273"}}
+                                       :extra-env {"AWS_PROFILE" "<< aws-profile >>"}}
                      ::render/templates [{:template "alpha"
                                           :target-dir dir
                                           :overwrite true
@@ -35,13 +35,13 @@
 (defn data-fn
   [{:keys [profile] :as data} _]
   (merge data
-         {:region "eu-west-1"
+         {:region "<< region >>"
           :aws-account-id (case profile
-                            "dev" "251213589273"
-                            "prod" "251213589273")}))
+                            "dev" "<< dev >>"
+                            "prod" "<< prod >>")}))
 
 (defn kw->content
-  [kw data]
+  [kw {:keys [region aws-account-id] :as data}]
   (case kw
     :alpha (let [queues (->> (for [n (range 2)]
                                (create/sqs (add-suffix :alpha/big-sqs (str "-" n))))
@@ -49,7 +49,8 @@
                              (map construct))
                  kms (->> (create/kms :alpha/big-kms)
                           (map construct))
-                 provider (create/provider (assoc data :bucket "tf-state-251213589273-eu-west-1"))
+                 bucket (format "tf-state-%s-%s" aws-account-id region)
+                 provider (create/provider (assoc data :bucket bucket))
                  m (->> [provider]
                         (into kms)
                         (into queues)

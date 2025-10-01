@@ -10,6 +10,8 @@
            cheshire/cheshire             {:mvn/version "6.0.0"}
            org.babashka/cli              {:mvn/version "0.8.66"}}
 
+ :tools/usage {:ns-default big-config.tools}
+
  :aliases {:build {:deps       {io.github.clojure/tools.build       {:mvn/version "0.9.6"}}
                    :ns-default build}
 
