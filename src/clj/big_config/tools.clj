@@ -14,7 +14,7 @@
 (s/def ::region non-blank-string?)
 (s/def ::dev non-blank-string?)
 (s/def ::prod non-blank-string?)
-(s/def ::args (s/keys :req-un [::target-dir ::overwrite ::aws-profile ::region ::dev ::prod]))
+(s/def ::terraform (s/keys :req-un [::target-dir ::overwrite ::aws-profile ::region ::dev ::prod]))
 
 (defn terraform
   [& {:keys [] :as args}]
@@ -33,17 +33,45 @@
                                    :filter-close \>}]]
                      :opts {::bc/env :shell}}
                     args)
-        args (s/conform ::args args)
+        args (s/conform ::terraform args)
         _ (when (s/invalid? args)
-            (throw (ex-info "Invalid input" (s/explain-data ::args args))))
+            (throw (ex-info "Invalid input" (s/explain-data ::terraform args))))
         args (update args :overwrite #(second %))
         opts (:opts args)
         template (dissoc args :opts)]
     (step/run-steps "render -- big-config terraform"
                     (merge {::render/templates [template]} opts))))
+
 (comment
   (terraform :opts {::bc/env :repl}
-          :aws-profile "251213589273"
-          :region "eu-west-1"
-          :dev "251213589273"
-          :prod "251213589273"))
+             :aws-profile "251213589273"
+             :region "eu-west-1"
+             :dev "251213589273"
+             :prod "251213589273"))
+
+(s/def ::devenv (s/keys :req-un [::target-dir ::overwrite]))
+
+(defn devenv
+  [& {:keys [] :as args}]
+  (let [args (reduce-kv (fn [a k v]
+                          (if (#{:overwrite :opts} k)
+                            (assoc a k v)
+                            (assoc a k (str v)))) {} args)
+        args (merge {:template "devenv"
+                     :target-dir "."
+                     :overwrite true
+                     :transform [["root"
+                                  :raw]]
+                     :opts {::bc/env :shell}}
+                    args)
+        args (s/conform ::devenv args)
+        _ (when (s/invalid? args)
+            (throw (ex-info "Invalid input" (s/explain-data ::devenv args))))
+        args (update args :overwrite #(second %))
+        opts (:opts args)
+        template (dissoc args :opts)]
+    (step/run-steps "render -- big-config devenv"
+                    (merge {::render/templates [template]} opts))))
+
+(comment
+  (devenv :opts {::bc/env :repl}))

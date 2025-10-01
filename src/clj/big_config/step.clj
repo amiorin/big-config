@@ -31,7 +31,7 @@
                                              (= step unlock-start-step) "Unlock any"
                                              (= step check-start-step) "Checking if the working directory is clean"
                                              (= step build-start-step) "Building:"
-                                             (= step render-start-step) (parser/render "Rendering templates for module {{ big-config..step/module }} and profile {{ big-config..step/profile }}:" opts)
+                                             (= step render-start-step) (parser/render "Rendering template for module {{ big-config..step/module }} and profile {{ big-config..step/profile }}:" opts)
                                              (= step ::run/run-cmd) (parser/render "Running:\n> {{ big-config..run/cmds | first}}" opts)
                                              :else nil)]
                                    (when msg
