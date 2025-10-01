@@ -79,15 +79,20 @@
       (loop [counter 0
              xs [{:template "template"
                   :overwrite :delete
-                  :transform [["role" "role"
+                  :transform [["root"]
+                              ["role" "role"
                                {"tasks.yml" "tasks.yml"}
                                :only
                                :raw]]}
                  {:template "template"
                   :overwrite :delete
-                  :transform [["role" "role"
+                  :transform [["root"]
+                              ["role" "role"
                                {"tasks.yml" "tasks.yml"}
-                               :only]]}]]
+                               :only]]}
+                 {:template "template"
+                  :overwrite :delete
+                  :root "role"}]]
         (when-not (empty? xs)
           (let [target-dir (format "%s/target/render-%s" prefix counter)]
             (b/delete {:path target-dir})

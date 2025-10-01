@@ -35,7 +35,7 @@ These two are also equivalent
 Example of cmds:
   tofu:init                    tofu init
   tofu:plan                    tofu plan
-  tofu:applay:-auto-approve    tofu apply -auto-approve
+  tofu:apply:-auto-approve     tofu apply -auto-approve
   ansible-playbook:main.yml    ansible-playbook main.yml
 ")}
   git-check {:doc "the working dir is clean"

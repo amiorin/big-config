@@ -151,7 +151,9 @@
                               (nil? post-process-fn) (constantly nil)
                               (fn? post-process-fn) post-process-fn
                               (symbol? post-process-fn) (requiring-resolve post-process-fn))
-            transform (s/conform ::transform (into [[(or root "root")]] transform))]
+            transform (s/conform ::transform (if (seq transform)
+                                               transform
+                                               [[(or root "root")]]))]
         (when (.exists (io/file target-dir))
           (if overwrite
             (when (= :delete overwrite)
