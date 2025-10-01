@@ -7,14 +7,6 @@
    [clojure.string :as str]
    [babashka.fs :as fs]))
 
-(defn stringify
-  [args]
-  (reduce-kv (fn [a k v]
-               (cond
-                 (#{:step-fns} k) a
-                 (#{:overwrite :opts} k) (assoc a k v)
-                 :else (assoc a k (str v)))) {} args))
-
 (def non-blank-string? (s/and string? (complement str/blank?)))
 (s/def ::target-dir non-blank-string?)
 (def boolean-or-keyword? (s/or :keyword keyword? :boolean boolean?))
@@ -23,7 +15,6 @@
 (s/def ::region non-blank-string?)
 (s/def ::dev non-blank-string?)
 (s/def ::prod non-blank-string?)
-(s/def ::terraform (s/keys :req-un [::target-dir ::overwrite ::aws-profile ::region ::dev ::prod]))
 
 (defn rename
   [{:keys [target-dir]} _]
@@ -36,33 +27,53 @@
                             (fs/move path (str/replace path #".source$"  "") {:replace-existing true})))
                         :continue)}))
 
-(defn terraform
-  [& {:keys [step-fns] :as args}]
-  (let [args (stringify args)
-        args (merge {:template "big-config"
-                     :target-dir "dist"
-                     :overwrite true
-                     :post-process-fn rename
-                     :transform [["root"
-                                  {"projectile" ".projectile"}
-                                  {:tag-open \<
-                                   :tag-close \>
-                                   :filter-open \<
-                                   :filter-close \>}]]
-                     :opts {::bc/env :shell}}
-                    args)
-        args (s/conform ::terraform args)
+(defn stringify
+  [args]
+  (reduce-kv (fn [a k v]
+               (cond
+                 (#{:step-fns} k) a
+                 (#{:overwrite :opts} k) (assoc a k v)
+                 :else (assoc a k (str v)))) {} args))
+
+(defn prepare
+  [args defaults]
+  (let [args (stringify args)]
+    (merge defaults args)))
+
+(defn args->opts
+  [args spec]
+  (let [args (s/conform spec args)
         _ (when (s/invalid? args)
-            (throw (ex-info "Invalid input" (s/explain-data ::terraform args))))
+            (throw (ex-info "Invalid input" (s/explain-data spec args))))
         args (update args :overwrite #(second %))
         opts (:opts args)
         template (dissoc args :opts)]
+    [opts template]))
+
+(defn run-template
+  [spec {:keys [step-fns] :as args} defaults]
+  (let [s (format "render -- big-config %s" (name spec))
+        args (prepare args defaults)
+        [opts template] (args->opts args spec)]
     (if step-fns
-      (step/run-steps "render -- big-config terraform"
-                      (merge {::render/templates [template]} opts)
-                      step-fns)
-      (step/run-steps "render -- big-config terraform"
-                      (merge {::render/templates [template]} opts)))))
+      (step/run-steps s (merge {::render/templates [template]} opts) step-fns)
+      (step/run-steps s (merge {::render/templates [template]} opts)))))
+
+(s/def ::terraform (s/keys :req-un [::target-dir ::overwrite ::aws-profile ::region ::dev ::prod]))
+
+(defn terraform
+  [& {:keys [step-fns] :as args}]
+  (run-template ::terraform args {:template "big-config"
+                                  :target-dir "dist"
+                                  :overwrite true
+                                  :post-process-fn rename
+                                  :transform [["root"
+                                               {"projectile" ".projectile"}
+                                               {:tag-open \<
+                                                :tag-close \>
+                                                :filter-open \<
+                                                :filter-close \>}]]
+                                  :opts {::bc/env :shell}}))
 
 (comment
   (terraform :opts {::bc/env :repl}
@@ -75,31 +86,16 @@
 
 (defn devenv
   [& {:keys [step-fns] :as args}]
-  (let [args (stringify args)
-        transform ["root"
-                   {"envrc" ".envrc"
-                    "devenv.nix" "devenv.nix"
-                    "devenv.yml" "devenv.yml"}
-                   :only
-                   :raw]
-        args (merge {:template "devenv"
-                     :target-dir "."
-                     :overwrite true
-                     :transform [transform]
-                     :opts {::bc/env :shell}}
-                    args)
-        args (s/conform ::devenv args)
-        _ (when (s/invalid? args)
-            (throw (ex-info "Invalid input" (s/explain-data ::devenv args))))
-        args (update args :overwrite #(second %))
-        opts (:opts args)
-        template (dissoc args :opts)]
-    (if step-fns
-      (step/run-steps "render -- big-config devenv"
-                      (merge {::render/templates [template]} opts)
-                      step-fns)
-      (step/run-steps "render -- big-config devenv"
-                      (merge {::render/templates [template]} opts)))))
+  (run-template ::devenv args {:template "devenv"
+                               :target-dir "."
+                               :overwrite true
+                               :transform [["root"
+                                            {"envrc" ".envrc"
+                                             "devenv.nix" "devenv.nix"
+                                             "devenv.yml" "devenv.yml"}
+                                            :only
+                                            :raw]]
+                               :opts {::bc/env :shell}}))
 
 (comment
   (devenv :opts {::bc/env :repl}))
