@@ -51,9 +51,7 @@ Example of cmds:
         :task (do (shell "clojure-lsp clean-ns")
                   (shell "clojure-lsp format"))}
   smoke-test {:doc "test to validate the template"
-              :task (doseq [cmd ["bb build exec -- alpha prod ls -l"
-                                 "bb build exec -- beta prod ls -l"
-                                 "bb build exec -- gamma prod ls -l"
+              :task (doseq [cmd ["bb render exec -- alpha prod ls -la"
                                  "bb show-help"]]
                       (println (str "> " cmd))
                       (shell cmd))}
