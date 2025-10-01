@@ -63,7 +63,7 @@
 
 (defn terraform
   [& {:keys [step-fns] :as args}]
-  (run-template ::terraform args {:template "big-config"
+  (run-template ::terraform args {:template "terraform"
                                   :target-dir "dist"
                                   :overwrite true
                                   :post-process-fn rename
