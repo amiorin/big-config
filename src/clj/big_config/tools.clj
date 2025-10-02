@@ -52,7 +52,12 @@
 
 (defn run-template
   [spec {:keys [step-fns] :as args} defaults]
-  (let [s (format "render -- big-config %s" (name spec))
+  (let [template-name (name spec)
+        s (format "render -- big-config %s" template-name)
+        args (merge {:template template-name
+                     :target-dir template-name
+                     :overwrite true
+                     :opts {::bc/env :shell}} args)
         args (prepare args defaults)
         [opts template] (args->opts args spec)]
     (if step-fns
@@ -63,17 +68,13 @@
 
 (defn terraform
   [& {:keys [step-fns] :as args}]
-  (run-template ::terraform args {:template "terraform"
-                                  :target-dir "dist"
-                                  :overwrite true
-                                  :post-process-fn rename
+  (run-template ::terraform args {:post-process-fn rename
                                   :transform [["root"
                                                {"projectile" ".projectile"}
                                                {:tag-open \<
                                                 :tag-close \>
                                                 :filter-open \<
-                                                :filter-close \>}]]
-                                  :opts {::bc/env :shell}}))
+                                                :filter-close \>}]]}))
 
 (comment
   (terraform :opts {::bc/env :repl}
@@ -86,16 +87,13 @@
 
 (defn devenv
   [& {:keys [step-fns] :as args}]
-  (run-template ::devenv args {:template "devenv"
-                               :target-dir "."
-                               :overwrite true
+  (run-template ::devenv args {:target-dir "."
                                :transform [["root"
                                             {"envrc" ".envrc"
                                              "devenv.nix" "devenv.nix"
                                              "devenv.yml" "devenv.yml"}
                                             :only
-                                            :raw]]
-                               :opts {::bc/env :shell}}))
+                                            :raw]]}))
 
 (comment
   (devenv :opts {::bc/env :repl}))
@@ -104,16 +102,26 @@
 
 (defn dotfiles
   [& {:keys [step-fns] :as args}]
-  (run-template ::dotfiles args {:template "dotfiles"
-                                 :target-dir "dotfiles"
-                                 :overwrite true
-                                  :post-process-fn rename
+  (run-template ::dotfiles args {:post-process-fn rename
                                  :transform [["root"
                                               {"projectile" ".projectile"
                                                "envrc" ".envrc"
                                                "envrc.private" ".envrc.private"}
-                                              :raw]]
-                                 :opts {::bc/env :shell}}))
+                                              :raw]]}))
 
 (comment
   (dotfiles :opts {::bc/env :repl}))
+
+(s/def ::ansible (s/keys :req-un [::target-dir ::overwrite]))
+
+(defn ansible
+  [& {:keys [step-fns] :as args}]
+  (run-template ::ansible args {:post-process-fn rename
+                                :transform [["root"
+                                             {"projectile" ".projectile"
+                                              "envrc" ".envrc"
+                                              "envrc.private" ".envrc.private"}
+                                             :raw]]}))
+
+(comment
+  (ansible :opts {::bc/env :repl}))
