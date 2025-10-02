@@ -16,7 +16,7 @@
 (s/def ::dev non-blank-string?)
 (s/def ::prod non-blank-string?)
 
-(defn rename
+(defn- rename
   [{:keys [target-dir]} _]
   (fs/walk-file-tree target-dir
                      {:visit-file
@@ -27,7 +27,7 @@
                             (fs/move path (str/replace path #".source$"  "") {:replace-existing true})))
                         :continue)}))
 
-(defn prepare
+(defn- prepare
   [args]
   (reduce-kv (fn [a k v]
                (cond
@@ -35,7 +35,7 @@
                  (#{:overwrite :opts} k) (assoc a k v)
                  :else (assoc a k (str v)))) {} args))
 
-(defn args->opts
+(defn- args->opts
   [args spec]
   (let [args (s/conform spec args)
         _ (when (s/invalid? args)
@@ -45,7 +45,7 @@
         template (dissoc args :opts)]
     (merge {::render/templates [template]} opts)))
 
-(defn run-template
+(defn- run-template
   [spec {:keys [step-fns] :as args} defaults]
   (let [template-name (name spec)
         s (format "render -- big-config %s" template-name)
@@ -63,8 +63,21 @@
 (s/def ::terraform (s/keys :req-un [::target-dir ::overwrite ::aws-profile ::region ::dev ::prod]))
 
 (defn terraform
+  "Create a repo to manage Terraform/Tofu projects with BigConfig.
+
+  Options:
+  - :target-dir  target directory for the template (`terrafom` is the default)
+  - :overwrite   true or :delete (the target directory)
+  - :aws-profile aws profile in ~/.aws/crendentials
+  - :region      aws region
+  - :dev         aws account id for dev
+  - :prod        aws account id for prod"
   [& {:keys [] :as args}]
-  (run-template ::terraform args {:post-process-fn rename
+  (run-template ::terraform args {:aws-profile "default"
+                                  :region "eu-west-1"
+                                  :dev "111111111111"
+                                  :prod "222222222222"
+                                  :post-process-fn rename
                                   :transform [["root"
                                                {"projectile" ".projectile"}
                                                {:tag-open \<
@@ -82,6 +95,10 @@
 (s/def ::devenv (s/keys :req-un [::target-dir ::overwrite]))
 
 (defn devenv
+  "Create the devenv files for Clojure and Babashka development.
+
+  Options:
+  - :target-dir  target directory for the template (current directory is the default)"
   [& {:keys [] :as args}]
   (run-template ::devenv args {:target-dir "."
                                :transform [["root"
@@ -97,6 +114,11 @@
 (s/def ::dotfiles (s/keys :req-un [::target-dir ::overwrite]))
 
 (defn dotfiles
+  "Create a repo to manage dotfiles with BigConfig.
+
+  Options:
+  - :target-dir  target directory for the template (`dotfiles` is the default)
+  - :overwrite   true or :delete (the target directory)"
   [& {:keys [] :as args}]
   (run-template ::dotfiles args {:post-process-fn rename
                                  :transform [["root"
@@ -111,6 +133,11 @@
 (s/def ::ansible (s/keys :req-un [::target-dir ::overwrite]))
 
 (defn ansible
+  "Create a repo to manage Ansible projects with BigConfig.
+
+  Options:
+  - :target-dir  target directory for the template (`ansible` is the default)
+  - :overwrite   true or :delete (the target directory)"
   [& {:keys [] :as args}]
   (run-template ::ansible args {:post-process-fn rename
                                 :transform [["root"
@@ -122,3 +149,10 @@
 
 (comment
   (ansible :opts {::bc/env :repl}))
+
+(defn- help
+  [& _]
+  (println "Use `clojure -A:deps -Tbig-config help/doc` instead"))
+
+(comment
+  (help))
