@@ -27,18 +27,13 @@
                             (fs/move path (str/replace path #".source$"  "") {:replace-existing true})))
                         :continue)}))
 
-(defn stringify
+(defn prepare
   [args]
   (reduce-kv (fn [a k v]
                (cond
                  (#{:step-fns} k) a
                  (#{:overwrite :opts} k) (assoc a k v)
                  :else (assoc a k (str v)))) {} args))
-
-(defn prepare
-  [args defaults]
-  (let [args (stringify args)]
-    (merge defaults args)))
 
 (defn args->opts
   [args spec]
@@ -48,26 +43,27 @@
         args (update args :overwrite #(second %))
         opts (:opts args)
         template (dissoc args :opts)]
-    [opts template]))
+    (merge {::render/templates [template]} opts)))
 
 (defn run-template
   [spec {:keys [step-fns] :as args} defaults]
   (let [template-name (name spec)
         s (format "render -- big-config %s" template-name)
-        args (merge {:template template-name
+        common {:template template-name
                      :target-dir template-name
                      :overwrite true
-                     :opts {::bc/env :shell}} args)
-        args (prepare args defaults)
-        [opts template] (args->opts args spec)]
+                     :opts {::bc/env :shell}}
+        args (merge common args)
+        args (merge defaults (prepare args))
+        opts (args->opts args spec)]
     (if step-fns
-      (step/run-steps s (merge {::render/templates [template]} opts) step-fns)
-      (step/run-steps s (merge {::render/templates [template]} opts)))))
+      (step/run-steps s opts step-fns)
+      (step/run-steps s opts))))
 
 (s/def ::terraform (s/keys :req-un [::target-dir ::overwrite ::aws-profile ::region ::dev ::prod]))
 
 (defn terraform
-  [& {:keys [step-fns] :as args}]
+  [& {:keys [] :as args}]
   (run-template ::terraform args {:post-process-fn rename
                                   :transform [["root"
                                                {"projectile" ".projectile"}
@@ -86,7 +82,7 @@
 (s/def ::devenv (s/keys :req-un [::target-dir ::overwrite]))
 
 (defn devenv
-  [& {:keys [step-fns] :as args}]
+  [& {:keys [] :as args}]
   (run-template ::devenv args {:target-dir "."
                                :transform [["root"
                                             {"envrc" ".envrc"
@@ -101,7 +97,7 @@
 (s/def ::dotfiles (s/keys :req-un [::target-dir ::overwrite]))
 
 (defn dotfiles
-  [& {:keys [step-fns] :as args}]
+  [& {:keys [] :as args}]
   (run-template ::dotfiles args {:post-process-fn rename
                                  :transform [["root"
                                               {"projectile" ".projectile"
@@ -115,7 +111,7 @@
 (s/def ::ansible (s/keys :req-un [::target-dir ::overwrite]))
 
 (defn ansible
-  [& {:keys [step-fns] :as args}]
+  [& {:keys [] :as args}]
   (run-template ::ansible args {:post-process-fn rename
                                 :transform [["root"
                                              {"projectile" ".projectile"
