@@ -71,8 +71,11 @@
   - :aws-profile aws profile in ~/.aws/crendentials
   - :region      aws region
   - :dev         aws account id for dev
-  - :prod        aws account id for prod"
-  [& {:keys [] :as args}]
+  - :prod        aws account id for prod
+
+  Example:
+    clojure -Tbig-config terraform :region us-west-1"
+  [& {:as args}]
   (run-template ::terraform args {:aws-profile "default"
                                   :region "eu-west-1"
                                   :dev "111111111111"
@@ -98,8 +101,11 @@
   "Create the devenv files for Clojure and Babashka development.
 
   Options:
-  - :target-dir  target directory for the template (current directory is the default)"
-  [& {:keys [] :as args}]
+  - :target-dir  target directory for the template (current directory is the default)
+
+  Example:
+    clojure -Tbig-config devenv"
+  [& {:as args}]
   (run-template ::devenv args {:target-dir "."
                                :transform [["root"
                                             {"envrc" ".envrc"
@@ -118,8 +124,11 @@
 
   Options:
   - :target-dir  target directory for the template (`dotfiles` is the default)
-  - :overwrite   true or :delete (the target directory)"
-  [& {:keys [] :as args}]
+  - :overwrite   true or :delete (the target directory)
+
+  Example:
+    clojure -Tbig-config dotfiles"
+  [& {:as args}]
   (run-template ::dotfiles args {:post-process-fn rename
                                  :transform [["root"
                                               {"projectile" ".projectile"
@@ -137,8 +146,11 @@
 
   Options:
   - :target-dir  target directory for the template (`ansible` is the default)
-  - :overwrite   true or :delete (the target directory)"
-  [& {:keys [] :as args}]
+  - :overwrite   true or :delete (the target directory)
+
+  Example:
+    clojure -Tbig-config ansible"
+  [& {:as args}]
   (run-template ::ansible args {:post-process-fn rename
                                 :transform [["root"
                                              {"envrc" ".envrc"
