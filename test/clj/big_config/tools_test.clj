@@ -16,7 +16,10 @@
                                  :region "eu-west-1"
                                  :dev "251213589273"
                                  :prod "251213589273"]]
-                 [sut/devenv [:opts {::bc/env :repl}]]]]
+                 [sut/devenv [:opts {::bc/env :repl}]]
+                 [sut/dotfiles [:opts {::bc/env :repl
+                                       }
+                                :post-process-fn nil]]]]
         (when-not (empty? xs)
           (let [[f args] (first xs)
                 target-dir (format "%s/target/tools-%s" prefix counter)]

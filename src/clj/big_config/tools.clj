@@ -99,3 +99,21 @@
 
 (comment
   (devenv :opts {::bc/env :repl}))
+
+(s/def ::dotfiles (s/keys :req-un [::target-dir ::overwrite]))
+
+(defn dotfiles
+  [& {:keys [step-fns] :as args}]
+  (run-template ::dotfiles args {:template "dotfiles"
+                                 :target-dir "dotfiles"
+                                 :overwrite true
+                                  :post-process-fn rename
+                                 :transform [["root"
+                                              {"projectile" ".projectile"
+                                               "envrc" ".envrc"
+                                               "envrc.private" ".envrc.private"}
+                                              :raw]]
+                                 :opts {::bc/env :shell}}))
+
+(comment
+  (dotfiles :opts {::bc/env :repl}))

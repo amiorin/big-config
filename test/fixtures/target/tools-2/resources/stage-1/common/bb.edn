@@ -1,0 +1,6 @@
+{:deps {amiorin/dotfiles-v3 {:local/root "../.."}}
+ :tasks {:requires ([dotfiles :as dotfiles])
+         install {:doc "install the dotfiles"
+                  :task (dotfiles/install :dir "dotfiles")}
+         diff {:doc "diff the dotfiles"
+               :task (dotfiles/diff :dir "dotfiles")}}}
