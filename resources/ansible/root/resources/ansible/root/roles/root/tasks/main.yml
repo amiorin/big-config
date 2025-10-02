@@ -1,0 +1,118 @@
+---
+- name: Add sudoers
+  ansible.builtin.blockinfile:
+    path: "/etc/sudoers.d/{{ item.name }}"
+    block: |
+      {{ item.name }} ALL=(ALL) NOPASSWD:ALL
+    create: true
+    mode: "0440"
+    owner: root
+    group: root
+    marker: "# {mark} ANSIBLE MANAGED BLOCK FOR SUDOERS"
+  loop: "{{ users }}"
+
+- name: Install nix
+  ansible.builtin.shell: >-
+    curl --proto '=https' --tlsv1.2 -sSf -L https://install.determinate.systems/nix | sh -s -- install --determinate --no-confirm
+  args:
+    creates: /nix/var/nix/profiles/default/bin/nix
+
+- name: Trust nix users
+  ansible.builtin.blockinfile:
+    path: "/etc/nix/nix.custom.conf"
+    block: |
+      trusted-users = root {% for u in users %}{{ u.name }} {% endfor %}
+    marker: "# {mark} ANSIBLE MANAGED BLOCK FOR DEVENV"
+  notify: Restart nix
+
+- name: Copy profile.d files
+  ansible.builtin.copy:
+    src: files/{{ item }}
+    dest: /etc/profile.d/{{ item }}
+  loop:
+    - Z50-devbox.sh
+    - direnv.sh
+    - ssh-agent.sh
+    - zellij.sh
+
+- name: Install docker
+  ansible.builtin.shell: >-
+    curl -fsSL https://get.docker.com -o install-docker.sh
+    && sudo sh install-docker.sh
+    && rm install-docker.sh
+  args:
+    creates: /usr/bin/docker
+
+- name: Create users
+  ansible.builtin.user:
+    name: "{{ item.name }}"
+    comment: "{{ item.name }}"
+    uid: "{{ item.uid }}"
+    shell: /bin/bash
+    create_home: yes
+    home: /home/{{ item.name }}
+    groups:
+      - docker
+  loop: "{{ users }}"
+
+- name: Force removal of users and their home directory
+  ansible.builtin.user:
+    name: "{{ item.name }}"
+    state: absent
+    force: yes
+    remove: yes
+  loop: "{{ remove_users }}"
+
+- name: Create .ssh directory
+  ansible.builtin.file:
+    path: /home/{{ item.name }}/.ssh
+    state: directory
+    owner: "{{ item.name }}"
+    group: "{{ item.name }}"
+    mode: "0700"
+  loop: "{{ users }}"
+
+- name: Add SSH key to authorized_keys
+  ansible.builtin.blockinfile:
+    path: "/home/{{ item.name }}/.ssh/authorized_keys"
+    block: |
+      # SSH key for automation access
+      {{ ssh_key }}
+    create: true
+    mode: "0600"
+    owner: "{{ item.name }}"
+    group: "{{ item.name }}"
+    marker: "# {mark} ANSIBLE MANAGED BLOCK FOR AUTOMATION KEY"
+  loop: "{{ users }}"
+
+- name: Provision asdf
+  args:
+    executable: /bin/bash
+    creates: /usr/local/bin/asdf
+  ansible.builtin.shell: >-
+    curl -L https://github.com/asdf-vm/asdf/releases/download/v0.18.0/asdf-v0.18.0-linux-$(dpkg --print-architecture).tar.gz -o asdf.tar.gz \
+    && mkdir -p ~/.config/fish/completions \
+    && tar zxvf asdf.tar.gz \
+    && mv asdf /usr/local/bin \
+    && rm asdf.tar.gz
+
+- name: Install debian packages
+  block:
+    - name: Add gpg key
+      ansible.builtin.get_url:
+        url: https://pkgs.tailscale.com/stable/ubuntu/noble.noarmor.gpg
+        dest: /usr/share/keyrings/tailscale-archive-keyring.gpg
+
+    - name: Add deb source
+      ansible.builtin.apt_repository:
+        repo: "deb [signed-by=/usr/share/keyrings/tailscale-archive-keyring.gpg] https://pkgs.tailscale.com/stable/ubuntu noble main"
+        state: present
+        update_cache: true
+
+    - name: Install debian packages
+      ansible.builtin.apt:
+        name:
+          - tailscale
+          - fish
+          - build-essential
+        state: present

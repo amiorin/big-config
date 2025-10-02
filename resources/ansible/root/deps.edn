@@ -1,0 +1,9 @@
+{:paths   ["src" "resources"]
+ :deps    {org.clojure/clojure          {:mvn/version "1.12.1"}
+           io.github.amiorin/big-config {:git/sha "406bc906c9b5ab7c150bd58a98c3a3362f1f44ec"}
+           cheshire/cheshire            {:mvn/version "6.1.0"}}
+ :aliases {:dev  {:extra-paths ["env/dev/clj" "test"]}
+           :test {:extra-paths ["test"]
+                  :extra-deps {io.github.cognitect-labs/test-runner {:git/tag "v0.5.1" :git/sha "dfb30dd"}}
+                  :main-opts ["-m" "cognitect.test-runner"]
+                  :exec-fn cognitect.test-runner.api/test}}}

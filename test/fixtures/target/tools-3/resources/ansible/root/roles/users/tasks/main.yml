@@ -1,0 +1,125 @@
+---
+- name: Copy terminfo for ghostty
+  ansible.builtin.copy:
+    src: files/xterm-ghostty
+    dest: .xterm-ghostty
+
+- name: Install terminfo for ghostty
+  ansible.builtin.shell: tic -x .xterm-ghostty
+  args:
+    creates: .terminfo/x/xterm-ghostty
+
+- name: Provision devbox
+  args:
+    creates: .nix-profile/bin/devenv
+  ansible.builtin.shell: >-
+    . /etc/profile.d/nix.sh
+    && nix profile add nixpkgs#devenv
+
+- name: Provision devbox
+  args:
+    creates: .nix-profile/bin/devbox
+  ansible.builtin.shell: >-
+    . /etc/profile.d/nix.sh
+    && nix profile add github:jetify-com/devbox/latest
+
+- name: Provision devbox packages
+  import_tasks: packages.yml
+
+- name: Refresh devbox environment
+  args:
+    creates: .local/share/devbox/global/default/.devbox/nix/profile/default/bin/fish
+  ansible.builtin.shell: >-
+    . /etc/profile.d/nix.sh
+    && eval "$(devbox global shellenv --preserve-path-stack -r)" && hash -r
+
+- name: Provision asdf
+  args:
+    creates: .tool-versions
+  ansible.builtin.shell: >-
+    . /etc/profile.d/nix.sh
+    && . /etc/profile.d/Z50-devbox.sh
+    && asdf plugin add java https://github.com/halcyon/asdf-java.git
+    && asdf install java latest:temurin-21
+    && asdf set --home java latest:temurin-21
+    && asdf plugin add duckdb https://github.com/amiorin/asdf-duckdb.git
+    && asdf install duckdb latest
+    && asdf set --home duckdb latest
+    && asdf plugin add hugo https://github.com/Edditoria/asdf-hugo.git
+    && asdf install hugo latest:extended
+    && asdf set --home hugo latest:extended
+    && asdf plugin add golang https://github.com/asdf-community/asdf-golang.git
+    && asdf install golang latest
+    && asdf set --home golang latest
+    && asdf plugin add nodejs https://github.com/asdf-vm/asdf-nodejs.git
+    && asdf install nodejs latest
+    && asdf set --home nodejs latest
+    && asdf plugin add clojure https://github.com/asdf-community/asdf-clojure.git
+    && asdf install clojure latest
+    && asdf set --home clojure latest
+    && asdf plugin add babashka https://github.com/pitch-io/asdf-babashka.git
+    && asdf install babashka latest
+    && asdf set --home babashka latest
+    && asdf plugin add opentofu https://github.com/virtualroot/asdf-opentofu.git
+    && asdf install opentofu latest
+    && asdf set --home opentofu latest
+    && mkdir -p ~/.config/fish/completions
+    && asdf completion fish > ~/.config/fish/completions/asdf.fish
+
+- name: Create repo directory
+  ansible.builtin.file:
+    path: code/personal
+    state: directory
+    mode: "0755"
+
+- name: Clone the repos
+  import_tasks: repos.yml
+
+- name: Install dotfiles
+  ansible.builtin.shell: >-
+    . /etc/profile.d/nix.sh
+    && . /etc/profile.d/Z50-devbox.sh
+    && export PATH=~/.asdf/shims:$PATH
+    && git fetch origin
+    && git reset --hard origin/main
+    && bb build exec -- dotfiles ubuntu bb install
+  args:
+    chdir: code/personal/dotfiles-v3/main
+    creates: ~/.config/fish/config.fish
+
+- name: Install atuin
+  ansible.builtin.shell: >-
+    . /etc/profile.d/nix.sh
+    && . /etc/profile.d/Z50-devbox.sh
+    && export PATH=~/.asdf/shims:$PATH
+    && {{ atuin_login }}
+    && atuin sync
+  args:
+    creates: ~/.local/share/atuin/key
+  when: atuin_login | length > 0
+
+- name: Install doomemacs
+  ansible.builtin.shell: >-
+    . /etc/profile.d/nix.sh
+    && . /etc/profile.d/Z50-devbox.sh
+    && export PATH=~/.asdf/shims:$PATH
+    && git clone --depth 1 https://github.com/doomemacs/doomemacs ~/.emacs.d
+    && cd ~/.emacs.d
+    && git fetch origin {{ commit }}:refs/remotes/origin/pin-last-working-commit
+    && git checkout {{ commit }}
+    && ~/.emacs.d/bin/doom sync
+    && emacs --fg-daemon --eval '(setq vterm-always-compile-module t)' --eval '(vterm-module-compile)' --eval '(kill-emacs)'
+    && npm -g --prefix ~/.emacs.d/.local/etc/lsp/npm/dockerfile-language-server-nodejs install dockerfile-language-server-nodejs
+    && npm -g --prefix ~/.emacs.d/.local/etc/lsp/npm/basedpyright install basedpyright
+    && npm -g --prefix ~/.emacs.d/.local/etc/lsp/npm/typescript install typescript
+    && npm -g --prefix ~/.emacs.d/.local/etc/lsp/npm/typescript-language-server install typescript-language-server
+    && npm -g --prefix ~/.emacs.d/.local/etc/lsp/npm/yaml-language-server install yaml-language-server
+    && npm -g --prefix ~/.emacs.d/.local/etc/lsp/npm/@astrojs/language-server install @astrojs/language-server
+    && npm -g --prefix ~/.emacs.d/.local/etc/lsp/npm/@mdx-js/language-server install @mdx-js/language-server
+  args:
+    creates: ~/.emacs.d
+  vars:
+    commit: '{{ (users | selectattr("name", "equalto", ansible_user) | first).doomemacs | default("68010af0906171e3c989fc19bcb3ba81f7305022") }}'
+
+- name: Provision the ssh-config
+  import_tasks: ssh-config.yml

@@ -50,9 +50,9 @@
   (let [template-name (name spec)
         s (format "render -- big-config %s" template-name)
         common {:template template-name
-                     :target-dir template-name
-                     :overwrite true
-                     :opts {::bc/env :shell}}
+                :target-dir template-name
+                :overwrite true
+                :opts {::bc/env :shell}}
         args (merge common args)
         args (merge defaults (prepare args))
         opts (args->opts args spec)]
@@ -114,9 +114,10 @@
   [& {:keys [] :as args}]
   (run-template ::ansible args {:post-process-fn rename
                                 :transform [["root"
-                                             {"projectile" ".projectile"
-                                              "envrc" ".envrc"
-                                              "envrc.private" ".envrc.private"}
+                                             {"envrc" ".envrc"
+                                              "envrc.private" ".envrc.private"
+                                              "gitignore" ".gitignore"
+                                              "projectile" ".projectile"}
                                              :raw]]}))
 
 (comment

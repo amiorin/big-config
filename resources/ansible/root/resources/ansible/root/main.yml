@@ -1,0 +1,13 @@
+---
+- hosts: admin
+  vars_files:
+    - default.config.yml
+  roles:
+    - role: root
+      become: true
+
+- hosts: users
+  vars_files:
+    - default.config.yml
+  roles:
+    - role: users
