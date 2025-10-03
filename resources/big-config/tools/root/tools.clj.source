@@ -1,9 +1,8 @@
-(ns big-config.tools
+(ns << ns >>.<< name >>
   (:require
    [babashka.fs :as fs]
    [big-config :as bc]
    [big-config.render :as render]
-   [big-config.selmer-filters]
    [big-config.step :as step]
    [clojure.spec.alpha :as s]
    [clojure.string :as str]))

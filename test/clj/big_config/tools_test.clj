@@ -23,7 +23,12 @@
                                :post-process-fn nil]]
                  [sut/multi [:opts {::bc/env :repl}
                              :post-process-fn nil]]
-                 [sut/action [:opts {::bc/env :repl}]]]]
+                 [sut/action [:opts {::bc/env :repl}]]
+                 [sut/tools [:opts {::bc/env :repl}
+                             :post-process-fn nil
+                             :path "src/clj"
+                             :ns "big-config"
+                             :name "tools-v2"]]]]
         (when-not (empty? xs)
           (let [[f args] (first xs)
                 target-dir (format "%s/target/tools-%s" prefix counter)]
