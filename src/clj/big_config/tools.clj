@@ -60,8 +60,7 @@
                 :target-dir template-name
                 :overwrite true
                 :opts {::bc/env :shell}}
-        args (merge common args)
-        args (merge defaults (prepare args))
+        args (merge common defaults (prepare args))
         opts (args->opts args spec)]
     (if step-fns
       (step/run-steps s opts step-fns)
@@ -191,3 +190,26 @@
 
 (comment
   (multi :opts {::bc/env :repl}))
+
+(s/def ::action (s/keys :req-un [::target-dir ::overwrite]))
+
+(defn action
+  "Create a GitHub action for the CI of a Clojure project.
+
+  Options:
+  - :target-dir  target directory for the template (`ansible` is the default)
+  - :overwrite   true or :delete (the target directory)
+
+  Example:
+    clojure -Tbig-config action"
+  [& {:as args}]
+  (run-template ::action args {:target-dir ".github/workflows"
+                               :transform [["root"
+                                            {"ci.yml" "ci.yml"}
+                                            {:tag-open \<
+                                             :tag-close \>
+                                             :filter-open \<
+                                             :filter-close \>}]]}))
+
+(comment
+  (action :opts {::bc/env :repl}))

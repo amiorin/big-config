@@ -17,7 +17,7 @@
                     {::lock/owner (or (System/getenv "ZELLIJ_SESSION_NAME") "CI")
                      ::lock/lock-keys [::step/module ::step/profile]
                      ::run/shell-opts {:dir dir
-                                       :extra-env {"AWS_PROFILE" "251213589273"}}
+                                       :extra-env {"AWS_PROFILE" "default"}}
                      ::render/templates [{:template "alpha"
                                           :target-dir dir
                                           :overwrite true
@@ -35,10 +35,10 @@
 (defn data-fn
   [{:keys [profile] :as data} _]
   (merge data
-         {:region "eu-west-1"
+         {:region "us-west-1"
           :aws-account-id (case profile
-                            "dev" "251213589273"
-                            "prod" "251213589273")}))
+                            "dev" "111111111111"
+                            "prod" "222222222222")}))
 
 (defn kw->content
   [kw {:keys [region aws-account-id] :as data}]

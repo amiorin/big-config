@@ -12,17 +12,18 @@
       (loop [counter 0
              xs [[sut/terraform [:opts {::bc/env :repl}
                                  :post-process-fn nil
-                                 :aws-profile "251213589273"
-                                 :region "eu-west-1"
-                                 :dev "251213589273"
-                                 :prod "251213589273"]]
+                                 :aws-profile "default"
+                                 :region "us-west-1"
+                                 :dev "111111111111"
+                                 :prod "222222222222"]]
                  [sut/devenv [:opts {::bc/env :repl}]]
                  [sut/dotfiles [:opts {::bc/env :repl}
                                 :post-process-fn nil]]
                  [sut/ansible [:opts {::bc/env :repl}
                                :post-process-fn nil]]
                  [sut/multi [:opts {::bc/env :repl}
-                             :post-process-fn nil]]]]
+                             :post-process-fn nil]]
+                 [sut/action [:opts {::bc/env :repl}]]]]
         (when-not (empty? xs)
           (let [[f args] (first xs)
                 target-dir (format "%s/target/tools-%s" prefix counter)]
