@@ -56,7 +56,7 @@
   [spec {:keys [step-fns] :as args} defaults]
   (let [template-name (name spec)
         s (format "render -- big-config %s" template-name)
-        common {:template template-name
+        common {:template (format "big-config/%s" template-name)
                 :target-dir template-name
                 :overwrite true
                 :opts {::bc/env :shell}}
