@@ -174,7 +174,7 @@
   "Create a repo to manage both Ansible and Terraform projects with BigConfig.
 
   Options:
-  - :target-dir  target directory for the template (`ansible` is the default)
+  - :target-dir  target directory for the template (`multi` is the default)
   - :overwrite   true or :delete (the target directory)
 
   Example:
@@ -197,7 +197,7 @@
   "Create a GitHub action for the CI of a Clojure project.
 
   Options:
-  - :target-dir  target directory for the template (`ansible` is the default)
+  - :target-dir  target directory for the template (`action` is the default)
   - :overwrite   true or :delete (the target directory)
 
   Example:
