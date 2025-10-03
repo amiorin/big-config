@@ -1,12 +1,11 @@
 (ns big-config.tools
   (:require
+   [babashka.fs :as fs]
    [big-config :as bc]
    [big-config.render :as render]
    [big-config.step :as step]
    [clojure.spec.alpha :as s]
-   [clojure.string :as str]
-   [babashka.fs :as fs]))
-
+   [clojure.string :as str]))
 
 (defn- help
   [& _]
