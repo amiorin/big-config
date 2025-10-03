@@ -1,4 +1,0 @@
-{:data-fn amiorin.big-config/data-fn
- :template-fn amiorin.big-config/template-fn
- :post-process-fn amiorin.big-config/post-process-fn
- :transform [["readme" ""]]}

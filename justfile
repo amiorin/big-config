@@ -2,22 +2,14 @@
 help:
     @just -f {{ justfile() }} --list --unsorted
 
-# render README.md
-readme:
-    cd .big-config && bb readme
-
 # test all
-test: test-big-config
+test:
+    clojure -M:test
 
 # format and clean-ns all
 tidy:
     clojure-lsp clean-ns
     clojure-lsp format
-
-# test big-config
-[group('clojure')]
-test-big-config:
-    clojure -M:test
 
 # invoked by recipe test
 [group('private')]
