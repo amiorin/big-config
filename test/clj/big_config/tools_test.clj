@@ -20,6 +20,8 @@
                  [sut/dotfiles [:opts {::bc/env :repl}
                                 :post-process-fn nil]]
                  [sut/ansible [:opts {::bc/env :repl}
+                                :post-process-fn nil]]
+                 [sut/multi [:opts {::bc/env :repl}
                                 :post-process-fn nil]]]]
         (when-not (empty? xs)
           (let [[f args] (first xs)

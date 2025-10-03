@@ -7,6 +7,14 @@
    [clojure.string :as str]
    [babashka.fs :as fs]))
 
+
+(defn- help
+  [& _]
+  (println "Use `clojure -A:deps -Tbig-config help/doc` instead"))
+
+(comment
+  (help))
+
 (def non-blank-string? (s/and string? (complement str/blank?)))
 (s/def ::target-dir non-blank-string?)
 (def boolean-or-keyword? (s/or :keyword keyword? :boolean boolean?))
@@ -162,9 +170,25 @@
 (comment
   (ansible :opts {::bc/env :repl}))
 
-(defn- help
-  [& _]
-  (println "Use `clojure -A:deps -Tbig-config help/doc` instead"))
+(s/def ::multi (s/keys :req-un [::target-dir ::overwrite]))
+
+(defn multi
+  "Create a repo to manage both Ansible and Terraform projects with BigConfig.
+
+  Options:
+  - :target-dir  target directory for the template (`ansible` is the default)
+  - :overwrite   true or :delete (the target directory)
+
+  Example:
+    clojure -Tbig-config multi"
+  [& {:as args}]
+  (run-template ::multi args {:post-process-fn rename
+                              :transform [["root"
+                                           {"envrc" ".envrc"
+                                            "envrc.private" ".envrc.private"
+                                            "gitignore" ".gitignore"
+                                            "projectile" ".projectile"}
+                                           :raw]]}))
 
 (comment
-  (help))
+  (multi :opts {::bc/env :repl}))
