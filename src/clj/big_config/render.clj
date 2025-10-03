@@ -12,6 +12,8 @@
    (java.nio.file Files)
    (java.nio.file.attribute FileAttribute)))
 
+(set! *warn-on-reflection* true)
+
 (s/def ::files (s/map-of (s/or :kw keyword? :str string?) string?))
 (s/def ::tag-open char?)
 (s/def ::tag-close char?)
@@ -112,6 +114,21 @@
                   :data {:module "infra"}
                   (reduce concat (vec %))) (s/conform ::transform transform))))
 
+(defn get-multi-option
+  "Given a hash map of options, return the value for the
+  given key, or an empty sequence if the key is not present."
+  [opts k]
+  (let [v (get opts k [])]
+    (if (sequential? v)
+      v
+      [v])))
+
+(comment
+  (get-multi-option {} :foo)
+  (get-multi-option {:foo 'bar/baz} :foo)
+  (get-multi-option {:foo ['bar/baz]} :foo)
+  (get-multi-option {:foo ['bar/baz 'quux/wibble]} :foo))
+
 (def template-keys [:template
                     :target-dir
                     :overwrite
@@ -142,15 +159,10 @@
             {:keys [template
                     target-dir
                     overwrite
-                    post-process-fn
                     root
                     transform] :as edn} (template-fn data edn)
             ^java.net.URL url (io/resource template)
             template-dir (-> url .getPath io/file .getCanonicalPath)
-            post-process-fn (cond
-                              (nil? post-process-fn) (constantly nil)
-                              (fn? post-process-fn) post-process-fn
-                              (symbol? post-process-fn) (requiring-resolve post-process-fn))
             transform (s/conform ::transform (if (seq transform)
                                                transform
                                                [[(or root "root")]]))]
@@ -164,7 +176,11 @@
                       :target-dir target-dir
                       :data data
                       (reduce concat (vec %))) transform)
-        (post-process-fn edn data)
+        (doseq [post-process-fn (get-multi-option edn :post-process-fn)]
+          (let [post-process-fn (cond
+                                  (fn? post-process-fn) post-process-fn
+                                  (symbol? post-process-fn) (requiring-resolve post-process-fn))]
+            (post-process-fn edn data)))
         (recur (rest xs)))))
   (core/ok opts))
 
