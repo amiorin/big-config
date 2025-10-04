@@ -143,7 +143,7 @@
   Example:
     clojure -Tbig-config dotfiles"
   [& {:as args}]
-  (run-template ::dotfiles args {:post-process-fn rename
+  (run-template ::dotfiles args {:post-process-fn [rename upgrade]
                                  :transform [["root"
                                               {"projectile" ".projectile"
                                                "envrc" ".envrc"
@@ -165,7 +165,7 @@
   Example:
     clojure -Tbig-config ansible"
   [& {:as args}]
-  (run-template ::ansible args {:post-process-fn rename
+  (run-template ::ansible args {:post-process-fn [rename upgrade]
                                 :transform [["root"
                                              {"envrc" ".envrc"
                                               "envrc.private" ".envrc.private"
@@ -188,7 +188,7 @@
   Example:
     clojure -Tbig-config multi"
   [& {:as args}]
-  (run-template ::multi args {:post-process-fn rename
+  (run-template ::multi args {:post-process-fn [rename upgrade]
                               :transform [["root"
                                            {"envrc" ".envrc"
                                             "envrc.private" ".envrc.private"
