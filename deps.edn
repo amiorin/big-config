@@ -1,14 +1,15 @@
 {:paths   ["src/clj" "resources"]
 
  :deps    {org.clojure/clojure           {:mvn/version "1.12.0"}
-           io.github.clojure/tools.build {:mvn/version "0.10.10"}
+           io.github.clojure/tools.build {:git/tag "v0.10.10", :git/sha "deedd623574e3712687a657691c6b79f5026b3a1"}
            babashka/process              {:mvn/version "0.6.23"}
            babashka/fs                   {:mvn/version "0.5.26"}
            aero/aero                     {:mvn/version "1.1.6"}
            io.github.paintparty/bling    {:mvn/version "0.8.8"}
            selmer/selmer                 {:mvn/version "1.12.62"}
            cheshire/cheshire             {:mvn/version "6.0.0"}
-           org.babashka/cli              {:mvn/version "0.8.66"}}
+           org.babashka/cli              {:mvn/version "0.8.66"}
+           io.github.babashka/neil       {:git/sha "0b7373dd1b5a0dc7f8aff83b8e65d75d7d5e23bc"}}
 
  :tools/usage {:ns-default big-config.tools}
 

@@ -1,6 +1,7 @@
 (ns big-config.tools
   (:require
    [babashka.fs :as fs]
+   [babashka.neil :as neil]
    [big-config :as bc]
    [big-config.render :as render]
    [big-config.selmer-filters]
@@ -34,6 +35,11 @@
                           (when (str/ends-with? path ".source")
                             (fs/move path (str/replace path #".source$"  "") {:replace-existing true})))
                         :continue)}))
+
+(defn- upgrade
+  [{:keys [target-dir]} _]
+  (binding [*out* (java.io.StringWriter.)]
+    (neil/dep-upgrade {:opts {:deps-file (format "%s/deps.edn" target-dir)}})))
 
 (defn- prepare
   [args]
@@ -88,7 +94,7 @@
                                   :region "eu-west-1"
                                   :dev "111111111111"
                                   :prod "222222222222"
-                                  :post-process-fn rename
+                                  :post-process-fn [rename upgrade]
                                   :transform [["root"
                                                {"projectile" ".projectile"}
                                                {:tag-open \<
@@ -248,3 +254,4 @@
          :path "src/clj"
          :ns "big-config"
          :name "tools-v2"))
+
