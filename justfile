@@ -11,6 +11,14 @@ tidy:
     clojure-lsp clean-ns
     clojure-lsp format
 
+# upgrade all dependencies in the templates
+upgrade:
+    neil dep upgrade
+    cd resources/big-config/ansible/root   && neil dep upgrade
+    cd resources/big-config/dotfiles/root  && neil dep upgrade
+    cd resources/big-config/multi/root     && neil dep upgrade
+    cd resources/big-config/terraform/root && neil dep upgrade
+
 # invoked by recipe test
 [group('private')]
 test-wf-exit:
