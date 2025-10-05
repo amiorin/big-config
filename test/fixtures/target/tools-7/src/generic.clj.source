@@ -1,0 +1,40 @@
+(ns generic
+  (:require
+   [big-config :as bc]
+   [big-config.lock :as lock]
+   [big-config.render :as render]
+   [big-config.run :as run]
+   [big-config.step :as step]
+   [cheshire.core :as json]))
+
+(defn run-steps [s opts & step-fns]
+  (let [{:keys [module profile]} (step/parse-module-and-profile s)
+        dir (format "dist/%s/%s" profile module)
+        opts (merge opts
+                    {::lock/owner (or (System/getenv "ZELLIJ_SESSION_NAME") "CI")
+                     ::lock/lock-keys [::step/module ::step/profile]
+                     ::run/shell-opts {:dir dir
+                                       :extra-env {"AWS_PROFILE" "default"}}
+                     ::render/templates [{:template "generic"
+                                          :target-dir dir
+                                          :overwrite true
+                                          :data-fn 'generic/data-fn
+                                          :transform [['generic/kw->content
+                                                       {:generic "generic.json"}]]}]})]
+    (if step-fns
+      (apply step/run-steps s opts step-fns)
+      (step/run-steps s opts))))
+
+(comment
+  (run-steps "render -- generic prod" {::bc/env :repl}))
+
+(defn data-fn
+  [data _]
+  (merge data
+         {:foo "bar"}))
+
+(defn kw->content
+  [kw _data]
+  (case kw
+    :generic (-> {:foo "{{ foo }}"}
+                 (json/generate-string {:pretty true}))))

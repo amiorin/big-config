@@ -3,6 +3,7 @@
    [big-config :as bc]
    [big-config.render-test :refer [check-dir git-output]]
    [big-config.tools :as sut]
+   [clojure.pprint :as pp]
    [clojure.test :refer [deftest is testing]]
    [clojure.tools.build.api :as b]))
 
@@ -28,11 +29,14 @@
                              :post-process-fn nil
                              :path "src/clj"
                              :ns "big-config"
-                             :name "tools-v2"]]]]
+                             :name "tools-v2"]]
+                 [sut/generic [:opts {::bc/env :repl}
+                               :post-process-fn nil]]]]
         (when-not (empty? xs)
           (let [[f args] (first xs)
                 target-dir (format "%s/target/tools-%s" prefix counter)]
             (b/delete {:path target-dir})
-            (apply f :target-dir target-dir :step-fns [] args)
+            (let [{:keys [::bc/exit] :as opts} (apply f :target-dir target-dir :step-fns [] args)]
+              (is (= 0 exit) (with-out-str (pp/pprint opts))))
             (recur (inc counter) (rest xs)))))
       (is (check-dir prefix) (git-output prefix)))))

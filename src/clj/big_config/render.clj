@@ -178,6 +178,7 @@
                       (reduce concat (vec %))) transform)
         (doseq [post-process-fn (get-multi-option edn :post-process-fn)]
           (let [post-process-fn (cond
+                                  (nil? post-process-fn) (constantly nil)
                                   (fn? post-process-fn) post-process-fn
                                   (symbol? post-process-fn) (requiring-resolve post-process-fn))]
             (post-process-fn edn data)))

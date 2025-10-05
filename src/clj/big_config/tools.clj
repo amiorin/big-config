@@ -46,7 +46,7 @@
   (reduce-kv (fn [a k v]
                (cond
                  (#{:step-fns} k) a
-                 (#{:overwrite :opts} k) (assoc a k v)
+                 (#{:overwrite :opts :post-process-fn :data-fn :template-fn} k) (assoc a k v)
                  :else (assoc a k (str v)))) {} args))
 
 (defn- args->opts
@@ -68,7 +68,6 @@
                 :overwrite true
                 :opts {::bc/env :shell}}
         args (merge common defaults (prepare args))
-        _ (tap> args)
         opts (args->opts args spec)]
     (if step-fns
       (step/run-steps s opts step-fns)
@@ -256,3 +255,25 @@
          :ns "big-config"
          :name "tools-v2"))
 
+(s/def ::generic (s/keys :req-un [::target-dir ::overwrite]))
+
+(defn generic
+  "Create a repo to manage a generic projects with BigConfig.
+
+  Options:
+  - :target-dir  target directory for the template (`generic` is the default)
+  - :overwrite   true or :delete (the target directory)
+
+  Example:
+    clojure -Tbig-config generic"
+  [& {:as args}]
+  (run-template ::generic args {:post-process-fn [rename upgrade]
+                                :transform [["root"
+                                             {"envrc" ".envrc"
+                                              "envrc.private" ".envrc.private"
+                                              "gitignore" ".gitignore"
+                                              "projectile" ".projectile"}
+                                             :raw]]}))
+
+(comment
+  (generic :opts {::bc/env :repl}))

@@ -61,7 +61,6 @@
                 :overwrite true
                 :opts {::bc/env :shell}}
         args (merge common defaults (prepare args))
-        _ (tap> args)
         opts (args->opts args spec)]
     (if step-fns
       (step/run-steps s opts step-fns)
