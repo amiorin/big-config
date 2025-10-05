@@ -3,3 +3,4 @@
 /.lsp/
 /.nrepl-port
 /dist/*/*/.terraform
+/.envrc.private
