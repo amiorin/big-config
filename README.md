@@ -1,5 +1,18 @@
-<h1 align=center><code>big-config</code></a></h1>
+<h1 align=center><code>BigConfig</code></a></h1>
 
-`big-config` adds a zero-cost `build` step to any `devops` tools like `Makefile`, `terraform`, `k8s`, and `ansible`.
+BigConfig is a workflow and a template engine that enables you to have a
+zero-cost build step before running any CLI tool like GNU Make, Terraform, Kubectl, Helm, Kustomize, and Ansible.
 
-  <div align=center><a href="https://www.big-config.it/start-here/getting-started/">Getting Started</a></div>
+# Install
+From the <a href="https://www.big-config.it/start-here/getting-started/">Getting Started</a>
+
+``` shell
+# Add big-config as tool to Clojure
+clojure -Ttools install-latest :lib io.github.amiorin/big-config :as big-config
+
+# Print the help of all templates
+clojure -A:deps -Tbig-config help/doc
+
+# Invoke one of the templates with your options
+clojure -Tbig-config terraform
+```
