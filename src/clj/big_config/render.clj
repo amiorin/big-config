@@ -137,6 +137,11 @@
                     :post-process-fn
                     :transform])
 
+(def non-blank-string? (s/and string? (complement str/blank?)))
+(s/def ::template non-blank-string?)
+(s/def ::target-dir non-blank-string?)
+(s/def ::tpl (s/keys :req-un [::template ::target-dir]))
+
 (defn render [{:keys [::templates :big-config.step/module :big-config.step/profile] :as opts}]
   (when (nil? templates)
     (throw (IllegalArgumentException. ":big-config.render/templates should never be nil")))
@@ -159,11 +164,19 @@
                     target-dir
                     overwrite
                     transform] :as edn} (template-fn data edn)
+            edn (s/conform ::tpl edn)
+            _ (when (s/invalid? edn)
+                (throw (ex-info "Invalid template" (s/explain-data ::tpl edn))))
             ^java.net.URL url (io/resource template)
+            _ (when (nil? url)
+                (throw (ex-info "Template resource not found" {:template template})))
             template-dir (-> url .getPath io/file .getCanonicalPath)
-            transform (s/conform ::transform (if (seq transform)
-                                               transform
-                                               (throw (IllegalArgumentException. ":transform should be a seq"))))]
+            transform (s/conform ::transform (cond
+                                               (nil? transform) (throw (IllegalArgumentException. ":transform not defined"))
+                                               (empty? transform) (throw (IllegalArgumentException. ":transform is an empty list"))
+                                               :else transform))
+            _ (when (s/invalid? transform)
+                (throw (ex-info "Invalid transform" (s/explain-data ::transform transform))))]
         (when (.exists (io/file target-dir))
           (if overwrite
             (when (= :delete overwrite)
