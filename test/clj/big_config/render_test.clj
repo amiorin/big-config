@@ -36,8 +36,8 @@
 > git new files
 %s" git-diff git-new-files)))
 
-(deftest all-test
-  (testing "Test both copy-template-dir and render"
+(deftest copy-template-dir-test
+  (testing "copy-template-dir fn"
     (let [prefix "test/fixtures"]
       (loop [counter 0
              xs [['big-config.render-test/->content
@@ -75,7 +75,11 @@
                           :target-dir target-dir
                           :data {:module "infra"}
                           (reduce concat (vec %))) (s/conform ::sut/transform transform))
-            (recur (inc counter) (rest xs)))))
+            (recur (inc counter) (rest xs))))))))
+
+(deftest render-test
+  (testing "render fn"
+    (let [prefix "test/fixtures"]
       (loop [counter 0
              xs [{:template "template"
                   :transform [["root"]
