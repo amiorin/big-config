@@ -135,7 +135,6 @@
                     :data-fn
                     :template-fn
                     :post-process-fn
-                    :root
                     :transform])
 
 (defn render [{:keys [::templates :big-config.step/module :big-config.step/profile] :as opts}]
@@ -159,13 +158,12 @@
             {:keys [template
                     target-dir
                     overwrite
-                    root
                     transform] :as edn} (template-fn data edn)
             ^java.net.URL url (io/resource template)
             template-dir (-> url .getPath io/file .getCanonicalPath)
             transform (s/conform ::transform (if (seq transform)
                                                transform
-                                               [[(or root "root")]]))]
+                                               (throw (IllegalArgumentException. ":transform should be a seq"))))]
         (when (.exists (io/file target-dir))
           (if overwrite
             (when (= :delete overwrite)
