@@ -8,15 +8,15 @@
   install {:doc "- install [profile]    - render the dotfiles and install them"
            :task (apply dotfiles/core :install *command-line-args*)}
   -tidy {:doc "tidy clojure files"
-        :task (do (shell "clojure-lsp clean-ns")
-                  (shell "clojure-lsp format"))}
+         :task (do (shell "clojure-lsp clean-ns")
+                   (shell "clojure-lsp format"))}
   -test {:doc "run test with clojure"
-        :task (apply clojure "-X:test" *command-line-args*)}
+         :task (apply clojure "-X:test" *command-line-args*)}
   -test:bb {:doc "run test with babashka"
-           :extra-paths ["test"]
-           :extra-deps {io.github.cognitect-labs/test-runner
-                        {:git/tag "v0.5.1" :git/sha "dfb30dd"}}
-           :task (exec 'cognitect.test-runner.api/test)
-           :exec-args {:dirs ["test"]}
-           :org.babashka/cli {:coerce {:nses [:symbol]
-                                       :vars [:symbol]}}}}}
+            :extra-paths ["test"]
+            :extra-deps {io.github.cognitect-labs/test-runner
+                         {:git/tag "v0.5.1" :git/sha "dfb30dd"}}
+            :task (exec 'cognitect.test-runner.api/test)
+            :exec-args {:dirs ["test"]}
+            :org.babashka/cli {:coerce {:nses [:symbol]
+                                        :vars [:symbol]}}}}}

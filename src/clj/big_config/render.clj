@@ -39,8 +39,11 @@
                            :raw]]))
 
 (defn selmer [s data & delimiters]
-  (without-escaping
-   (apply p/render s data delimiters)))
+  (let [delimiters (if (seq delimiters)
+                     (first delimiters)
+                     {})]
+    (without-escaping
+     (p/render s data delimiters))))
 
 (def ^:dynamic *non-replaced-exts* #{"jpg" "jpeg" "png" "gif" "bmp" "bin"})
 
