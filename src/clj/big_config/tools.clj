@@ -146,7 +146,6 @@
                                  :transform [["root"
                                               {"projectile" ".projectile"
                                                "envrc" ".envrc"
-                                               "envrc.private" ".envrc.private"
                                                "gitignore" ".gitignore"}
                                               :raw]]}))
 

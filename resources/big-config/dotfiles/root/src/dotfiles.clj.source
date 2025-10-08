@@ -9,22 +9,35 @@
    [big-config.step :as step]
    [clojure.string :as str]))
 
+(defn ->envrc-template []
+  (let [private ".envrc.private"]
+    (when-not (fs/exists? private)
+      {:template "envrc"
+       :target-dir (str (fs/cwd))
+       :overwrite true
+       :transform [["root"
+                    {(subs private 1) private}]]})))
+
 (defn run-steps [s opts & step-fns]
   (let [{:keys [profile]} (step/parse-module-and-profile s)
         dir (format "dist/%s" profile)
+        envrc-template (->envrc-template)
+        stage-1 {:template "stage-1"
+                 :target-dir (format "resources/stage-2/%s" profile)
+                 :overwrite :delete
+                 :transform [["common"
+                              :raw]
+                             ["{{ profile }}"
+                              :raw]]}
+        stage-2 {:template "stage-2"
+                 :target-dir dir
+                 :overwrite :delete
+                 :transform [["{{ profile }}"]]}
+        templates (cond-> [stage-1 stage-2]
+                    envrc-template (conj envrc-template))
         opts (merge opts
                     {::run/shell-opts {:dir dir}
-                     ::render/templates [{:template "stage-1"
-                                          :target-dir (format "resources/stage-2/%s" profile)
-                                          :overwrite :delete
-                                          :transform [["common"
-                                                       :raw]
-                                                      ["{{ profile }}"
-                                                       :raw]]}
-                                         {:template "stage-2"
-                                          :target-dir dir
-                                          :overwrite :delete
-                                          :transform [["{{ profile }}"]]}]})]
+                     ::render/templates templates})]
     (if step-fns
       (apply step/run-steps s opts step-fns)
       (step/run-steps s opts))))
@@ -40,7 +53,7 @@
         files (atom [])
         _ (fs/walk-file-tree dir {:visit-file (fn [path _attr]
                                                 (swap! files conj (str path))
-                                                 :continue)})
+                                                :continue)})
         copies (->> @files
                     (map (fn [x]
                            (let [src (str/replace x prefix "")]
@@ -57,19 +70,23 @@
     (fs/copy-tree dir home {:replace-existing true})))
 
 (comment
-  (diff :dir "dist/dotfiles/macos/dotfiles")
-  (install :dir "dist/dotfiles/macos/dotfiles"))
+  (diff :dir "dist/macos/dotfiles")
+  (install :dir "dist/macos/dotfiles"))
 
 (defn core [& [cmd profile opts]]
   (let [profile (case cmd
                   :render (or profile "all")
-                  (or profile (System/getenv "DOTFILES_PROFILE")))
+                  (or profile (System/getenv "DOTFILES_PROFILE") "default"))
         opts (or opts {::bc/env :shell})]
     (case cmd
       :render (case profile
-                "all" (let [profiles (discover "resources/stage-2")]
+                "all" (let [profiles (discover "resources/stage-2")
+                            profiles (if (seq profiles) profiles ["default"])]
                         (doseq [profile profiles]
                           (process/shell (format "bb render %s" profile))))
-                (run-steps (format "render -- dotiles %s" profile) opts))
+                (run-steps (format "render -- dotfiles %s" profile) opts))
       :diff (run-steps (format "render exec -- dotfiles %s bb diff" profile) opts)
       :install (run-steps (format "render exec -- dotfiles %s bb install" profile) opts))))
+
+(comment
+  (core :render "ubuntu" {::bc/env :repl}))
