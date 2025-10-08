@@ -98,8 +98,8 @@
                                                {"projectile" ".projectile"}
                                                {:tag-open \<
                                                 :tag-close \>
-                                                :filter-open \<
-                                                :filter-close \>}]]}))
+                                                :filter-open \{
+                                                :filter-close \}}]]}))
 
 (comment
   (terraform :opts {::bc/env :repl}

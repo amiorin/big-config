@@ -2,6 +2,7 @@
   (:require
    [babashka.fs :as fs]
    [big-config.core :as core]
+   [big-config.selmer-filters :refer [whitespace-control]]
    [clojure.java.io :as io]
    [clojure.spec.alpha :as s]
    [clojure.string :as str]
@@ -41,7 +42,8 @@
 (defn selmer [s data & delimiters]
   (let [delimiters (if (seq delimiters)
                      (first delimiters)
-                     {})]
+                     {})
+        s (whitespace-control s delimiters)]
     (without-escaping
      (p/render s data delimiters))))
 
