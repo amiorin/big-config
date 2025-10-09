@@ -9,6 +9,19 @@ The patch number is calculated with `git rev-list --count HEAD`
 
 ## [Unreleased]
 
+## [0.2.264] - 2025-10-09
+
+### Added
+
+- `selmer` whitespace control implemented as workaround (`{{-` `-}}`) (see https://github.com/yogthos/Selmer/issues/115#issuecomment-3383327391)
+
+### Changed
+
+- `dotfiles` template
+  - creation of `.envrc.private` is now dynamic based on the profile
+  - add `/dist` to `.gitignore` 
+  - `default` profile is instead of `null` if no profile is provided
+
 ## [0.3.256] - 2025-10-06
 
 ### Added
