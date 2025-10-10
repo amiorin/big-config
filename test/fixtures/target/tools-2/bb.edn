@@ -1,12 +1,14 @@
 {:deps {amiorin/big-config {:local/root "."}}
  :tasks
- {:requires ([dotfiles :as dotfiles])
-  render {:doc  "- render [profile]|all - render the dotfiles without installing them"
-          :task (apply dotfiles/core :render *command-line-args*)}
-  diff {:doc    "- diff [profile]       - render the dotfiles and diff them with the target"
-        :task (apply dotfiles/core :diff *command-line-args*)}
-  install {:doc "- install [profile]    - render the dotfiles and install them"
-           :task (apply dotfiles/core :install *command-line-args*)}
+ {help {:doc "show detailed help"
+        :override-builtin true
+        :task (exec 'dotfiles/help)}
+  render {:doc "render the dotfiles without installing them"
+          :task (exec 'dotfiles/core {:exec-args {:cmd :render}})}
+  diff {:doc "render the dotfiles and diff them with the target"
+        :task (exec 'dotfiles/core {:exec-args {:cmd :diff}})}
+  install {:doc "render the dotfiles and install them"
+           :task (exec 'dotfiles/core {:exec-args {:cmd :install}})}
   -tidy {:doc "tidy clojure files"
          :task (do (shell "clojure-lsp clean-ns")
                    (shell "clojure-lsp format"))}
