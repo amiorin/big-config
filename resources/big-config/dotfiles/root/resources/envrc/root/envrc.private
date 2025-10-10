@@ -1,7 +1,7 @@
 export DOTFILES_PROFILE={{ profile }}
 
-{% if profile = "macos" %}
+{%- if profile = "macos" %}
 export AMAZON_ACCESS=
 export AMAZON_SECRET=
 export GITHUB_TOKEN=
-{% endif %}
+{%- endif %}

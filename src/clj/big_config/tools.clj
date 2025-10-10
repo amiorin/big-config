@@ -2,6 +2,7 @@
   (:require
    [babashka.fs :as fs]
    [babashka.neil :as neil]
+   [babashka.process :refer [shell]]
    [big-config :as bc]
    [big-config.render :as render]
    [big-config.selmer-filters]
@@ -24,6 +25,13 @@
 (s/def ::region non-blank-string?)
 (s/def ::dev non-blank-string?)
 (s/def ::prod non-blank-string?)
+
+(defn- git-setup
+  [{:keys [target-dir]} _]
+  (when-not (fs/exists? (str target-dir "/.git"))
+    (shell {:dir target-dir} "git init")
+    (shell {:dir target-dir} "git add -A")
+    (shell {:dir target-dir} "git commit -m 'initial import'")))
 
 (defn- rename
   [{:keys [target-dir]} _]
@@ -142,7 +150,7 @@
   Example:
     clojure -Tbig-config dotfiles"
   [& {:as args}]
-  (run-template ::dotfiles args {:post-process-fn [rename upgrade]
+  (run-template ::dotfiles args {:post-process-fn [rename upgrade git-setup]
                                  :transform [["root"
                                               {"projectile" ".projectile"
                                                "envrc" ".envrc"

@@ -1,2 +1,6 @@
-/dist
+/.clj-kondo/
+/.cpcache/
 /.envrc.private
+/.lsp/
+/.nrepl-port
+/dist
