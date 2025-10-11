@@ -9,7 +9,7 @@ The patch number is calculated with `git rev-list --count HEAD`
 
 ## [Unreleased]
 
-## [0.2.264] - 2025-10-09
+## [0.3.264] - 2025-10-09
 
 ### Added
 

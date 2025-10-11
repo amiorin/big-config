@@ -79,7 +79,7 @@ jobs:
           fetch-depth: 0
 
       - id: set-artifact-tag-version
-        run: echo "ARTIFACT_TAG_VERSION=0.2.$(git rev-list --count HEAD)" >> $GITHUB_OUTPUT
+        run: echo "ARTIFACT_TAG_VERSION=0.3.$(git rev-list --count HEAD)" >> $GITHUB_OUTPUT
 
       - id: create-tag
         uses: rickstaa/action-create-tag@v1
