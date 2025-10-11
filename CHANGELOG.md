@@ -9,6 +9,11 @@ The patch number is calculated with `git rev-list --count HEAD`
 
 ## [Unreleased]
 
+### Changed
+
+- rename `show-help` to `help`
+- -tidy -smoke-test -test and -test:bb are now private tasks
+
 ## [0.3.264] - 2025-10-09
 
 ### Added

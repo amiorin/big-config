@@ -7,8 +7,9 @@
               (into *command-line-args*)
               (->> (str/join " "))
               (alpha/run-steps {:big-config/env :shell})))
-  show-help {:doc "the workflow help"
-             :task (println "Usage: bb <step|cmd>+ -- <module> <profile> [global-args]
+  help {:doc "the workflow help"
+        :override-builtin true
+        :task (println "Usage: bb <step|cmd>+ -- <module> <profile> [global-args]
 
 The available steps are listed below. Anything that is not a step is considered
 a cmd where `:` is replaced with ` `
@@ -47,21 +48,23 @@ Example of cmds:
         :task (run-steps "lock")}
   unlock-any {:doc "release the lock (any owner)"
               :task (run-steps "unlock-any")}
-  tidy {:doc "tidy clojure files"
-        :task (do (shell "clojure-lsp clean-ns")
-                  (shell "clojure-lsp format"))}
-  smoke-test {:doc "test to validate the template"
-              :task (doseq [cmd ["bb render exec -- alpha prod ls -la"
-                                 "bb show-help"]]
-                      (println (str "> " cmd))
-                      (shell cmd))}
-  test {:doc "run test with clojure"
-        :task (apply clojure "-X:test" *command-line-args*)}
-  test:bb {:doc "run test with babashka"
-           :extra-paths ["test"]
-           :extra-deps {io.github.cognitect-labs/test-runner
-                        {:git/tag "v0.5.1" :git/sha "dfb30dd"}}
-           :task (exec 'cognitect.test-runner.api/test)
-           :exec-args {:dirs ["test"]}
-           :org.babashka/cli {:coerce {:nses [:symbol]
-                                       :vars [:symbol]}}}}}
+  exec {:doc "exec in the target directory"
+        :task (run-steps "exec")}
+  -tidy {:doc "tidy clojure files"
+         :task (do (shell "clojure-lsp clean-ns")
+                   (shell "clojure-lsp format"))}
+  -smoke-test {:doc "test to validate the template"
+               :task (doseq [cmd ["bb render exec -- alpha prod ls -la"
+                                  "bb help"]]
+                       (println (str "> " cmd))
+                       (shell cmd))}
+  -test {:doc "run test with clojure"
+         :task (apply clojure "-X:test" *command-line-args*)}
+  -test:bb {:doc "run test with babashka"
+            :extra-paths ["test"]
+            :extra-deps {io.github.cognitect-labs/test-runner
+                         {:git/tag "v0.5.1" :git/sha "dfb30dd"}}
+            :task (exec 'cognitect.test-runner.api/test)
+            :exec-args {:dirs ["test"]}
+            :org.babashka/cli {:coerce {:nses [:symbol]
+                                        :vars [:symbol]}}}}}
