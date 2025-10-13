@@ -68,4 +68,3 @@ Example of cmds:
             :exec-args {:dirs ["test"]}
             :org.babashka/cli {:coerce {:nses [:symbol]
                                         :vars [:symbol]}}}}}
-

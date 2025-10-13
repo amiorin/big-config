@@ -280,7 +280,9 @@
                                               "envrc.private" ".envrc.private"
                                               "gitignore" ".gitignore"
                                               "projectile" ".projectile"}
-                                             :raw]]}))
+                                             {:tag-open \<
+                                              :tag-close \>
+                                              :tag-second \%}]]}))
 
 (comment
   (generic :opts {::bc/env :repl}))
