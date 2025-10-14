@@ -9,6 +9,10 @@ The patch number is calculated with `git rev-list --count HEAD`
 
 ## [Unreleased]
 
+### Added
+
+- bump `selmer` to support template inheritance
+
 ### Changed
 
 - rename `show-help` to `help`
