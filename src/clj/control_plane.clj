@@ -1,6 +1,7 @@
 (ns control-plane
   (:require
    [babashka.fs :as fs]
+   [babashka.process :refer [shell]]
    [big-config :as bc]
    [big-config.render :as render]
    [big-config.run :as run]
@@ -64,10 +65,11 @@
 (defn dispatch
   [op opts]
   (with-open [p (prevayler! p-args)]
-    (let [target-dir (:target-dir @p)
+    (let [{:keys [target-dir aws-account-id region module]} @p
           dsl "render %s %s -- module profile"
           tofu-init (if (fs/exists? (str target-dir "/.terraform")) "" "tofu:init")]
       (case op
+        :tfstate-path (println (format "s3://tf-state-%s-%s/%s.tfstate" aws-account-id region module))
         :print-state (pp/pprint @p)
         :merge-state (handle! p {:merge opts})
         :reset-state (handle! p {:reset opts})
@@ -80,12 +82,45 @@
                        (handle! p {:rename-user {:name name
                                                  :new-name new-name}}))
         :delete-all-users (handle! p {:delete-all-users nil})
+        :create-bucket (shell {:continue true} (format "aws s3 mb s3://tf-state-%s-%s" aws-account-id region))
         :apply-state (run-template :target-dir target-dir
                                    :dsl (format dsl tofu-init "tofu:apply:-auto-approve")
                                    :data @p)
         :diff-state (run-template :target-dir target-dir
                                   :dsl (format dsl tofu-init "tofu:plan")
                                   :data @p)))))
+
+(defn help
+  [& _]
+  (println "Usage: clojure -Tctlp <subcommand> [args]
+
+ctrlp is a tech demo of a control plane based on BigConfig
+
+Useful alias:
+  alias p=\"clojure -Tcltp\"
+
+State commands:
+  merge-state      Merge a new map into the state
+  print-state      Print the state to the stdout
+  reset-state      Reset the state to the default one
+
+AWS commands:
+  tfstate-path     Print the S3 path of the terraform/tofu state
+  create-bucket    Create the bucket for the terraform/tofu state
+  apply-state      Run terraform/tofu apply
+  diff-state       Run terraform/tofu plan
+
+User commands:
+  create-user      Create a new user
+  rename-user      Rename a user
+  delete-user      Delete a user
+  delete-all-users Delete all users
+
+Examples:
+  p crate-user :name '\"alice\"'
+  p rename-user :name '\"alice\"' :new-name '\"bob\"'
+  p merge-state :aws-account-id '\"111111111111\"' :region '\"us-west-1\"'
+"))
 
 (defn merge-state
   [& {:as args}]
@@ -102,6 +137,10 @@
 (defn create-bucket
   [& {:as args}]
   (dispatch :create-bucket args))
+
+(defn tfstate-path
+  [& {:as args}]
+  (dispatch :tfstate-path args))
 
 (defn apply-state
   [& {:as args}]
@@ -132,6 +171,8 @@
   (dispatch :list-users args))
 
 (comment
+  (help)
+  (tfstate-path)
   (merge-state :region "eu-west-1" :aws-account-id "111" :module "users")
   (print-state)
   (reset-state)
