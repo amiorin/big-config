@@ -117,7 +117,7 @@ User commands:
   delete-all-users Delete all users
 
 Examples:
-  p crate-user :name '\"alice\"'
+  p create-user :name '\"alice\"'
   p rename-user :name '\"alice\"' :new-name '\"bob\"'
   p merge-state :aws-account-id '\"111111111111\"' :region '\"us-west-1\"'
 "))
