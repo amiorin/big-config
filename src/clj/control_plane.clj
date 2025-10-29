@@ -14,6 +14,8 @@
   (:import
    [java.io File]))
 
+(fs/create-dirs "state")
+
 (def initial-state {:region "eu-west-1"
                     :aws-account-id "251213589273"
                     :module "users"
