@@ -3,3 +3,4 @@
 /.lsp/
 /.nrepl-port
 /state/journal4*
+/dist/

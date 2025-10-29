@@ -1,6 +1,7 @@
-{:paths ["src/clj"]
+{:paths ["src/clj" "resources"]
  :deps {org.clojure/clojure          {:mvn/version "1.12.3"}
         io.github.amiorin/big-config {:git/sha "ba2d085e0d317506065fb6e77a0510dc51cef94a"}
         com.taoensso/nippy           {:mvn/version "3.6.0"}
-        cheshire/cheshire            {:mvn/version "6.1.0"}}
+        cheshire/cheshire            {:mvn/version "6.1.0"}
+        babashka/fs                  {:mvn/version "0.5.27"}}
  :tools/usage {:ns-default control-plane}}

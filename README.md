@@ -1,2 +1,2 @@
 ## Intro
-The orphan branch
+Example of control plane.
