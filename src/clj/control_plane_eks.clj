@@ -1,4 +1,4 @@
-(ns control-plane
+(ns control-plane-eks
   (:require
    [babashka.fs :as fs]
    [babashka.process :refer [shell]]
@@ -19,29 +19,13 @@
 
 (def initial-state {:region "eu-west-1"
                     :aws-account-id "251213589273"
-                    :module "users"
+                    :module "eks"
                     :users {}
                     :target-dir "dist"})
 
 (defn business-fn [state event _timestamp]
   (reduce-kv (fn [new-state op op-val]
                (case op
-                 :rename-user (let [old-name (:name op-val)
-                                    new-name (:new-name op-val)
-                                    users (:users new-state)]
-                                (->> (reduce-kv (fn [new-users id name]
-                                                  (assoc new-users id (if (= old-name name)
-                                                                        new-name
-                                                                        name))) {} users)
-                                     (assoc new-state :users)))
-                 :delete-user (let [del-name (:name op-val)
-                                    users (:users new-state)]
-                                (->> (reduce-kv (fn [new-users id name]
-                                                  (if (= del-name name)
-                                                    new-users
-                                                    (assoc new-users id name))) {} users)
-                                     (assoc new-state :users)))
-                 :delete-all-users (assoc new-state :users {})
                  :merge (deep-merge new-state op-val)
                  :reset initial-state)) state event))
 
@@ -73,15 +57,6 @@
         :print-state (pp/pprint @p)
         :merge-state (handle! p {:merge opts})
         :reset-state (handle! p {:reset opts})
-        :create-user (let [name (:name opts)]
-                       (handle! p {:merge {:users {(random-uuid) name}}}))
-        :delete-user (let [name (:name opts)]
-                       (handle! p {:delete-user {:name name}}))
-        :rename-user (let [name (:name opts)
-                           new-name (:new-name opts)]
-                       (handle! p {:rename-user {:name name
-                                                 :new-name new-name}}))
-        :delete-all-users (handle! p {:delete-all-users nil})
         :create-bucket (shell {:continue true} (format "aws s3 mb s3://tf-state-%s-%s" aws-account-id region))
         :apply-state (run-template :target-dir target-dir
                                    :dsl (format dsl tofu-init "tofu:apply:-auto-approve")
@@ -92,12 +67,12 @@
 
 (defn help
   [& _]
-  (println "Usage: clojure -Tctlp <subcommand> [args]
+  (println "Usage: clojure -Teks <subcommand> [args]
 
-ctrlp is a tech demo of a control plane based on BigConfig
+eks is a tech demo of a control plane based on BigConfig
 
 Useful alias:
-  alias p=\"clojure -Tcltp\"
+  alias eks=\"clojure -Teks\"
 
 State commands:
   merge-state      Merge a new map into the state
@@ -111,15 +86,9 @@ AWS commands:
   diff-state       Run terraform/tofu plan
 
 User commands:
-  create-user      Create a new user
-  rename-user      Rename a user
-  delete-user      Delete a user
-  delete-all-users Delete all users
 
 Examples:
-  p create-user :name '\"alice\"'
-  p rename-user :name '\"alice\"' :new-name '\"bob\"'
-  p merge-state :aws-account-id '\"111111111111\"' :region '\"us-west-1\"'
+  eks merge-state :aws-account-id '\"111111111111\"' :region '\"us-west-1\"'
 "))
 
 (defn merge-state
@@ -150,26 +119,6 @@ Examples:
   [& {:as args}]
   (dispatch :diff-state args))
 
-(defn create-user
-  [& {:as args}]
-  (dispatch :create-user args))
-
-(defn delete-user
-  [& {:as args}]
-  (dispatch :delete-user args))
-
-(defn delete-all-users
-  [& {:as args}]
-  (dispatch :delete-all-users args))
-
-(defn rename-user
-  [& {:as args}]
-  (dispatch :rename-user args))
-
-(defn list-users
-  [& {:as args}]
-  (dispatch :list-users args))
-
 (comment
   (help)
   (tfstate-path)
@@ -178,12 +127,7 @@ Examples:
   (reset-state)
   (create-bucket)
   (apply-state)
-  (diff-state)
-  (create-user :name "alberto")
-  (delete-user :name "alberto")
-  (delete-all-users)
-  (rename-user :name "alberto" :new-name "albi")
-  (list-users))
+  (diff-state))
 
 (defn content-fn
   [module {:keys [region aws-account-id users] :as data}]

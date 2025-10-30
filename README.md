@@ -1,10 +1,16 @@
 ## Intro
-Example of control plane based on BigConfig.
+Example of control plane based on BigConfig to manage EKS.
 
 ``` sh
 # Add the control plane as tool to Clojure
-clojure -Ttools install big-config/control-plane '{:git/sha "aff7c186999c19ad2b4f07752abd13ec5b3b6651" :git/url "https://github.com/amiorin/big-config.git"}' :as ctlp
+clojure -Ttools install big-config/control-plane-eks '{:git/sha "abc" :git/url "https://github.com/amiorin/big-config.git"}' :as eks
+
+# Development mode
+clojure -Ttools install big-config/control-plane-eks '{:local/root "."}' :as eks
 
 # Print the help of the control plane cli
-clojure -Tctlp help
+clojure -Teks help
+
+# Alias
+alias eks="clojure -Teks"
 ```
