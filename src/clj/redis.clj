@@ -36,17 +36,6 @@
       (println "Warning - Exception thrown while reading journal (this is normally OK and can happen when the process is killed during write):" corruption)
       (throw (EOFException.)))))
 
-(defn- try-to-restore! [handler state-atom data-in]
-  (let [previous-state (read-value! data-in)] ; Can throw EOFException
-    (reset! state-atom previous-state))
-  (while true ;Ends with EOFException
-    (let [[timestamp event expected-state-hash] (read-value! data-in)
-          state (swap! state-atom handler event timestamp)]
-      (when (and expected-state-hash ; Old prevayler4 journals don't have this state hash saved (2023-11-01)
-                 (not= (hash state) expected-state-hash))
-        (println "Inconsistent state detected after restoring event:\n" event)
-        (throw (IllegalStateException. "Inconsistent state detected during event journal replay. https://github.com/klauswuestefeld/prevayler-clj/blob/master/reference.md#inconsistent-state-detected"))))))
-
 (defonce conn-pool (car/connection-pool {})) ; Create a new stateful pool
 (def     conn-spec {:uri "redis://localhost:6379/"})
 (def     wcar-opts {:pool conn-pool, :spec conn-spec})
@@ -56,17 +45,17 @@
 (do
   (wcar* (car/flushall))
   ;; -offset [-offset state]
-  (wcar* (car/zadd "prevayler-state" -1 [-1 {:cnt 1}]))
-  (wcar* (car/zadd "prevayler-state" -2 [-2 {:cnt 2}]))
+  #_(wcar* (car/zadd "prevayler-state" -1 [-1 {:cnt 1}]))
+  #_(wcar* (car/zadd "prevayler-state" -2 [-2 {:cnt 2}]))
   ;; offset [offset timestamp sha event]
-  (wcar* (car/zadd "prevayler-state" 1 [1 1 "sha1" {:op :inc}]))
-  (wcar* (car/zadd "prevayler-state" 2 [2 2 "sha2" {:op :inc}]))
+  (wcar* (car/zadd "prevayler-state" 1 [1 1 681490635 {:op :inc}]))
+  (wcar* (car/zadd "prevayler-state" 2 [2 2 973101094 {:op :inc}]))
   (wcar* (car/zadd "prevayler-state" 3 [3 3 -2081955313 {:op :inc}]))
   (wcar* (car/zadd "prevayler-state" 4 [4 4 695947906 {:op :inc}]))
   (wcar* (car/zrange "prevayler-state" "-inf" "0" "BYSCORE" "LIMIT" "0" "1"))
   #_(wcar* (car/zrange "prevayler-state" "(0" "+inf" "BYSCORE")))
 
-(wcar* (car/zscan "prevayler-state" 0))
+(wcar* (car/zscan "foo" 0))
 
 (defn ->handler
   [f]
@@ -74,78 +63,84 @@
     (assert (= (inc offset) next-offset) "Offsets should be a continuos sequence of natural number starting from 0")
     [next-offset (f user-state event timestamp)]))
 
-(defn- restore! [handler state-atom store-key]
-  (let [states (wcar* (car/zrange store-key "-inf" "0" "BYSCORE" "LIMIT" "0" "1"))]
+(defn- write! [offset timestamp event state-hash store-key wcar-opts]
+  (wcar wcar-opts (car/zadd store-key offset [offset timestamp state-hash event])))
+
+(let [offset 1
+      timestamp 1
+      event {:op :inc}
+      state-hash (hash [1 {:cnt 1}])
+      wcar-opts {:pool (car/connection-pool {})
+                 :spec {:uri "redis://localhost:6379/"}}
+      store-key "prevayler-state"]
+  (write! offset timestamp event state-hash store-key wcar-opts))
+
+(defn- restore! [handler state-atom store-key wcar-opts]
+  (let [states (wcar wcar-opts (car/zrange store-key "-inf" "0" "BYSCORE" "LIMIT" "0" "1"))]
     (when (seq states)
       (let [[[neg-offset previous-state]] states]
         (reset! state-atom [(abs neg-offset) previous-state])))
     (let [start-index (str "(" (-> state-atom deref first))
-          new-events (wcar* (car/zrange store-key start-index "+inf" "BYSCORE"))]
+          new-events (wcar wcar-opts (car/zrange store-key start-index "+inf" "BYSCORE"))]
       (doseq [[offset timestamp expected-state-hash event] new-events]
         (let [state (swap! state-atom handler event timestamp offset)]
           (when (and expected-state-hash ; Old prevayler4 journals don't have this state hash saved (2023-11-01)
                      (not= (hash state) expected-state-hash))
             (throw (ex-info "Inconsistent state detected during event journal replay" {:hash (hash state)
-                                                                                       :expected-state-hash expected-state-hash}))))))
-    @state-atom))
+                                                                                       :expected-state-hash expected-state-hash}))))))))
 
 (comment
   (let [handler (->handler (fn [state {:keys [op]} _timestamp]
                              (case op
                                :inc (update state :cnt inc))))
         state-atom (atom [0 {:cnt 0}])
-        store-key "prevayler-state"]
-    (restore! handler state-atom store-key)))
+        store-key "prevayler-state"
+        wcar-opts {:pool (car/connection-pool {})
+                   :spec {:uri "redis://localhost:6379/"}}]
 
-(defn- write-with-flush! [data-out value]
-  (nippy/freeze-to-out! data-out value)
-  (.flush data-out))
-
-(defn- archive! [^File backup]
-  (rename! backup (File. (str backup "-" (System/currentTimeMillis)))))
-
-(defn- start-new-journal! [journal-file data-out-atom state backup-file]
-  (reset! data-out-atom (-> journal-file FileOutputStream. BufferedOutputStream. DataOutputStream.))
-  (write-with-flush! @data-out-atom state)
-  (when backup-file
-    (archive! backup-file)))
+    (restore! handler state-atom store-key wcar-opts)
+    @state-atom))
 
 (defprotocol Prevayler
   (handle! [this event] "Journals the event, applies the business function to the state and the event; and returns the new state.")
   (snapshot! [this] "Creates a snapshot of the current state.")
   (timestamp [this] "Calls the timestamp-fn"))
 
-(defn prevayler! [{:keys [initial-state business-fn timestamp-fn store-key snapshot-every]
+(defn prevayler! [{:keys [initial-state business-fn timestamp-fn store-key snapshot-every wcar-opts]
                    :or {initial-state {}
                         timestamp-fn #(System/currentTimeMillis)
                         store-key "prevayler-state"
-                        snapshot-every 10}}]
-  (let [state-atom (atom [0 initial-state])]
-    (restore! business-fn state-atom store-key)
+                        snapshot-every 10
+                        wcar-opts {:pool (car/connection-pool {})
+                                   :spec {:uri "redis://localhost:6379/"}}}}]
+  (let [state-atom (atom [0 initial-state])
+        handler (->handler business-fn)]
+    (restore! handler state-atom store-key wcar-opts)
 
-    (let [data-out-atom (atom nil)]
-      #_(start-new-journal! journal-file data-out-atom @state-atom backup)
+    (reify
+      Prevayler
+      (handle! [this event]
+        (locking this  ; (I)solation: strict serializability.
+          (let [[offset current-user-state] @state-atom
+                timestamp (timestamp-fn)
+                new-state (handler @state-atom event timestamp (inc offset)) ; (C)onsistency: must be guaranteed by the handler. The event won't be journalled when the handler throws an exception.
+                [next-offset new-user-state] new-state]
+            (when-not (identical? new-user-state current-user-state)
+              (write! next-offset timestamp event (hash new-state) store-key wcar-opts) ; (D)urability
+              (reset! state-atom new-state)) ; (A)tomicity
+            new-user-state)))
 
-      (reify
-        Prevayler
-        (handle! [this event]
-          (locking this ; (I)solation: strict serializability.
-            (let [current-state @state-atom
-                  timestamp (timestamp-fn)
-                  new-state (business-fn current-state event timestamp)] ; (C)onsistency: must be guaranteed by the handler. The event won't be journalled when the handler throws an exception.
-              (when-not (identical? new-state current-state)
-                (write-with-flush! @data-out-atom [timestamp event (hash new-state)]) ; (D)urability
-                (reset! state-atom new-state)) ; (A)tomicity
-              new-state)))
+      (snapshot! [_this])
 
-        (snapshot! [this]
-          (locking this
-            (.close @data-out-atom)
-            (let [backup "" #_(produce-backup-file! journal-file)]
-              #_(start-new-journal! journal-file data-out-atom @state-atom backup))))
+      (timestamp [_] (timestamp-fn))
 
-        (timestamp [_] (timestamp-fn))
+      IDeref (deref [_] (second @state-atom))
 
-        IDeref (deref [_] @state-atom)
+      Closeable (close [_]))))
 
-        Closeable (close [_] (.close @data-out-atom))))))
+(with-open [p (prevayler! {:store-key "foo"
+                           :initial-state {:cnt 0}
+                           :business-fn (fn [state event _timestamp]
+                                          (update state :cnt inc))})]
+  @p
+  #_(handle! p {:op :inc}))
