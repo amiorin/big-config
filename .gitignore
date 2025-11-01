@@ -4,3 +4,4 @@
 /.nrepl-port
 /state/journal4*
 /dist/
+/dump.rdb

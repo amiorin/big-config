@@ -4,5 +4,6 @@
         com.taoensso/nippy           {:mvn/version "3.6.0"}
         cheshire/cheshire            {:mvn/version "6.1.0"}
         babashka/fs                  {:mvn/version "0.5.27"}
-        babashka/process             {:mvn/version "0.6.23"}}
+        babashka/process             {:mvn/version "0.6.23"}
+        com.taoensso/carmine         {:mvn/version "3.4.1"}}
  :tools/usage {:ns-default control-plane-eks}}
