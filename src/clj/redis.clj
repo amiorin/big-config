@@ -1,33 +1,32 @@
 (ns redis
   (:require
-   [taoensso.carmine :as car :refer [wcar]]
-   [taoensso.nippy :as nippy])
+   [taoensso.carmine :as car :refer [wcar]])
   (:import
    [clojure.lang IDeref]
    [java.io
     Closeable]))
 
 (comment
-  (defonce conn-pool (car/connection-pool {})) ; Create a new stateful pool
+  (defonce conn-pool (car/connection-pool {}))
   (def     conn-spec {:uri "redis://localhost:6379/"})
   (def     wcar-opts {:pool conn-pool, :spec conn-spec})
 
   (defmacro wcar* [& body] `(car/wcar wcar-opts ~@body))
 
-  (do
+  (let [redis-key "prevayler-state"]
     (wcar* (car/flushall))
     ;; -offset [-offset state]
-    (wcar* (car/zadd "prevayler-state" -1 [-1 {:cnt 1}]))
-    (wcar* (car/zadd "prevayler-state" -2 [-2 {:cnt 2}]))
+    (wcar* (car/zadd redis-key -1 [-1 {:cnt 1}]))
+    (wcar* (car/zadd redis-key -2 [-2 {:cnt 2}]))
     ;; offset [offset timestamp sha event]
-    (wcar* (car/zadd "prevayler-state" 1 [1 1 681490635 {:op :inc}]))
-    (wcar* (car/zadd "prevayler-state" 2 [2 2 973101094 {:op :inc}]))
-    (wcar* (car/zadd "prevayler-state" 3 [3 3 -2081955313 {:op :inc}]))
-    (wcar* (car/zadd "prevayler-state" 4 [4 4 695947906 {:op :inc}]))
-    (wcar* (car/zrange "prevayler-state" "-inf" "0" "BYSCORE" "LIMIT" "0" "1"))
-    #_(wcar* (car/zrange "prevayler-state" "(0" "+inf" "BYSCORE")))
-
-  (wcar* (car/zscan "foo" 0)))
+    (wcar* (car/zadd redis-key 1 [1 1 681490635 {:op :inc}]))
+    (wcar* (car/zadd redis-key 2 [2 2 973101094 {:op :inc}]))
+    (wcar* (car/zadd redis-key 3 [3 3 -2081955313 {:op :inc}]))
+    (wcar* (car/zadd redis-key 4 [4 4 695947906 {:op :inc}]))
+    (wcar* (car/zrange redis-key "-inf" "0" "BYSCORE" "LIMIT" "0" "1"))
+    #_(wcar* (car/zrange redis-key "(0" "+inf" "BYSCORE"))
+    (wcar* (car/zrange redis-key 5 5 "BYSCORE"))
+    #_(wcar* (car/zscan redis-key 0))))
 
 (defn ->handler
   [f]
@@ -36,7 +35,15 @@
     [next-offset (f user-state event timestamp)]))
 
 (defn- write! [offset timestamp event state-hash store-key wcar-opts]
-  (wcar wcar-opts (car/zadd store-key offset [offset timestamp state-hash event])))
+  (-> (wcar wcar-opts
+            (car/watch store-key)
+            (let [no-concurrent-write (not (seq (car/with-replies (car/zrange store-key offset offset "BYSCORE"))))]
+              (car/return no-concurrent-write)
+              (car/multi)
+              (when no-concurrent-write
+                (car/zadd store-key offset [offset timestamp state-hash event]))
+              (car/exec)))
+      second))
 
 (comment
   (let [offset 1
@@ -46,7 +53,14 @@
         wcar-opts {:pool (car/connection-pool {})
                    :spec {:uri "redis://localhost:6379/"}}
         store-key "prevayler-state"]
-    (write! offset timestamp event state-hash store-key wcar-opts)))
+    (wcar* (car/flushall))
+    (write! offset timestamp event state-hash store-key wcar-opts))
+
+  (let [store-key "prevayler-state"]
+    (wcar*
+     (car/watch store-key)
+     (println (car/zrange store-key 1 1 "BYSCORE"))
+     (car/unwatch))))
 
 (defn- restore! [handler state-atom store-key wcar-opts]
   (let [[offset _] @state-atom
@@ -105,10 +119,11 @@
               (when-not (identical? new-user-state current-user-state)
                 (if (write! next-offset timestamp event (hash new-state) store-key wcar-opts) ; (D)urability
                   (do (reset! state-atom new-state) ; (A)tomicity
-                      (snapshot! this))
-                  (do (restore! handler state-atom store-key wcar-opts)
-                      (recur)))) ; optimistic lock failed
-              new-user-state))))
+                      (when (= 0 (mod next-offset snapshot-every))
+                        (snapshot! this))
+                      new-user-state)
+                  (do (restore! handler state-atom store-key wcar-opts) ; optimistic lock failed
+                      (recur))))))))
 
       (snapshot! [_this])
 
@@ -121,9 +136,19 @@
       Closeable (close [_]))))
 
 (comment
-  (with-open [p (prevayler! {:store-key "foo"
-                             :initial-state {:cnt 0}
-                             :business-fn (fn [state event _timestamp]
-                                            (update state :cnt inc))})]
-    @p
-    #_(handle! p {:op :inc})))
+  (def p1
+    (prevayler! {:store-key "foo"
+                 :initial-state {:cnt 0}
+                 :business-fn (fn [state event _timestamp]
+                                (update state :cnt inc))}))
+  (def p2
+    (prevayler! {:store-key "foo"
+                 :initial-state {:cnt 0}
+                 :business-fn (fn [state event _timestamp]
+                                (update state :cnt inc))}))
+
+  (-> @p1)
+  (handle! p1 {:op :inc})
+
+  (-> @p2)
+  (handle! p2 {:op :inc}))
