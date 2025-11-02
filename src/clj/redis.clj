@@ -45,8 +45,8 @@
 (do
   (wcar* (car/flushall))
   ;; -offset [-offset state]
-  #_(wcar* (car/zadd "prevayler-state" -1 [-1 {:cnt 1}]))
-  #_(wcar* (car/zadd "prevayler-state" -2 [-2 {:cnt 2}]))
+  (wcar* (car/zadd "prevayler-state" -1 [-1 {:cnt 1}]))
+  (wcar* (car/zadd "prevayler-state" -2 [-2 {:cnt 2}]))
   ;; offset [offset timestamp sha event]
   (wcar* (car/zadd "prevayler-state" 1 [1 1 681490635 {:op :inc}]))
   (wcar* (car/zadd "prevayler-state" 2 [2 2 973101094 {:op :inc}]))
@@ -76,7 +76,9 @@
   (write! offset timestamp event state-hash store-key wcar-opts))
 
 (defn- restore! [handler state-atom store-key wcar-opts]
-  (let [states (wcar wcar-opts (car/zrange store-key "-inf" "0" "BYSCORE" "LIMIT" "0" "1"))]
+  (let [[offset _] @state-atom
+        neg-offste-str (str (- offset))
+        states (wcar wcar-opts (car/zrange store-key "-inf" neg-offste-str "BYSCORE" "LIMIT" "0" "1"))]
     (when (seq states)
       (let [[[neg-offset previous-state]] states]
         (reset! state-atom [(abs neg-offset) previous-state])))
