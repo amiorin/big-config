@@ -112,13 +112,13 @@
   (timestamp [this] "Calls the timestamp-fn")
   (get-offset [this] "Get the current offset"))
 
-(defn prevayler! [{:keys [initial-state business-fn timestamp-fn store-key snapshot-every wcar-opts]
+(defn prevayler! [{:keys [initial-state business-fn timestamp-fn store-key snapshot-every wcar-opts close-fn]
                    :or {initial-state {}
                         timestamp-fn #(System/currentTimeMillis)
                         store-key "prevayler-state"
                         snapshot-every 10
-                        wcar-opts {:pool (car/connection-pool {})
-                                   :spec {:uri "redis://localhost:6379/"}}}}]
+                        wcar-opts {}
+                        close-fn (constantly nil)}}]
   (let [state-atom (atom [0 initial-state])
         handler (->handler business-fn)]
     (restore! handler state-atom store-key wcar-opts)
@@ -149,7 +149,7 @@
 
       IDeref (deref [_] (second @state-atom))
 
-      Closeable (close [_]))))
+      Closeable (close [_] (close-fn wcar-opts)))))
 
 (comment
   (def p1
