@@ -38,12 +38,34 @@
   (-> (wcar wcar-opts
             (car/watch store-key)
             (let [no-concurrent-write (not (seq (car/with-replies (car/zrange store-key offset offset "BYSCORE"))))]
-              (car/return no-concurrent-write)
               (car/multi)
               (when no-concurrent-write
                 (car/zadd store-key offset [offset timestamp state-hash event]))
               (car/exec)))
-      second))
+      (nth 3 nil)
+      (nth 0 false)))
+
+(comment
+; Success
+;  0. "OK"
+;  1. "OK"
+;  2. "QUEUED"
+;  3. [1]
+; watch fails
+;  0. "OK"
+;  1. "OK"
+;  2. "QUEUED"
+;  3. nil
+; no-concurrent-write finds a new event with the same offset
+;  0. "OK"
+;  1. "OK"
+;  2. []
+  (for [reply [["OK" "OK" "QUEUED" [1]]
+               ["OK" "OK" "QUEUED" nil]
+               ["OK" "OK" []]]]
+    (-> reply
+        (nth  3 nil)
+        (nth 0 false))))
 
 (comment
   (let [offset 1
@@ -54,13 +76,7 @@
                    :spec {:uri "redis://localhost:6379/"}}
         store-key "prevayler-state"]
     (wcar* (car/flushall))
-    (write! offset timestamp event state-hash store-key wcar-opts))
-
-  (let [store-key "prevayler-state"]
-    (wcar*
-     (car/watch store-key)
-     (println (car/zrange store-key 1 1 "BYSCORE"))
-     (car/unwatch))))
+    (write! offset timestamp event state-hash store-key wcar-opts)))
 
 (defn- restore! [handler state-atom store-key wcar-opts]
   (let [[offset _] @state-atom
@@ -139,16 +155,18 @@
   (def p1
     (prevayler! {:store-key "foo"
                  :initial-state {:cnt 0}
-                 :business-fn (fn [state event _timestamp]
+                 :business-fn (fn [state _event _timestamp]
                                 (update state :cnt inc))}))
   (def p2
     (prevayler! {:store-key "foo"
                  :initial-state {:cnt 0}
-                 :business-fn (fn [state event _timestamp]
+                 :business-fn (fn [state _event _timestamp]
                                 (update state :cnt inc))}))
 
   (-> @p1)
   (handle! p1 {:op :inc})
+  (get-offset p1)
 
   (-> @p2)
-  (handle! p2 {:op :inc}))
+  (handle! p2 {:op :inc})
+  (get-offset p2))
