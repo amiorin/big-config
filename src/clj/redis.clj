@@ -89,7 +89,7 @@
           new-events (wcar wcar-opts (car/zrange store-key start-index "+inf" "BYSCORE"))]
       (doseq [[offset timestamp expected-state-hash event] new-events]
         (let [state (swap! state-atom handler event timestamp offset)]
-          (when (and expected-state-hash ; Old prevayler4 journals don't have this state hash saved (2023-11-01)
+          (when (and expected-state-hash
                      (not= (hash state) expected-state-hash))
             (throw (ex-info "Inconsistent state detected during event journal replay" {:hash (hash state)
                                                                                        :expected-state-hash expected-state-hash}))))))))
@@ -141,7 +141,12 @@
                   (do (restore! handler state-atom store-key wcar-opts) ; optimistic lock failed
                       (recur))))))))
 
-      (snapshot! [_this])
+      (snapshot! [_this]
+        (let [[offset current-user-state] @state-atom
+              neg-offset (- offset)]
+          (wcar wcar-opts
+                (car/zadd store-key neg-offset [neg-offset current-user-state])
+                (car/zremrangebyscore store-key (str "(" neg-offset) "0"))))
 
       (timestamp [_] (timestamp-fn))
 
@@ -155,11 +160,13 @@
   (def p1
     (prevayler! {:store-key "foo"
                  :initial-state {:cnt 0}
+                 :snapshot-every 2
                  :business-fn (fn [state _event _timestamp]
                                 (update state :cnt inc))}))
   (def p2
     (prevayler! {:store-key "foo"
                  :initial-state {:cnt 0}
+                 :snapshot-every 2
                  :business-fn (fn [state _event _timestamp]
                                 (update state :cnt inc))}))
 
@@ -169,4 +176,6 @@
 
   (-> @p2)
   (handle! p2 {:op :inc})
-  (get-offset p2))
+  (get-offset p2)
+
+  (wcar {} (car/zscan "foo" 0)))
