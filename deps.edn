@@ -9,6 +9,7 @@
            selmer/selmer                 {:mvn/version "1.12.63"}
            cheshire/cheshire             {:mvn/version "6.1.0"}
            org.babashka/cli              {:mvn/version "0.8.66"}
+           com.taoensso/carmine          {:mvn/version "3.4.1"}
            io.github.babashka/neil       {:git/sha "0b7373dd1b5a0dc7f8aff83b8e65d75d7d5e23bc"}}
 
  :tools/usage {:ns-default big-config.tools}
@@ -29,7 +30,11 @@
                                                                       :git/sha "dfb30dd"}
                                 pjstadig/humane-test-output          {:mvn/version "0.11.0"}
                                 org.clojure/tools.namespace          {:mvn/version "1.5.0"}
-                                com.lambdaisland/classpath           {:mvn/version "0.6.58"}}
+                                com.lambdaisland/classpath           {:mvn/version "0.6.58"}
+                                babashka/babashka                    {:mvn/version "1.12.209"}
+                                aero/aero                            {:mvn/version "1.1.6"}
+                                integrant/repl                       {:mvn/version "0.5.0"}
+                                integrant/integrant                  {:mvn/version "1.0.1"}}
                   :exec-fn      cognitect.test-runner.api/test
                   :extra-paths ["env/test/resources" "test/clj"]
                   :main-opts   ["-e" "(require 'pjstadig.humane-test-output) (pjstadig.humane-test-output/activate!)"

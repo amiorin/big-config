@@ -1,0 +1,3 @@
+{:paths   ["src" "resources"]
+ :deps    {org.clojure/clojure          {:mvn/version "1.12.3"}
+           io.github.amiorin/big-config {:git/sha "ba2d085e0d317506065fb6e77a0510dc51cef94a"}}}

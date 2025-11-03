@@ -1,0 +1,11 @@
+{:system/env
+ #profile {:dev  :dev
+           :test :test}
+
+ :redis/server
+ #profile {:dev {:port #long #env REDIS_PORT_DEV
+                 :pc-port #long #env PC_PORT_DEV
+                 :env #ig/ref :system/env}
+           :test {:port #long #env REDIS_PORT_TEST
+                  :pc-port #long #env PC_PORT_TEST
+                  :env #ig/ref :system/env}}}

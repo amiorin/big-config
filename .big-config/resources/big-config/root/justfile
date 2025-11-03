@@ -19,6 +19,22 @@ upgrade:
     cd resources/big-config/multi/root     && neil dep upgrade
     cd resources/big-config/terraform/root && neil dep upgrade
 
+redis-dev:
+    direnv exec . redis-cli -p <{ redis-port-dev }>
+
+redis-test:
+    direnv exec . redis-cli -p <{ redis-port-test }>
+
+# manage process-compose in dev
+[positional-arguments]
+@pc-dev *args='-f pc-dev.yaml up':
+    direnv exec . process-compose -p <{ pc-port-dev }> $@
+
+# manage process-compose in test
+[positional-arguments]
+@pc-test *args='-f pc-test.yaml up':
+    direnv exec . process-compose -p <{ pc-port-test }> $@
+
 # invoked by recipe test
 [group('private')]
 test-wf-exit:
@@ -28,3 +44,4 @@ test-wf-exit:
     (add-classpath (str (System/getProperty "user.dir") "/test/clj"))
     (require '[big-config.step-fns-test :refer [wf-exit]])
     (wf-exit)
+

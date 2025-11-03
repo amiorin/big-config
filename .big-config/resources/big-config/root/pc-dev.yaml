@@ -1,0 +1,14 @@
+is_tui_disabled: true
+disable_env_expansion: true
+
+environment:
+  - "REDIS_PORT=<{ redis-port-dev }>"
+
+processes:
+  redis:
+    command: >-
+      redis-server --port "$REDIS_PORT" --save "" --appendonly no
+    ready_log_line: "Ready to accept connections tcp"
+  post:
+    command: >-
+      touch "/tmp/port-$REDIS_PORT"

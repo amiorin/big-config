@@ -1,0 +1,12 @@
+export DIRENV_WARN_TIMEOUT=20s
+
+eval "$(devenv direnvrc)"
+
+use devenv 2>/dev/null
+
+export REDIS_PORT_DEV=<{ redis-port-dev }>
+export REDIS_PORT_TEST=<{ redis-port-test }>
+export PC_PORT_DEV=<{ pc-port-dev }>
+export PC_PORT_TEST=<{ pc-port-test }>
+
+source_env_if_exists .envrc.private

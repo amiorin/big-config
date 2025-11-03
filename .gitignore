@@ -10,3 +10,8 @@
 /big-infra-v2/.devenv.flake.nix
 /big-infra-v2/.devenv/
 /dist/
+/pc-dev.yaml
+/pc-test.yaml
+/.envrc
+/justfile
+/.projectile
