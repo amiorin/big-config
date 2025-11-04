@@ -1,0 +1,37 @@
+name: Tests
+
+on:
+  push:
+    paths-ignore:
+      - "**/*.md"
+      - "/.gitignore"
+    branches:
+      - main
+
+permissions:
+  contents: write
+  actions: write
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - name: runs big-config tests
+        id: run_tests
+        run: >-
+          docker run
+          --rm
+          -e GITHUB_WORKSPACE=$GITHUB_WORKSPACE
+          -v $GITHUB_WORKSPACE:$GITHUB_WORKSPACE
+          bitnami/git
+          bash -c 'cd $GITHUB_WORKSPACE
+          && git config --global --add safe.directory "$(pwd)"
+          && git config --global user.name "github-actions[bot]"
+          && git config --global user.email "41898282+github-act ions[bot]@users.noreply.github.com"
+          && ls -l
+          && env
+          && git remote -v
+          && cat ~/.gitconfig
+          && git tag -a LOCK -m ignore
+          && git push -f origin LOCK'

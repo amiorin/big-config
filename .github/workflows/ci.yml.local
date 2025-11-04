@@ -16,3 +16,18 @@ cli: >-
   && bb build
   && direnv allow
   && direnv exec . just test'
+
+test: >-
+  docker run
+  --rm
+  -u vscode
+  -e GITHUB_TOKEN=foobar
+  ghcr.io/amiorin/big-container:latest
+  fish -c 'echo start
+  && git config --global user.name "github-actions[bot]"
+  && git config --global user.email "41898282+github-act ions[bot]@users.noreply.github.com"
+  && git clone https://github.com/amiorin/big-config.git
+  && git config --global url."https://$GITHUB_TOKEN:x-oauth-basic@github.com/".insteadOf "https://github.com/"
+  && cd big-config
+  && cat .git/config
+  && git remote -v'

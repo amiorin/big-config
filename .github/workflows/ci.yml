@@ -28,20 +28,21 @@ jobs:
           swap-storage: true
       - name: download big-container
         run: docker pull ghcr.io/amiorin/big-container:latest
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
       - name: runs big-config tests
         id: run_tests
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: >-
           docker run
           --rm
           -u vscode
+          -e GITHUB_WORKSPACE=$GITHUB_WORKSPACE
+          -v $GITHUB_WORKSPACE:$GITHUB_WORKSPACE
           ghcr.io/amiorin/big-container:latest
-          fish -c 'git clone https://github.com/amiorin/big-config.git --branch main --single-branch --depth=2
-          && git config --global url."https://$GITHUB_TOKEN:x-oauth-basic@github.com/".insteadOf "https://github.com/"
+          fish -c 'cd $GITHUB_WORKSPACE
           && git config --global user.name "github-actions[bot]"
-          && git config --global user.email "41898282+github-act ions[bot]@users.noreply.github.com"
-          && cd big-config
+          && git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
           && bb build
           && direnv allow
           && direnv exec . just test'
