@@ -30,12 +30,17 @@ jobs:
         run: docker pull ghcr.io/amiorin/big-container:latest
       - name: runs big-config tests
         id: run_tests
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: >-
           docker run
           --rm
           -u vscode
           ghcr.io/amiorin/big-container:latest
-          fish -c 'git clone https://github.com/amiorin/big-config.git --branch main --single-branch --depth=1
+          fish -c 'git clone https://github.com/amiorin/big-config.git --branch main --single-branch --depth=2
+          && git config --global url."https://$GITHUB_TOKEN:x-oauth-basic@github.com/".insteadOf "https://github.com/"
+          && git config --global user.name "github-actions[bot]"
+          && git config --global user.email "41898282+github-act ions[bot]@users.noreply.github.com"
           && cd big-config
           && bb build
           && direnv allow
