@@ -39,7 +39,7 @@ jobs:
           && cd big-config
           && bb build
           && direnv allow
-          && direnv exec . just test
+          && direnv exec . just test'
 
   tag:
     needs:
