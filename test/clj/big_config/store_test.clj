@@ -41,5 +41,3 @@
         (sut/handle! store1 {:op :inc})
         (sut/handle! store2 {:op :inc}))
       (is (= [{:cnt (- (* times 2) 1)} {:cnt (* times 2)}] [@store1 @store2])))))
-
-(system-state)
