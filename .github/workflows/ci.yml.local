@@ -1,33 +1,18 @@
-# cat ci.yml | jet -i yaml -o json | jq -r .cli | bash -s
-cli: >-
-  docker run
-  --rm
-  -u vscode
-  -v /tmp:/tmp
-  -e SSH_AUTH_SOCK=/tmp/vscode@firebat.agent
-  ghcr.io/amiorin/big-container:latest
-  fish -c 'mkdir ~/.ssh
-  && chmod 700 ~/.ssh
-  && ssh-keyscan -H github.com >> ~/.ssh/known_hosts
-  && git config --global user.name "github-actions[bot]"
-  && git config --global user.email "41898282+github-act ions[bot]@users.noreply.github.com"
-  && git clone git@github.com:amiorin/big-config.git --branch main --single-branch --depth=2
-  && cd big-config
-  && bb build
-  && direnv allow
-  && direnv exec . just test'
-
+# cat .github/workflows/ci.yml.local | jet -i yaml -o json | jq -r .test | GITHUB_WORKSPACE=$(pwd) bash -s
 test: >-
   docker run
   --rm
   -u vscode
-  -e GITHUB_TOKEN=foobar
+  -v /tmp:/tmp
+  -e SSH_AUTH_SOCK=$SSH_AUTH_SOCK
+  -e GITHUB_WORKSPACE=$GITHUB_WORKSPACE
+  -v $GITHUB_WORKSPACE:$GITHUB_WORKSPACE
   ghcr.io/amiorin/big-container:latest
-  fish -c 'echo start
+  fish -c 'cd $GITHUB_WORKSPACE
+  && mkdir ~/.ssh
+  && chmod 700 ~/.ssh
+  && ssh-keyscan -H github.com >> ~/.ssh/known_hosts
   && git config --global user.name "github-actions[bot]"
-  && git config --global user.email "41898282+github-act ions[bot]@users.noreply.github.com"
-  && git clone https://github.com/amiorin/big-config.git
-  && git config --global url."https://$GITHUB_TOKEN:x-oauth-basic@github.com/".insteadOf "https://github.com/"
-  && cd big-config
-  && cat .git/config
-  && git remote -v'
+  && git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
+  && git tag -a LOCK -m ignore -f
+  && git push -f origin LOCK'

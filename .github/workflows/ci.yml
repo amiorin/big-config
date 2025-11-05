@@ -37,6 +37,8 @@ jobs:
           docker run
           --rm
           -u vscode
+          -v /tmp:/tmp
+          -e SSH_AUTH_SOCK=$SSH_AUTH_SOCK
           -e GITHUB_WORKSPACE=$GITHUB_WORKSPACE
           -v $GITHUB_WORKSPACE:$GITHUB_WORKSPACE
           ghcr.io/amiorin/big-container:latest
