@@ -43,11 +43,6 @@ jobs:
           -v $GITHUB_WORKSPACE:$GITHUB_WORKSPACE
           ghcr.io/amiorin/big-container:latest
           fish -c 'cd $GITHUB_WORKSPACE
-          && mkdir ~/.ssh
-          && chmod 700 ~/.ssh
-          && ssh-keyscan -H github.com >> ~/.ssh/known_hosts
-          && git config --global user.name "github-actions[bot]"
-          && git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
           && bb build
           && direnv allow
           && direnv exec . just test'
