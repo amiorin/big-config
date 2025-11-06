@@ -1,11 +1,11 @@
 (ns big-config.integrant
   (:require
    [aero.core :as aero]
+   [big-config.integrant-keys]
    [clojure.java.io :as io]
    [clojure.tools.logging :as log]
    [integrant.core :as ig]
-   [integrant.repl.state :as state]
-   [big-config.integrant-keys]))
+   [integrant.repl.state :as state]))
 
 (defmethod aero/reader 'ig/ref
   [_ _ value]
