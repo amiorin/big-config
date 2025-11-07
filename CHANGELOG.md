@@ -12,6 +12,7 @@ The patch number is calculated with `git rev-list --count HEAD`
 ### Added
 
 - bump `selmer` to support template inheritance
+- BigConfig Store is a datastore for Redis 
 
 ### Changed
 
