@@ -1,5 +1,7 @@
 <h1 align=center><code>BigConfig</code></a></h1>
 
+[![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/amiorin/big-config)
+
 BigConfig is a workflow and a template engine that enables you to have a
 zero-cost build step before running any CLI tool like GNU Make, Terraform, Kubectl, Helm, Kustomize, and Ansible.
 
