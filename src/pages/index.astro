@@ -4,8 +4,8 @@
 
 <!doctype html>
 <html
-  data-signals:theme="updateTheme()"
-  data-attr:data-theme="updateTheme($theme)"
+  data-signals:theme="getAndSetTheme()"
+  data-attr:data-theme="getAndSetTheme($theme)"
   lang="en"
 >
   <head>
@@ -24,7 +24,7 @@
       href="https://cdn.jsdelivr.net/npm/@picocss/pico@2.1.1/css/pico.min.css"
     />
     <script>
-      window.updateTheme = function (theme) {
+      window.getAndSetTheme = function (theme) {
         let localStorageKey = "picoPreferredColorScheme";
         if (!theme) {
           return window.localStorage?.getItem(localStorageKey) ?? "auto";
