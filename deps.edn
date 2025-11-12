@@ -1,0 +1,3 @@
+{:paths   ["src" "resources"]
+ :deps    {org.clojure/clojure {:mvn/version "1.12.3"}
+           io.github.andersmurphy/hyperlith {:git/sha "0ec0b567f197be539c0d71ad19d752cd9824cf2e"}}}
