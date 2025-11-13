@@ -1,6 +1,7 @@
 (ns app.main
   (:gen-class)
   (:require
+   [com.rpl.specter :refer [transform must nthpath ATOM]]
    [clojure.java.io :as io]
    [dev.onionpancakes.chassis.core :as c]
    [hyperlith.core :as h :refer [defaction defview]]))
@@ -10,10 +11,19 @@
 (def css
   (h/static-css (slurp (io/resource "pico.min.css"))))
 
-(defaction handler-update [{:keys [db _sid _tabid] {:keys [theme edit]} :body}]
-  (swap! db merge {:theme theme
-                   :edit edit})
-  (h/patch-signals {}))
+(defaction handler-update [{:keys [db _sid _tabid] {:keys [theme operation selected name email]} :body}]
+  (case operation
+    "save" (do (transform [ATOM (must :trs) (nthpath selected)] #(merge % {:name name
+                                                                           :email email}) db)
+               (swap! db merge {:theme theme
+                                :operation "list"
+                                :selected -1}))
+    "edit" (swap! db merge {:theme theme
+                            :selected selected
+                            :operation operation})
+    (swap! db merge {:theme theme
+                     :operation "list"
+                     :selected -1})))
 
 (def shim-headers
   (h/html
@@ -23,21 +33,29 @@
 
 (defn trs [db]
   (println @db)
-  (let [{:keys [trs edit]} @db
+  (let [{:keys [trs operation selected]} @db
         cnt (atom -1)]
     (for [{:keys [name email]} trs]
       (do
         (swap! cnt inc)
-        (if (= edit @cnt)
+        (if (= selected @cnt)
           [:tr
-           [:td [:input {:type "text", :data-bind:name true :value name}]]
-           [:td [:input {:type "text", :data-bind:email true :value email}]]
-           [:td [:button {:data-on:click (str "$edit = -1;"
-                                              "@post('" handler-update "')")} "Save"]]]
+           [:td [:input {:type "text", :data-bind:name true :data-init (format "$name = '%s'" name) :value name}]]
+           [:td [:input {:type "text", :data-bind:email true :data-init (format "$email = '%s'" email) :value email}]]
+           [:td
+            [:button {:data-on:click (str "$selected = " @cnt "; "
+                                          "$operation = 'cancel'; "
+                                          ""
+                                          "@post('" handler-update "')")} "Cancel"]
+            [:button {:data-on:click (str "$selected = " @cnt "; "
+                                          "$operation = 'save'; "
+                                          ""
+                                          "@post('" handler-update "')")} "Save"]]]
           [:tr
            [:td name]
            [:td email]
-           [:td [:button {:data-on:click (str "$edit = " @cnt "; "
+           [:td [:button {:data-on:click (str "$selected = " @cnt "; "
+                                              "$operation = 'edit'; "
                                               "@post('" handler-update "')")} "Edit"]]])))))
 
 (defview handler-home {:path "/" :shim-headers shim-headers}
@@ -45,11 +63,8 @@
   (h/html
    [:link#css {:rel "stylesheet" :type "text/css" :href css}]
    [:main#morph.main
-    [:div {:data-init (str
-                       "el.parentElement.parentElement.parentElement.setAttribute('data-theme', '"
-                       (:theme @db)
-                       "')"
-                       ";el.remove()")}]
+    [:div {:data-signals:theme (format "'%s'" (:theme @db))
+           :data-init "el.parentElement.parentElement.parentElement.setAttribute('data-theme', $theme); el.remove()"}]
     [:header.container
      [:hgroup
       [:h1 "Pico"]
@@ -82,7 +97,8 @@
 
 (defn ctx-start []
   (let [db_ (atom {:theme "light"
-                   :edit -1
+                   :operation "list"
+                   :selected -1
                    :trs [{:name "Joe Smith"
                           :email "joe@smith.org"}
                          {:name "Angie MacDowell"
