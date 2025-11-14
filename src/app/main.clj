@@ -120,6 +120,7 @@
                                                    "$operation = 'save'; "
                                                    "@post('%s')") uid handler-update)} "Save"]]]])
         [:tr
+         {:data-signals (format "{trs: {%s: null}}" uid)}
          [:td name]
          [:td email]
          [:td [:button {:data-on:click (format (str "$target = '%s'; "
@@ -171,21 +172,15 @@
                    :trs [{:uid "aaa"
                           :name "Joe Smith"
                           :email "joe@smith.org"
-                          :form {:show true
-                                 :name "Joe"
-                                 :email "joe"}}
+                          :form {:show false}}
                          {:uid "bbb"
                           :name "Fuqua Tarkenton"
                           :email "fuqua@tarkenton.org	"
-                          :form {:show false
-                                 :name "Fuqua"
-                                 :email "fuqua"}}
+                          :form {:show false}}
                          {:uid "ccc"
                           :name "Angie MacDowell"
                           :email "angie@macdowell.org"
-                          :form {:show true
-                                 :name "Angie"
-                                 :email "angie"}}]})]
+                          :form {:show false}}]})]
     (add-watch db_ :refresh-on-change (fn [& _] (h/refresh-all!)))
     {:db db_}))
 
