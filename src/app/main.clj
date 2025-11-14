@@ -80,23 +80,19 @@
            {:d
             "M18.3 3.2c0 1.3-1 2.3-2.3 2.3s-2.3-1-2.3-2.3S14.7.9 16 .9s2.3 1 2.3 2.3zm-4.6 25.6c0-1.3 1-2.3 2.3-2.3s2.3 1 2.3 2.3-1 2.3-2.3 2.3-2.3-1-2.3-2.3zm15.1-10.5c-1.3 0-2.3-1-2.3-2.3s1-2.3 2.3-2.3 2.3 1 2.3 2.3-1 2.3-2.3 2.3zM3.2 13.7c1.3 0 2.3 1 2.3 2.3s-1 2.3-2.3 2.3S.9 17.3.9 16s1-2.3 2.3-2.3zm5.8-7C9 7.9 7.9 9 6.7 9S4.4 8 4.4 6.7s1-2.3 2.3-2.3S9 5.4 9 6.7zm16.3 21c-1.3 0-2.3-1-2.3-2.3s1-2.3 2.3-2.3 2.3 1 2.3 2.3-1 2.3-2.3 2.3zm2.4-21c0 1.3-1 2.3-2.3 2.3S23 7.9 23 6.7s1-2.3 2.3-2.3 2.4 1 2.4 2.3zM6.7 23C8 23 9 24 9 25.3s-1 2.3-2.3 2.3-2.3-1-2.3-2.3 1-2.3 2.3-2.3z"}]]]]]]]]])
 
-(defaction handler-update [{:keys [db _sid _tabid] {:keys [theme operation target name email]} :body :as req}]
+(defaction handler-update [{:keys [db _sid _tabid] {:keys [theme operation target trs]} :body :as req}]
+  (transform [ATOM] #(assoc % :theme theme) db)
   (case (keyword operation)
     :cancel (transform [ATOM (must :trs) ALL (pred #(= (:uid %) target)) (must :form)]
                        #(assoc % :show false) db)
     :edit (let [fields (select-keys (select-any [ATOM (must :trs) ALL (pred #(= (:uid %) target))] db)
                                     [:name :email])]
             (transform [ATOM (must :trs) ALL (pred #(= (:uid %) target)) (must :form)] #(merge % {:show true} fields) db))
-    :save (def foo req))
-  (println (-> @db :trs)))
 
-#_(let [{:keys [db body] {:keys [theme operation target uid name email]} :body} foo]
-    (case (keyword operation)
-      :save (let [signals (->> (map vector name email)
-                               (map (fn [[n e]] {:name n
-                                                 :email e}))
-                               (zipmap uid))]
-              signals)))
+    :save (let [new-fields ((keyword target) trs)]
+            (transform [ATOM (must :trs) ALL (pred #(= (:uid %) target))]
+                       #(merge % new-fields {:form {:show false}}) db))
+    nil))
 
 (defn trs [db]
   (let [{:keys [trs]} @db]
