@@ -105,13 +105,13 @@
            {:data-signals (format "{trs: {%s: {name: '%s', email: '%s'}}}" uid name email)}
            [:td [:input {:style "min-width: max-content;"
                          :type "text"
-                         :data-on:input__debounce.200ms (format (str "$target = '%s'; "
+                         :data-on:input__debounce.500ms (format (str "$target = '%s'; "
                                                                      "$operation = 'live'; "
                                                                      "@post('%s')") uid handler-update)
                          (format "data-bind:trs.%s.name" uid) true}]]
            [:td [:input {:style "min-width: max-content;"
                          :type "text"
-                         :data-on:input__debounce.200ms (format (str "$target = '%s'; "
+                         :data-on:input__debounce.500ms (format (str "$target = '%s'; "
                                                                      "$operation = 'live'; "
                                                                      "@post('%s')") uid handler-update)
                          (format "data-bind:trs.%s.email" uid) true}]]
