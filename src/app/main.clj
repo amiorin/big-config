@@ -11,11 +11,31 @@
 (def css
   (h/static-css (slurp (io/resource "pico.min.css"))))
 
+(def theme
+  (h/static-css (slurp (io/resource "theme.css"))))
+
 (def shim-headers
   (h/html
    [:link#css {:rel "stylesheet" :type "text/css" :href css}]
+   [:link#theme {:rel "stylesheet" :type "text/css" :href theme}]
    [:title nil "Playground"]
    [:meta {:content "Playground" :name "description"}]))
+
+(defaction handler-update [{:keys [db _sid _tabid] {:keys [theme operation target trs]} :body}]
+  (transform [ATOM] #(assoc % :theme theme) db)
+  (case (keyword operation)
+    :cancel (transform [ATOM (must :trs) ALL (pred #(= (:uid %) target)) (must :form)]
+                       #(assoc % :show false) db)
+    :edit (let [fields (select-keys (select-any [ATOM (must :trs) ALL (pred #(= (:uid %) target))] db)
+                                    [:name :email])]
+            (transform [ATOM (must :trs) ALL (pred #(= (:uid %) target)) (must :form)] #(merge % {:show true} fields) db))
+
+    :save (let [new-fields ((keyword target) trs)]
+            (transform [ATOM (must :trs) ALL (pred #(= (:uid %) target))]
+                       #(merge % new-fields {:form {:show false}}) db))
+    :live (let [new-fields ((keyword target) trs)]
+            (transform [ATOM (must :trs) ALL (pred #(= (:uid %) target)) (must :form)] #(merge % new-fields) db))
+    nil))
 
 (defn header []
   [:header#header
@@ -62,14 +82,16 @@
         {:class "contrast",
          :aria-label "Turn off dark mode",
          :data-discover "true",
-         :href "/docs"}
+         :data-on:click (format (str "$theme = ($theme == 'light') ? 'dark' : 'light'; "
+                                     "@post('%s')") handler-update)}
         [:svg
          {:xmlns "http://www.w3.org/2000/svg",
           :width "24",
           :height "24",
           :viewBox "0 0 32 32",
           :fill "currentColor",
-          :class "icon-theme-toggle  moon"}
+          :class "icon-theme-toggle"
+          :data-class:moon "$theme == 'dark'"}
          [:clippath
           {:id "theme-toggle-cutout"}
           [:path {:d "M0-11h25a1 1 0 0017 13v30H0Z"}]]
@@ -79,22 +101,6 @@
           [:path
            {:d
             "M18.3 3.2c0 1.3-1 2.3-2.3 2.3s-2.3-1-2.3-2.3S14.7.9 16 .9s2.3 1 2.3 2.3zm-4.6 25.6c0-1.3 1-2.3 2.3-2.3s2.3 1 2.3 2.3-1 2.3-2.3 2.3-2.3-1-2.3-2.3zm15.1-10.5c-1.3 0-2.3-1-2.3-2.3s1-2.3 2.3-2.3 2.3 1 2.3 2.3-1 2.3-2.3 2.3zM3.2 13.7c1.3 0 2.3 1 2.3 2.3s-1 2.3-2.3 2.3S.9 17.3.9 16s1-2.3 2.3-2.3zm5.8-7C9 7.9 7.9 9 6.7 9S4.4 8 4.4 6.7s1-2.3 2.3-2.3S9 5.4 9 6.7zm16.3 21c-1.3 0-2.3-1-2.3-2.3s1-2.3 2.3-2.3 2.3 1 2.3 2.3-1 2.3-2.3 2.3zm2.4-21c0 1.3-1 2.3-2.3 2.3S23 7.9 23 6.7s1-2.3 2.3-2.3 2.4 1 2.4 2.3zM6.7 23C8 23 9 24 9 25.3s-1 2.3-2.3 2.3-2.3-1-2.3-2.3 1-2.3 2.3-2.3z"}]]]]]]]]])
-
-(defaction handler-update [{:keys [db _sid _tabid] {:keys [theme operation target trs]} :body}]
-  (transform [ATOM] #(assoc % :theme theme) db)
-  (case (keyword operation)
-    :cancel (transform [ATOM (must :trs) ALL (pred #(= (:uid %) target)) (must :form)]
-                       #(assoc % :show false) db)
-    :edit (let [fields (select-keys (select-any [ATOM (must :trs) ALL (pred #(= (:uid %) target))] db)
-                                    [:name :email])]
-            (transform [ATOM (must :trs) ALL (pred #(= (:uid %) target)) (must :form)] #(merge % {:show true} fields) db))
-
-    :save (let [new-fields ((keyword target) trs)]
-            (transform [ATOM (must :trs) ALL (pred #(= (:uid %) target))]
-                       #(merge % new-fields {:form {:show false}}) db))
-    :live (let [new-fields ((keyword target) trs)]
-            (transform [ATOM (must :trs) ALL (pred #(= (:uid %) target)) (must :form)] #(merge % new-fields) db))
-    nil))
 
 (defn trs [db]
   (let [{:keys [trs]} @db]
@@ -135,25 +141,14 @@
   [{:keys [db] :as _req}]
   (h/html
    [:link#css {:rel "stylesheet" :type "text/css" :href css}]
+   [:link#theme {:rel "stylesheet" :type "text/css" :href theme}]
    (header)
    [:main#main
     [:div {:data-signals:theme (format "'%s'" (:theme @db))
            :data-init "el.parentElement.parentElement.parentElement.setAttribute('data-theme', $theme); el.remove()"}]
-    [:header.container
-     [:nav
-      [:ul
-       [:li
-        [:details.dropdown
-         [:summary.secondary {:role "button"} "Theme"]
-         [:ul
-          {:data-on:click
-           (str
-            "el.parentElement.removeAttribute('open');
-            $theme = evt.target.dataset.themeSwitcher;
-            @post('" handler-update "')")}
-          [:li [:a {:href "#", :data-theme-switcher "auto"} "Auto"]]
-          [:li [:a {:href "#", :data-theme-switcher "light"} "Light"]]
-          [:li [:a {:href "#", :data-theme-switcher "dark"} "Dark"]]]]]]]]
+    [:section.container
+     [:button {:data-on:click (format (str "$theme = ($theme == 'light') ? 'dark' : 'light'; "
+                                           "@post('%s')") handler-update)} "Save"]]
     [:section#tables.container
      [:h2 "Tables"]
      [:div.overflow-auto
