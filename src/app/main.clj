@@ -146,11 +146,8 @@
    [:main#main
     [:div {:data-signals:theme (format "'%s'" (:theme @db))
            :data-init "el.parentElement.parentElement.parentElement.setAttribute('data-theme', $theme); el.remove()"}]
-    [:section.container
-     [:button {:data-on:click (format (str "$theme = ($theme == 'light') ? 'dark' : 'light'; "
-                                           "@post('%s')") handler-update)} "Save"]]
     [:section#tables.container
-     [:h2 "Tables"]
+     [:h2 "Users"]
      [:div.overflow-auto
       [:table.striped
        [:thead
