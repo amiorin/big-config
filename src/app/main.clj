@@ -21,21 +21,27 @@
    [:title nil "Playground"]
    [:meta {:content "Playground" :name "description"}]))
 
-(defaction handler-update [{:keys [db _sid _tabid] {:keys [theme operation target trs]} :body}]
-  (transform [ATOM] #(assoc % :theme theme) db)
-  (case (keyword operation)
-    :cancel (transform [ATOM (must :trs) ALL (pred #(= (:uid %) target)) (must :form)]
-                       #(assoc % :show false) db)
-    :edit (let [fields (select-keys (select-any [ATOM (must :trs) ALL (pred #(= (:uid %) target))] db)
-                                    [:name :email])]
-            (transform [ATOM (must :trs) ALL (pred #(= (:uid %) target)) (must :form)] #(merge % {:show true} fields) db))
+(defaction handler-update-settings [{:keys [db] {:keys [theme debug]} :body}]
+  (transform [ATOM] #(merge % {:theme theme
+                               :debug debug}) db))
 
-    :save (let [new-fields ((keyword target) trs)]
-            (transform [ATOM (must :trs) ALL (pred #(= (:uid %) target))]
-                       #(merge % new-fields {:form {:show false}}) db))
-    :live (let [new-fields ((keyword target) trs)]
-            (transform [ATOM (must :trs) ALL (pred #(= (:uid %) target)) (must :form)] #(merge % new-fields) db))
-    nil))
+(defaction handler-edit-row [{:keys [db] {:strs [target]} :query-params}]
+  (let [fields (select-keys (select-any [ATOM (must :trs) ALL (pred #(= (:uid %) target))] db)
+                            [:name :email])]
+    (transform [ATOM (must :trs) ALL (pred #(= (:uid %) target)) (must :form)] #(merge % {:show true} fields) db)))
+
+(defaction handler-cancel-row [{:keys [db] {:strs [target]} :query-params}]
+  (transform [ATOM (must :trs) ALL (pred #(= (:uid %) target)) (must :form)]
+             #(assoc % :show false) db))
+
+(defaction handler-save-row [{:keys [db] {:keys [trs]} :body {:strs [target]} :query-params}]
+  (let [new-fields ((keyword target) trs)]
+    (transform [ATOM (must :trs) ALL (pred #(= (:uid %) target))]
+               #(merge % new-fields {:form {:show false}}) db)))
+
+(defaction handler-live-row [{:keys [db] {:keys [trs]} :body {:strs [target]} :query-params}]
+  (let [new-fields ((keyword target) trs)]
+    (transform [ATOM (must :trs) ALL (pred #(= (:uid %) target)) (must :form)] #(merge % new-fields) db)))
 
 (defn header []
   [:header#header
@@ -50,7 +56,7 @@
          :class "contrast"
          :data-discover "true"
          :href "/"}
-        "Example"]]
+        "Demo"]]
       [:li
        {:class "hide-before-sm"}
        [:a
@@ -58,7 +64,17 @@
          :data-discover "true"
          :href "https://bigconfig.it"
          :target "_blank"}
-        "Docs"]]]
+        "BigConfig"]]
+      [:li
+       {:class "hide-before-sm"}
+       [:a
+        {:class "contrast"
+         :href "#"
+         :data-on:click (format (str "$debug = !$debug; "
+                                     "@post('%s')") handler-update-settings)
+         :data-text "`${$debug ? 'Debug on' : 'Debug off'}`"
+         :data-discover "true"}
+        "Debug"]]]
      [:ul
       {:class "icons"}
       [:li
@@ -81,9 +97,10 @@
        [:a
         {:class "contrast",
          :aria-label "Turn off dark mode",
+         :href "#"
          :data-discover "true",
          :data-on:click (format (str "$theme = ($theme == 'light') ? 'dark' : 'light'; "
-                                     "@post('%s')") handler-update)}
+                                     "@post('%s')") handler-update-settings)}
         [:svg
          {:xmlns "http://www.w3.org/2000/svg",
           :width "24",
@@ -110,32 +127,26 @@
           [:tr
            {:data-signals (format "{trs: {%s: {name: '%s', email: '%s'}}}" uid name email)}
            [:td [:input {:style "min-width: max-content;"
+                         :name "name"
+                         :autocomplete "off"
                          :type "text"
-                         :data-on:input__debounce.500ms (format (str "$target = '%s'; "
-                                                                     "$operation = 'live'; "
-                                                                     "@post('%s')") uid handler-update)
+                         :data-on:input__debounce.500ms (format "@post('%s?target=%s')" handler-live-row uid)
                          (format "data-bind:trs.%s.name" uid) true}]]
            [:td [:input {:style "min-width: max-content;"
+                         :name "email"
+                         :autocomplete "off"
                          :type "text"
-                         :data-on:input__debounce.500ms (format (str "$target = '%s'; "
-                                                                     "$operation = 'live'; "
-                                                                     "@post('%s')") uid handler-update)
+                         :data-on:input__debounce.500ms (format "@post('%s?target=%s')" handler-live-row uid)
                          (format "data-bind:trs.%s.email" uid) true}]]
            [:td
             [:fieldset.grid {:style "display: flex;"}
-             [:button.secondary {:data-on:click (format (str "$target = '%s'; "
-                                                             "$operation = 'cancel'; "
-                                                             "@post('%s')") uid handler-update)} "Cancel"]
-             [:button {:data-on:click (format (str "$target = '%s'; "
-                                                   "$operation = 'save'; "
-                                                   "@post('%s')") uid handler-update)} "Save"]]]])
+             [:button.secondary {:data-on:click (format "@post('%s?target=%s')" handler-cancel-row uid)} "Cancel"]
+             [:button {:data-on:click (format "@post('%s?target=%s')" handler-save-row uid)} "Save"]]]])
         [:tr
          {:data-signals (format "{trs: {%s: null}}" uid)}
          [:td name]
          [:td email]
-         [:td [:button {:data-on:click (format (str "$target = '%s'; "
-                                                    "$operation = 'edit'; "
-                                                    "@post('%s')") uid handler-update)} "Edit"]]]))))
+         [:td [:button {:data-on:click (format "@post('%s?target=%s')" handler-edit-row uid)} "Edit"]]]))))
 
 (defview handler-home {:path "/" :shim-headers shim-headers}
   [{:keys [db] :as _req}]
@@ -145,6 +156,7 @@
    (header)
    [:main#main
     [:div {:data-signals:theme (format "'%s'" (:theme @db))
+           :data-signals:debug (format "%s" (:debug @db))
            :data-init "el.parentElement.parentElement.parentElement.setAttribute('data-theme', $theme); el.remove()"}]
     [:section#tables.container
      [:h2 "Users"]
@@ -156,13 +168,15 @@
          [:th {:scope "col"} "Email"]
          [:th {:scope "col"} "Actions"]]]
        [:tbody#trs
-        (trs db)]]]]]))
+        (trs db)]]]]
+    [:section#tables.container
+     {:data-show "$debug"}
+     [:pre
+      {:data-json-signals true}]]]))
 
 (defn ctx-start []
   (let [db_ (atom {:theme "light"
-                   :operation "list"
-                   :selected -1
-                   :users 2
+                   :debug false
                    :trs [{:uid "aaa"
                           :name "Joe Smith"
                           :email "joe@smith.org"
