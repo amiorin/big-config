@@ -2,9 +2,10 @@
   (:gen-class)
   (:require
    [clojure.java.io :as io]
+   [clojure.string :as str]
    [com.rpl.specter :refer [ALL ATOM must pred select-any transform]]
    [dev.onionpancakes.chassis.core :as c]
-   [hyperlith.core :as h :refer [defaction defview]]))
+   [hyperlith.core :as h :refer [load-resource static-asset defaction defview]]))
 
 (alter-var-root #'c/escape-attribute-value-fragment (constantly identity))
 
@@ -14,10 +15,18 @@
 (def theme
   (h/static-css (slurp (io/resource "theme.css"))))
 
+(def myjs
+  (static-asset
+    {:body         (load-resource "myjs.js")
+     :content-type "text/javascript"
+     :compress?    true}))
+
 (def shim-headers
   (h/html
    [:link#css {:rel "stylesheet" :type "text/css" :href css}]
    [:link#theme {:rel "stylesheet" :type "text/css" :href theme}]
+   [:link {:rel "icon", :href "favicon.svg", :type "image/svg+xml"}]
+   [:script#myjs {:defer true :type "module" :src myjs}]
    [:title nil "Playground"]
    [:meta {:content "Playground" :name "description"}]))
 
@@ -119,13 +128,28 @@
            {:d
             "M18.3 3.2c0 1.3-1 2.3-2.3 2.3s-2.3-1-2.3-2.3S14.7.9 16 .9s2.3 1 2.3 2.3zm-4.6 25.6c0-1.3 1-2.3 2.3-2.3s2.3 1 2.3 2.3-1 2.3-2.3 2.3-2.3-1-2.3-2.3zm15.1-10.5c-1.3 0-2.3-1-2.3-2.3s1-2.3 2.3-2.3 2.3 1 2.3 2.3-1 2.3-2.3 2.3zM3.2 13.7c1.3 0 2.3 1 2.3 2.3s-1 2.3-2.3 2.3S.9 17.3.9 16s1-2.3 2.3-2.3zm5.8-7C9 7.9 7.9 9 6.7 9S4.4 8 4.4 6.7s1-2.3 2.3-2.3S9 5.4 9 6.7zm16.3 21c-1.3 0-2.3-1-2.3-2.3s1-2.3 2.3-2.3 2.3 1 2.3 2.3-1 2.3-2.3 2.3zm2.4-21c0 1.3-1 2.3-2.3 2.3S23 7.9 23 6.7s1-2.3 2.3-2.3 2.4 1 2.4 2.3zM6.7 23C8 23 9 24 9 25.3s-1 2.3-2.3 2.3-2.3-1-2.3-2.3 1-2.3 2.3-2.3z"}]]]]]]]]])
 
+(defn encode [s]
+  (-> s
+      (str/replace "%" "%25")
+      (str/replace "'" "%27")
+      (str/replace "\"" "%22")))
+
+(defn decode [s]
+  (-> s
+      (str/replace "%25" "%")
+      (str/replace "%27" "'")
+      (str/replace "%22" "\"")))
+
+(comment
+  (-> "'%\"" encode decode))
+
 (defn trs [db]
   (let [{:keys [trs]} @db]
     (for [{:keys [uid name email] {:keys [show] :as form} :form} trs]
       (if show
         (let [{:keys [name email]} form]
           [:tr
-           {:data-signals (format "{trs: {%s: {name: '%s', email: '%s'}}}" uid name email)}
+           {:data-signals (format "{trs: {%s: {name: decode('%s'), email: decode('%s')}}}" uid (encode name) (encode email))}
            [:td [:input {:style "min-width: max-content;"
                          :name "name"
                          :autocomplete "off"
@@ -153,6 +177,7 @@
   (h/html
    [:link#css {:rel "stylesheet" :type "text/css" :href css}]
    [:link#theme {:rel "stylesheet" :type "text/css" :href theme}]
+   [:script#myjs {:defer true :type "module" :src myjs}]
    (header)
    [:main#main
     [:div {:data-signals:theme (format "'%s'" (:theme @db))
