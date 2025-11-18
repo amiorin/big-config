@@ -5,7 +5,7 @@
    [clojure.string :as str]
    [com.rpl.specter :refer [ALL ATOM must pred select-any transform]]
    [dev.onionpancakes.chassis.core :as c]
-   [hyperlith.core :as h :refer [load-resource static-asset defaction defview]]))
+   [hyperlith.core :as h :refer [defaction defview load-resource static-asset]]))
 
 (alter-var-root #'c/escape-attribute-value-fragment (constantly identity))
 
@@ -17,9 +17,9 @@
 
 (def myjs
   (static-asset
-    {:body         (load-resource "myjs.js")
-     :content-type "text/javascript"
-     :compress?    true}))
+   {:body         (load-resource "myjs.js")
+    :content-type "text/javascript"
+    :compress?    true}))
 
 (def shim-headers
   (h/html
@@ -34,19 +34,19 @@
   (transform [ATOM] #(merge % {:theme theme
                                :debug debug}) db))
 
-(defaction handler-edit-row [{:keys [db] {:strs [target]} :query-params}]
+(defaction handler-edit-row [{:keys [db tabid] {:strs [target]} :query-params}]
   (let [fields (select-keys (select-any [ATOM (must :trs) ALL (pred #(= (:uid %) target))] db)
                             [:name :email])]
-    (transform [ATOM (must :trs) ALL (pred #(= (:uid %) target)) (must :form)] #(merge % {:show true} fields) db)))
+    (transform [ATOM (must :trs) ALL (pred #(= (:uid %) target)) (must :form)] #(merge % {:show tabid} fields) db)))
 
 (defaction handler-cancel-row [{:keys [db] {:strs [target]} :query-params}]
   (transform [ATOM (must :trs) ALL (pred #(= (:uid %) target)) (must :form)]
-             #(assoc % :show false) db))
+             #(assoc % :show nil) db))
 
 (defaction handler-save-row [{:keys [db] {:keys [trs]} :body {:strs [target]} :query-params}]
   (let [new-fields ((keyword target) trs)]
     (transform [ATOM (must :trs) ALL (pred #(= (:uid %) target))]
-               #(merge % new-fields {:form {:show false}}) db)))
+               #(merge % new-fields {:form {:show nil}}) db)))
 
 (defaction handler-live-row [{:keys [db] {:keys [trs]} :body {:strs [target]} :query-params}]
   (let [new-fields ((keyword target) trs)]
@@ -91,7 +91,7 @@
         {:rel "noopener noreferrer",
          :class "contrast",
          :aria-label "GitHub repository",
-         :href "https://github.com/amiorin/big-config",
+         :href "https://github.com/amiorin/big-config/blob/hyperlith/src/app/main.clj",
          :target "_blank"}
         [:svg
          {:xmlns "http://www.w3.org/2000/svg",
@@ -143,10 +143,11 @@
 (comment
   (-> "'%\"" encode decode))
 
-(defn trs [db]
+(defn trs [db tabid]
   (let [{:keys [trs]} @db]
     (for [{:keys [uid name email] {:keys [show] :as form} :form} trs]
-      (if show
+      (cond
+        (= show tabid)
         (let [{:keys [name email]} form]
           [:tr
            {:data-signals (format "{trs: {%s: {name: decode('%s'), email: decode('%s')}}}" uid (encode name) (encode email))}
@@ -154,18 +155,22 @@
                          :name "name"
                          :autocomplete "off"
                          :type "text"
-                         :data-on:input__debounce.500ms (format "@post('%s?target=%s')" handler-live-row uid)
                          (format "data-bind:trs.%s.name" uid) true}]]
            [:td [:input {:style "min-width: max-content;"
                          :name "email"
                          :autocomplete "off"
                          :type "text"
-                         :data-on:input__debounce.500ms (format "@post('%s?target=%s')" handler-live-row uid)
                          (format "data-bind:trs.%s.email" uid) true}]]
            [:td
             [:fieldset.grid {:style "display: flex;"}
              [:button.secondary {:data-on:click (format "@post('%s?target=%s')" handler-cancel-row uid)} "Cancel"]
              [:button {:data-on:click (format "@post('%s?target=%s')" handler-save-row uid)} "Save"]]]])
+        show
+        [:tr
+         [:td name]
+         [:td email]
+         [:td [:button.secondary {:data-on:click (format "@post('%s?target=%s')" handler-cancel-row uid)} "Unlock"]]]
+        :else
         [:tr
          {:data-signals (format "{trs: {%s: null}}" uid)}
          [:td name]
@@ -173,7 +178,7 @@
          [:td [:button {:data-on:click (format "@post('%s?target=%s')" handler-edit-row uid)} "Edit"]]]))))
 
 (defview handler-home {:path "/" :shim-headers shim-headers}
-  [{:keys [db] :as _req}]
+  [{:keys [db tabid] :as _req}]
   (h/html
    [:link#css {:rel "stylesheet" :type "text/css" :href css}]
    [:link#theme {:rel "stylesheet" :type "text/css" :href theme}]
@@ -193,7 +198,7 @@
          [:th {:scope "col"} "Email"]
          [:th {:scope "col"} "Actions"]]]
        [:tbody#trs
-        (trs db)]]]]
+        (trs db tabid)]]]]
     [:section#tables.container
      {:data-show "$debug"}
      [:pre
@@ -205,15 +210,15 @@
                    :trs [{:uid "aaa"
                           :name "Joe Smith"
                           :email "joe@smith.org"
-                          :form {:show false}}
+                          :form {:show nil}}
                          {:uid "bbb"
                           :name "Fuqua Tarkenton"
                           :email "fuqua@tarkenton.org	"
-                          :form {:show false}}
+                          :form {:show nil}}
                          {:uid "ccc"
                           :name "Angie MacDowell"
                           :email "angie@macdowell.org"
-                          :form {:show false}}]})]
+                          :form {:show nil}}]})]
     (add-watch db_ :refresh-on-change (fn [& _] (h/refresh-all!)))
     {:db db_}))
 
