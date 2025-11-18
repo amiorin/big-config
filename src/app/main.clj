@@ -213,7 +213,7 @@
                           :form {:show nil}}
                          {:uid "bbb"
                           :name "Fuqua Tarkenton"
-                          :email "fuqua@tarkenton.org	"
+                          :email "fuqua@tarkenton.org"
                           :form {:show nil}}
                          {:uid "ccc"
                           :name "Angie MacDowell"
