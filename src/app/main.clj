@@ -169,7 +169,10 @@
         [:tr
          [:td name]
          [:td email]
-         [:td [:button.secondary {:data-on:click (format "@post('%s?target=%s')" handler-cancel-row uid)} "Unlock"]]]
+         [:td
+          [:fieldset.grid {:style "display: flex;"}
+           [:button {:disabled true} "Edit"]
+           [:button.contrast {:data-on:click (format "@post('%s?target=%s')" handler-cancel-row uid)} "Unlock"]]]]
         :else
         [:tr
          {:data-signals (format "{trs: {%s: null}}" uid)}
