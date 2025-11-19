@@ -228,6 +228,7 @@
 (defn -main [& _]
   (h/start-app
    {:max-refresh-ms 100
+    :port           (h/env :port)
     :ctx-start      ctx-start
     :ctx-stop       (fn [_state] nil)
     :csrf-secret    (h/env :csrf-secret)}))
