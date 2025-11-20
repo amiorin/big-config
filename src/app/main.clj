@@ -1,9 +1,10 @@
 (ns app.main
   (:gen-class)
   (:require
+   [big-config.store :refer [get-offset handle! store!]]
+   [big-config.utils :refer [deep-merge]]
    [clojure.java.io :as io]
    [clojure.string :as str]
-   [com.rpl.specter :refer [ALL ATOM must pred select-any transform]]
    [dev.onionpancakes.chassis.core :as c]
    [hyperlith.core :as h :refer [defaction defview load-resource static-asset]]))
 
@@ -30,27 +31,14 @@
    [:title nil "Playground"]
    [:meta {:content "Playground" :name "description"}]))
 
-(defaction handler-update-settings [{:keys [db] {:keys [theme debug]} :body}]
-  (transform [ATOM] #(merge % {:theme theme
-                               :debug debug}) db))
-
-(defaction handler-edit-row [{:keys [db tabid] {:strs [target]} :query-params}]
-  (let [fields (select-keys (select-any [ATOM (must :trs) ALL (pred #(= (:uid %) target))] db)
-                            [:name :email])]
-    (transform [ATOM (must :trs) ALL (pred #(= (:uid %) target)) (must :form)] #(merge % {:show tabid} fields) db)))
-
-(defaction handler-cancel-row [{:keys [db] {:strs [target]} :query-params}]
-  (transform [ATOM (must :trs) ALL (pred #(= (:uid %) target)) (must :form)]
-             #(assoc % :show nil) db))
-
-(defaction handler-save-row [{:keys [db] {:keys [trs]} :body {:strs [target]} :query-params}]
-  (let [new-fields ((keyword target) trs)]
-    (transform [ATOM (must :trs) ALL (pred #(= (:uid %) target))]
-               #(merge % new-fields {:form {:show nil}}) db)))
-
-(defaction handler-live-row [{:keys [db] {:keys [trs]} :body {:strs [target]} :query-params}]
-  (let [new-fields ((keyword target) trs)]
-    (transform [ATOM (must :trs) ALL (pred #(= (:uid %) target)) (must :form)] #(merge % new-fields) db)))
+(defaction handler-update-settings [{:keys [db p] {:keys [theme debug]} :body}]
+  (handle! p [:merge {:theme theme
+                      :debug debug}])
+  (swap! db
+         (fn [current-val]
+           (if (= current-val (get-offset p))
+             current-val
+             (get-offset p)))))
 
 (defn header []
   [:header#header
@@ -83,7 +71,15 @@
                                      "@post('%s')") handler-update-settings)
          :data-text "`${$debug ? 'Debug on' : 'Debug off'}`"
          :data-discover "true"}
-        "Debug"]]]
+        "Debug"]]
+      [:li
+       {:class "hide-before-sm"}
+       [:a
+        {:class "contrast"
+         :href "#"
+         :data-on:click (format "@post('%s')" handler-update-settings)
+         :data-discover "true"}
+        "Refresh"]]]
      [:ul
       {:class "icons"}
       [:li
@@ -143,87 +139,40 @@
 (comment
   (-> "'%\"" encode decode))
 
-(defn trs [db tabid]
-  (let [{:keys [trs]} @db]
-    (for [{:keys [uid name email] {:keys [show] :as form} :form} trs]
-      (cond
-        (= show tabid)
-        (let [{:keys [name email]} form]
-          [:tr
-           {:data-signals (format "{trs: {%s: {name: decode('%s'), email: decode('%s')}}}" uid (encode name) (encode email))}
-           [:td [:input {:style "min-width: max-content;"
-                         :name "name"
-                         :autocomplete "off"
-                         :type "text"
-                         (format "data-bind:trs.%s.name" uid) true}]]
-           [:td [:input {:style "min-width: max-content;"
-                         :name "email"
-                         :autocomplete "off"
-                         :type "text"
-                         (format "data-bind:trs.%s.email" uid) true}]]
-           [:td
-            [:fieldset.grid {:style "display: flex;"}
-             [:button.secondary {:data-on:click (format "@post('%s?target=%s')" handler-cancel-row uid)} "Cancel"]
-             [:button {:data-on:click (format "@post('%s?target=%s')" handler-save-row uid)} "Save"]]]])
-        show
-        [:tr
-         [:td name]
-         [:td email]
-         [:td
-          [:fieldset.grid {:style "display: flex;"}
-           [:button {:disabled true} "Edit"]
-           [:button.contrast {:data-on:click (format "@post('%s?target=%s')" handler-cancel-row uid)} "Unlock"]]]]
-        :else
-        [:tr
-         {:data-signals (format "{trs: {%s: null}}" uid)}
-         [:td name]
-         [:td email]
-         [:td [:button {:data-on:click (format "@post('%s?target=%s')" handler-edit-row uid)} "Edit"]]]))))
-
 (defview handler-home {:path "/" :shim-headers shim-headers}
-  [{:keys [db tabid] :as _req}]
+  [{:keys [db p tabid] :as _req}]
   (h/html
    [:link#css {:rel "stylesheet" :type "text/css" :href css}]
    [:link#theme {:rel "stylesheet" :type "text/css" :href theme}]
    [:script#myjs {:defer true :type "module" :src myjs}]
    (header)
    [:main#main
-    [:div {:data-signals:theme (format "'%s'" (:theme @db))
-           :data-signals:debug (format "%s" (:debug @db))
+    [:div {:data-signals:theme (format "'%s'" (:theme @p))
+           :data-signals:debug (format "%s" (:debug @p))
            :data-init "el.parentElement.parentElement.parentElement.setAttribute('data-theme', $theme); el.remove()"}]
     [:section#tables.container
-     [:h2 "Users"]
-     [:div.overflow-auto
-      [:table.striped
-       [:thead
-        [:tr
-         [:th {:scope "col"} "Name"]
-         [:th {:scope "col"} "Email"]
-         [:th {:scope "col"} "Actions"]]]
-       [:tbody#trs
-        (trs db tabid)]]]]
+     [:h2 "Welcome"]]
     [:section#tables.container
      {:data-show "$debug"}
      [:pre
       {:data-json-signals true}]]]))
 
+(def initial-state
+  {:theme "light"
+   :debug false})
+
+(defn my-business [state [op op-val] _timestamp]
+  (case op
+    :merge (deep-merge state op-val)
+    :reset initial-state))
+
 (defn ctx-start []
-  (let [db_ (atom {:theme "light"
-                   :debug false
-                   :trs [{:uid "aaa"
-                          :name "Joe Smith"
-                          :email "joe@smith.org"
-                          :form {:show nil}}
-                         {:uid "bbb"
-                          :name "Fuqua Tarkenton"
-                          :email "fuqua@tarkenton.org"
-                          :form {:show nil}}
-                         {:uid "ccc"
-                          :name "Angie MacDowell"
-                          :email "angie@macdowell.org"
-                          :form {:show nil}}]})]
+  (let [p_ (store! {:business-fn my-business
+                    :store-key "example"})
+        db_  (atom (get-offset p_))]
     (add-watch db_ :refresh-on-change (fn [& _] (h/refresh-all!)))
-    {:db db_}))
+    {:db db_
+     :p p_}))
 
 (defn -main [& _]
   (h/start-app
@@ -240,8 +189,6 @@
   (def app (-main))
 
   (clojure.java.browse/browse-url "http://localhost:8080/")
-
-  (h/html (-> app :ctx :db trs))
 
   ;; stop server
   ((app :stop)))

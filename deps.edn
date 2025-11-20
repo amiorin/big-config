@@ -1,6 +1,7 @@
 {:paths   ["src" "resources"]
  :deps    {org.clojure/clojure {:mvn/version "1.12.3"}
            io.github.andersmurphy/hyperlith {:local/root "../../hyperlith/master"}
+           io.github.amiorin/big-config {:local/root "../../big-config/main"}
            com.rpl/specter {:mvn/version "1.1.6"}}
  :aliases {:build {:deps {io.github.clojure/tools.build {:git/tag "v0.10.5" :git/sha "2a21b7a"}}
                    :ns-default build}}}
