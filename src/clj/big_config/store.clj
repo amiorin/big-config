@@ -109,7 +109,7 @@
                   timestamp (timestamp-fn)
                   new-state (handler @state-atom event timestamp (inc offset)) ; (C)onsistency: must be guaranteed by the handler. The event won't be journalled when the handler throws an exception.
                   [next-offset new-user-state] new-state]
-              (when-not (identical? new-user-state current-user-state)
+              (when-not (= new-user-state current-user-state)
                 (if (write! next-offset timestamp event (hash new-state) store-key wcar-opts) ; (D)urability
                   (do (reset! state-atom new-state) ; (A)tomicity
                       (when (= 0 (mod next-offset snapshot-every))
