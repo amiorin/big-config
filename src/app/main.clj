@@ -6,7 +6,7 @@
    [clojure.java.io :as io]
    [clojure.string :as str]
    [dev.onionpancakes.chassis.core :as c]
-   [hyperlith.core :as h :refer [defaction defview load-resource static-asset]]))
+   [hyperlith.core :as h :refer [defaction defview]]))
 
 (alter-var-root #'c/escape-attribute-value-fragment (constantly identity))
 
@@ -17,8 +17,8 @@
   (h/static-css (slurp (io/resource "theme.css"))))
 
 (def myjs
-  (static-asset
-   {:body         (load-resource "myjs.js")
+  (h/static-asset
+   {:body         (h/load-resource "myjs.js")
     :content-type "text/javascript"
     :compress?    true}))
 
@@ -31,14 +31,23 @@
    [:title nil "Playground"]
    [:meta {:content "Playground" :name "description"}]))
 
-(defaction handler-update-settings [{:keys [db p] {:keys [theme debug]} :body}]
-  (handle! p [:merge {:theme theme
-                      :debug debug}])
+(defn update-offset [db p]
   (swap! db
          (fn [current-val]
            (if (= current-val (get-offset p))
              current-val
              (get-offset p)))))
+
+(defaction handler-toggle-theme [{:keys [db p]}]
+  (handle! p [:merge {:theme (case (:theme @p)
+                               "dark" "light"
+                               "light" "dark"
+                               "light")}])
+  (update-offset db p))
+
+(defaction handler-toggle-debug [{:keys [db p]}]
+  (handle! p [:merge {:debug (not (:debug @p))}])
+  (update-offset db p))
 
 (defn header []
   [:header#header
@@ -67,19 +76,10 @@
        [:a
         {:class "contrast"
          :href "#"
-         :data-on:click (format (str "$debug = !$debug; "
-                                     "@post('%s')") handler-update-settings)
+         :data-on:click (format "@post('%s')" handler-toggle-debug)
          :data-text "`${$debug ? 'Debug on' : 'Debug off'}`"
          :data-discover "true"}
-        "Debug"]]
-      [:li
-       {:class "hide-before-sm"}
-       [:a
-        {:class "contrast"
-         :href "#"
-         :data-on:click (format "@post('%s')" handler-update-settings)
-         :data-discover "true"}
-        "Refresh"]]]
+        "Debug"]]]
      [:ul
       {:class "icons"}
       [:li
@@ -104,8 +104,7 @@
          :aria-label "Turn off dark mode",
          :href "#"
          :data-discover "true",
-         :data-on:click (format (str "$theme = ($theme == 'light') ? 'dark' : 'light'; "
-                                     "@post('%s')") handler-update-settings)}
+         :data-on:click (format "@post('%s')" handler-toggle-theme)}
         [:svg
          {:xmlns "http://www.w3.org/2000/svg",
           :width "24",
@@ -140,7 +139,7 @@
   (-> "'%\"" encode decode))
 
 (defview handler-home {:path "/" :shim-headers shim-headers}
-  [{:keys [db p tabid] :as _req}]
+  [{:keys [counter db p tabid] :as _req}]
   (h/html
    [:link#css {:rel "stylesheet" :type "text/css" :href css}]
    [:link#theme {:rel "stylesheet" :type "text/css" :href theme}]
@@ -151,8 +150,8 @@
            :data-signals:debug (format "%s" (:debug @p))
            :data-init "el.parentElement.parentElement.parentElement.setAttribute('data-theme', $theme); el.remove()"}]
     [:section#tables.container
-     [:h2 "Welcome"]]
-    [:section#tables.container
+     [:h2#counter @counter]]
+    [:section#debug.container
      {:data-show "$debug"}
      [:pre
       {:data-json-signals true}]]]))
@@ -166,20 +165,36 @@
     :merge (deep-merge state op-val)
     :reset initial-state))
 
+(defn start-counter! [tx-batch!]
+  (let [running_ (atom true)]
+    (h/thread
+      (while @running_
+        (Thread/sleep 100) ;; 5 fps
+        (tx-batch!
+         (fn [counter] (swap! counter inc)))))
+    (fn stop-game! [] (reset! running_ false))))
+
 (defn ctx-start []
   (let [p_ (store! {:business-fn my-business
                     :store-key "example"})
-        db_  (atom (get-offset p_))]
-    (add-watch db_ :refresh-on-change (fn [& _] (h/refresh-all!)))
+        db_  (atom (get-offset p_))
+        counter_ (atom 0)
+        tx-batch!   (h/batch!
+                     (fn [thunks]
+                       (run! (fn [thunk] (thunk counter_)) thunks)
+                       (h/refresh-all!))
+                     {:run-every-ms 100})]
     {:db db_
-     :p p_}))
+     :p p_
+     :counter counter_
+     :stop-counter (start-counter! tx-batch!)}))
 
 (defn -main [& _]
   (h/start-app
    {:max-refresh-ms 100
     :port           (h/env :port)
     :ctx-start      ctx-start
-    :ctx-stop       (fn [_state] nil)
+    :ctx-stop       (fn [{:keys [stop-counter]}] (stop-counter))
     :csrf-secret    (h/env :csrf-secret)}))
 
 ;; Refresh app when you re-eval file
