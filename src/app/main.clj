@@ -9,26 +9,31 @@
 
 (alter-var-root #'c/escape-attribute-value-fragment (constantly identity))
 
-(defn update-offset [db p]
+(defn update-offset [tx-batch! db p]
   (swap! db
          (fn [current-val]
            (if (= current-val (get-offset p))
              current-val
-             (get-offset p)))))
+             (get-offset p))))
+  (tx-batch! (fn [& _])))
 
-(defaction handler-toggle-theme [{:keys [db p]}]
+(defaction handler-toggle-theme [{:keys [tx-batch! db p]}]
   (handle! p [:merge {:theme (case (:theme @p)
                                "dark" "light"
                                "light" "dark"
                                "light")}])
-  (update-offset db p))
+  (update-offset tx-batch! db p))
 
-(defaction handler-toggle-debug [{:keys [db p]}]
+(defaction handler-toggle-debug [{:keys [tx-batch! db p]}]
   (handle! p [:merge {:debug (not (:debug @p))}])
-  (update-offset db p))
+  (update-offset tx-batch! db p))
+
+(defn render-lines [lines]
+  (for [[id content] (reverse @lines)]
+    [:p {:id id} content]))
 
 (defview handler-home {:path "/" :shim-headers f/shim-headers}
-  [{:keys [counter db p tabid] :as _req}]
+  [{:keys [counter db p lines] :as _req}]
   (h/html
    [:link#css {:rel "stylesheet" :type "text/css" :href f/css}]
    [:link#theme {:rel "stylesheet" :type "text/css" :href f/theme}]
@@ -43,7 +48,9 @@
     [:section#debug.container
      {:data-show "$debug"}
      [:pre
-      {:data-json-signals true}]]]))
+      {:data-json-signals true}]]
+    [:section#lines.container
+     (render-lines lines)]]))
 
 (def initial-state
   {:theme "light"
@@ -58,24 +65,31 @@
   (let [running_ (atom true)]
     (h/thread
       (while @running_
-        (Thread/sleep 100) ;; 5 fps
+        (Thread/sleep 10000) ;; 5 fps
         (tx-batch!
-         (fn [counter] (swap! counter inc)))))
+         (fn [{:keys [counter lines]}]
+           (swap! counter inc)
+           (let [new-uid h/new-uid]
+             (swap! lines conj [new-uid new-uid]))))))
     (fn stop-game! [] (reset! running_ false))))
 
 (defn ctx-start []
   (let [p_ (store! {:business-fn my-business
                     :store-key "example"})
         db_  (atom (get-offset p_))
+        lines_ (atom [])
         counter_ (atom 0)
         tx-batch!   (h/batch!
                      (fn [thunks]
-                       (run! (fn [thunk] (thunk counter_)) thunks)
+                       (run! (fn [thunk] (thunk {:counter counter_
+                                                 :lines lines_})) thunks)
                        (h/refresh-all!))
                      {:run-every-ms 100})]
     {:db db_
      :p p_
      :counter counter_
+     :lines lines_
+     :tx-batch! tx-batch!
      :stop-counter (start-counter! tx-batch!)}))
 
 (defn -main [& _]
