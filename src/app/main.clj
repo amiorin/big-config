@@ -53,6 +53,9 @@
          (fn [{:keys [counter lines]}]
            (swap! counter inc)
            (let [new-uid (h/new-uid)]
+             (when (> @counter 1000)
+               (reset! lines [])
+               (reset! counter 1))
              (swap! lines conj [@counter new-uid]))))))
     (fn stop-game! [] (reset! running_ false))))
 

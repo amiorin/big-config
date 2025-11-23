@@ -21,3 +21,16 @@ window.isFullyInViewport = (element) => {
     return null;
   }
 };
+
+window.getNthNextElementSibling = (element, n) => {
+  let current = element;
+
+  for (let i = 0; i < n; i++) {
+    if (current && current.nextElementSibling) {
+      current = current.nextElementSibling;
+    } else {
+      return null;
+    }
+  }
+  return current;
+}
