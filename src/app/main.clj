@@ -9,34 +9,17 @@
 
 (alter-var-root #'c/escape-attribute-value-fragment (constantly identity))
 
-(defn update-offset [tx-batch! db p]
-  (swap! db
-         (fn [current-val]
-           (if (= current-val (get-offset p))
-             current-val
-             (get-offset p))))
-  (tx-batch! (fn [& _])))
-
-(defaction handler-toggle-theme [{:keys [tx-batch! db p]}]
-  (handle! p [:merge {:theme (case (:theme @p)
-                               "dark" "light"
-                               "light" "dark"
-                               "light")}])
-  (update-offset tx-batch! db p))
-
-(defaction handler-toggle-debug [{:keys [tx-batch! db p]}]
-  (handle! p [:merge {:debug (not (:debug @p))}])
-  (update-offset tx-batch! db p))
-
 (defn render-lines [lines]
   (for [[id content] (reverse @lines)]
-    [:p {:id id} content]))
+    [:span {:id id
+            :data-init "el.nextElementSibling && isFullyInViewport(el.nextElementSibling) && el.scrollIntoView()"} content]))
 
 (defview handler-home {:path "/" :shim-headers f/shim-headers}
   [{:keys [counter db p lines] :as _req}]
   (h/html
    [:link#css {:rel "stylesheet" :type "text/css" :href f/css}]
    [:link#theme {:rel "stylesheet" :type "text/css" :href f/theme}]
+   [:link#css-lines {:rel "stylesheet" :type "text/css" :href f/css-lines}]
    [:script#myjs {:defer true :type "module" :src f/myjs}]
    (f/header)
    [:main#main
@@ -49,7 +32,7 @@
      {:data-show "$debug"}
      [:pre
       {:data-json-signals true}]]
-    [:section#lines.container
+    [:pre#lines.container
      (render-lines lines)]]))
 
 (def initial-state
@@ -65,11 +48,11 @@
   (let [running_ (atom true)]
     (h/thread
       (while @running_
-        (Thread/sleep 10000) ;; 5 fps
+        (Thread/sleep 100)
         (tx-batch!
          (fn [{:keys [counter lines]}]
            (swap! counter inc)
-           (let [new-uid h/new-uid]
+           (let [new-uid (h/new-uid)]
              (swap! lines conj [new-uid new-uid]))))))
     (fn stop-game! [] (reset! running_ false))))
 

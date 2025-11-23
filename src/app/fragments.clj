@@ -1,6 +1,6 @@
 (ns app.fragments
   (:require
-   [app.main :refer [handler-toggle-debug handler-toggle-theme]]
+   [app.actions :refer [handler-toggle-debug handler-toggle-theme]]
    [clojure.java.io :as io]
    [hyperlith.core :as h]))
 
@@ -16,12 +16,22 @@
     :content-type "text/javascript"
     :compress?    true}))
 
+(def css-lines
+  (h/static-css
+   [[:#lines
+     {:margin-inline   :auto
+      :overflow-y      :scroll
+      :scrollbar-width :none
+      :display         :flex
+      :flex-direction  :column-reverse}]]))
+
 (def shim-headers
   (h/html
    [:link#css {:rel "stylesheet" :type "text/css" :href css}]
    [:link#theme {:rel "stylesheet" :type "text/css" :href theme}]
-   [:link {:rel "icon", :href "favicon.svg", :type "image/svg+xml"}]
+   [:link#css-lines {:rel "stylesheet" :type "text/css" :href css-lines}]
    [:script#myjs {:defer true :type "module" :src myjs}]
+   [:link {:rel "icon", :href "favicon.svg", :type "image/svg+xml"}]
    [:title nil "Playground"]
    [:meta {:content "Playground" :name "description"}]))
 
