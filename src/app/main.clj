@@ -12,7 +12,7 @@
 (defn render-lines [lines]
   (for [[id content] (reverse @lines)]
     [:span {:id id
-            :data-init "el.nextElementSibling && isFullyInViewport(el.nextElementSibling) && el.scrollIntoView()"} content]))
+            :data-init "el.nextElementSibling && isFullyInViewport(el.nextElementSibling) && el.scrollIntoView()"} (str id ": " content)]))
 
 (defview handler-home {:path "/" :shim-headers f/shim-headers}
   [{:keys [counter db p lines] :as _req}]
@@ -53,7 +53,7 @@
          (fn [{:keys [counter lines]}]
            (swap! counter inc)
            (let [new-uid (h/new-uid)]
-             (swap! lines conj [new-uid new-uid]))))))
+             (swap! lines conj [@counter new-uid]))))))
     (fn stop-game! [] (reset! running_ false))))
 
 (defn ctx-start []
