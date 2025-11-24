@@ -104,19 +104,26 @@
       Store
       (handle! [this event]
         (locking this  ; (I)solation: strict serializability.
-          (loop []
+          (loop [restored false]
             (let [[offset current-user-state] @state-atom
                   timestamp (timestamp-fn)
                   new-state (handler @state-atom event timestamp (inc offset)) ; (C)onsistency: must be guaranteed by the handler. The event won't be journalled when the handler throws an exception.
                   [next-offset new-user-state] new-state]
-              (when-not (= new-user-state current-user-state)
+              (if (= new-user-state current-user-state)
+                ; was the curent-user-state stale, we don't know because the business fn is noop.
+                ; we restore the state and run the business fn one more time.
+                (if restored
+                  new-user-state
+                  (do
+                    (restore! handler state-atom store-key wcar-opts)
+                    (recur true)))
                 (if (write! next-offset timestamp event (hash new-state) store-key wcar-opts) ; (D)urability
                   (do (reset! state-atom new-state) ; (A)tomicity
                       (when (= 0 (mod next-offset snapshot-every))
                         (snapshot! this))
                       new-user-state)
                   (do (restore! handler state-atom store-key wcar-opts) ; optimistic lock failed
-                      (recur))))))))
+                      (recur true))))))))
 
       (snapshot! [_this]
         (let [[offset current-user-state] @state-atom
