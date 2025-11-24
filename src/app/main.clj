@@ -52,7 +52,7 @@
         (tx-batch!
          (fn [{:keys [counter lines]}]
            (swap! counter inc)
-           (let [new-uid (h/new-uid)]
+           #_(let [new-uid (h/new-uid)]
              (when (> @counter 1000)
                (reset! lines [])
                (reset! counter 1))
