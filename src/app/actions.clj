@@ -21,3 +21,12 @@
 (defaction handler-toggle-debug [{:keys [tx-batch! db p]}]
   (handle! p [:merge {:debug (not (:debug @p))}])
   (update-offset tx-batch! db p))
+
+(def job-name "tofu")
+
+(defaction handler-run-job [{:keys [p tabid]}]
+  (handle! p [:run-job {:job-name job-name
+                        :owner tabid}]))
+
+(defaction handler-stop-job [{:keys [p]}]
+  (handle! p [:stop-job {:job-name job-name}]))

@@ -1,6 +1,7 @@
 (ns app.fragments
   (:require
-   [app.actions :refer [handler-toggle-debug handler-toggle-theme]]
+   [app.actions :refer [handler-run-job handler-stop-job handler-toggle-debug
+                        handler-toggle-theme]]
    [clojure.java.io :as io]
    [hyperlith.core :as h]))
 
@@ -35,7 +36,7 @@
    [:title nil "Playground"]
    [:meta {:content "Playground" :name "description"}]))
 
-(defn header []
+(defn header [& {:keys [running]}]
   [:header#header
    [:div
     {:class "container"}
@@ -65,7 +66,15 @@
          :data-on:click (format "@post('%s')" handler-toggle-debug)
          :data-text "`${$debug ? 'Debug on' : 'Debug off'}`"
          :data-discover "true"}
-        "Debug"]]]
+        "Debug"]]
+      [:li
+       {:class "hide-before-sm"}
+       [:a
+        {:class "contrast"
+         :href "#"
+         :data-on:click (format "@post('%s')" (if running handler-stop-job handler-run-job))
+         :data-discover "true"}
+        (if running "Stop" "Run")]]]
      [:ul
       {:class "icons"}
       [:li
