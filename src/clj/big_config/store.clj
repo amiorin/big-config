@@ -87,7 +87,8 @@
   (handle! [this event] "Journals the event, applies the business function to the state and the event; and returns the new state.")
   (snapshot! [this] "Creates a snapshot of the current state.")
   (timestamp [this] "Calls the timestamp-fn")
-  (get-offset [this] "Get the current offset"))
+  (get-offset [this] "Get the current offset")
+  (restore [this] "Restore missing events"))
 
 (defn store! [{:keys [initial-state business-fn timestamp-fn store-key snapshot-every wcar-opts close-fn]
                :or {initial-state {}
@@ -135,6 +136,8 @@
       (timestamp [_] (timestamp-fn))
 
       (get-offset [_] (first @state-atom))
+
+      (restore [_] (restore! handler state-atom store-key wcar-opts))
 
       IDeref (deref [_] (second @state-atom))
 
