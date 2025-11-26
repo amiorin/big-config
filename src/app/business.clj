@@ -1,21 +1,23 @@
 (ns app.business
   (:require
    [big-config.store :refer [get-offset handle! store!]]
-   [big-config.utils :refer [deep-merge]]))
+   [big-config.utils :refer [deep-merge]])
+  (:import
+   [java.util.concurrent ThreadLocalRandom]))
 
 (def initial-state
   {:theme "light"
    :debug false})
 
 (defn ->nonce []
-  (let [uuid (clojure.core/random-uuid)]
-    (.getLeastSignificantBits uuid)))
+  (.nextLong (ThreadLocalRandom/current)))
 
 (defn my-business [state [op op-val] timestamp]
   (case op
     :accept-job (let [{:keys [job-name nonce]} op-val
                       job (get-in state [:jobs job-name] {})]
-                  (if (= (:nonce job) :none)
+                  (if (and (= (:nonce job) :none)
+                           (= (:state job) :running))
                     (-> state
                         (assoc-in [:jobs job-name :timestamp] timestamp)
                         (assoc-in [:jobs job-name :nonce] nonce))
@@ -47,9 +49,32 @@
     :merge (deep-merge state op-val)
     :reset initial-state))
 
+(defn accept? [& {:keys [state nonce job-name]}]
+  (let [new-once (get-in (handle! state [:accept-job {:job-name job-name :nonce @nonce}])
+                         [:jobs job-name :nonce])]
+    (= new-once @nonce)))
+
+(defn refresh? [& {:keys [state nonce job-name]}]
+  (let [written-once (get-in (handle! state [:refresh-job {:job-name job-name :nonce @nonce :new-nonce (reset! nonce (->nonce))}])
+                             [:jobs job-name :nonce])]
+    (= written-once @nonce)))
+
 (comment
   (def opts {:business-fn my-business
-             :store-key "test11"
+             :store-key (str "test-" (abs (->nonce)))
+             :wcar-opts {:pool :none}})
+  (def job-name "tofu")
+  (def p (store! opts))
+  (def nonce (atom (->nonce)))
+  (-> @p)
+  (-> @nonce)
+  (handle! p [:run-job {:job-name job-name}])
+  (accept? :state p :nonce nonce :job-name job-name)
+  (refresh? :state p :nonce nonce :job-name job-name))
+
+(comment
+  (def opts {:business-fn my-business
+             :store-key "test13"
              :wcar-opts {:pool :none}})
   (def job-name "tofu")
   (def p1 (store! opts))
@@ -69,6 +94,6 @@
       (get "tofu")
       :nonce
       (= @nonce2))
-  (handle! p1 [:refresh-job {:job-name job-name :nonce @nonce1 :new-nonce (swap! nonce1 inc)}])
+  (handle! p1 [:refresh-job {:job-name job-name :nonce @nonce1 :new-nonce (reset! nonce1 (->nonce))}])
   (handle! p2 [:run-job {:job-name job-name}])
   (handle! p2 [:stop-job {:job-name job-name}]))
