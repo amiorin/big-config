@@ -15,11 +15,8 @@
   (b/compile-clj {:basis      @basis
                   :ns-compile '[app.main]
                   :src-dirs   ["src"]
-                  :class-dir  class-dir
-                  :java-opts ;; needed for coffi
-                  ["--enable-native-access=ALL-UNNAMED"]})
+                  :class-dir  class-dir})
   (b/uber {:class-dir class-dir
            :uber-file uber-file
            :basis     @basis
-           :main      'app.main
-           :manifest  {"Enable-Native-Access" "ALL-UNNAMED"}}))
+           :main      'app.main}))

@@ -30,6 +30,14 @@
                          (assoc-in [:jobs job-name :timestamp] timestamp)
                          (assoc-in [:jobs job-name :nonce] new-nonce))
                      state))
+    :reset-job (let [{:keys [job-name delta]} op-val
+                     job (get-in state [:jobs job-name] {})]
+                 (if (and (= (:state job) :running)
+                          (> (- timestamp (:timestamp job)) delta))
+                   (-> state
+                       (assoc-in [:jobs job-name :timestamp] timestamp)
+                       (assoc-in [:jobs job-name :nonce] :none))
+                   state))
     :run-job (let [{:keys [job-name]} op-val
                    job (get-in state [:jobs job-name] {:state :stopped})]
                (if (= (:state job) :stopped)
@@ -69,8 +77,9 @@
   (-> @p)
   (-> @nonce)
   (handle! p [:run-job {:job-name job-name}])
+  (refresh? :state p :nonce nonce :job-name job-name)
   (accept? :state p :nonce nonce :job-name job-name)
-  (refresh? :state p :nonce nonce :job-name job-name))
+  (handle! p [:stop-job {:job-name job-name}]))
 
 (comment
   (def opts {:business-fn my-business

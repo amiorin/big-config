@@ -1,4 +1,6 @@
-(ns app.utils)
+(ns app.utils
+  (:require
+   [clojure.string :as str]))
 
 (defn encode [s]
   (-> s

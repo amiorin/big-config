@@ -4,7 +4,7 @@
    [app.actions :refer [job-name]]
    [app.business :as b :refer [->nonce]]
    [app.fragments :as f]
-   [big-config.store :refer [store!]]
+   [big-config.store :refer [handle! store!]]
    [clojure.pprint :as pp]
    [dev.onionpancakes.chassis.core :as c]
    [hyperlith.core :as h :refer [defview]]))
@@ -43,27 +43,45 @@
         (with-out-str
           (pp/pprint @p))]]])))
 
+(defn start-worker! [p counter job-name]
+  (let [running_ (atom true)
+        nonce (atom (->nonce))]
+    (h/thread
+      (while @running_
+        (Thread/sleep 1000)
+        (if (> @counter 1010)
+          (do (handle! p [:stop-job {:job-name job-name}])
+              (reset! counter 0))
+          (if (b/refresh? :state p :nonce nonce :job-name job-name)
+            (swap! counter inc)
+            (if (b/accept? :state p :nonce nonce :job-name job-name)
+              (reset! counter 1000)
+              (println "kill the job"))))))
+    (fn stop-worker! [] (reset! running_ false))))
+
+(defn start-supervisor! [p job-name]
+  (let [running_ (atom true)]
+    (h/thread
+      (while @running_
+        (Thread/sleep 1000)
+        (handle! p [:reset-job {:job-name job-name
+                                :delta 5000}])))
+    (fn stop-worker! [] (reset! running_ false))))
+
 (defn start-tick! [tx-batch!]
   (let [running_ (atom true)]
     (h/thread
       (while @running_
         (Thread/sleep 100)
-        (tx-batch!
-         (fn [{:keys [p nonce job-name counter]}]
-           (swap! counter inc)
-           (if (b/refresh? :state p :nonce nonce :job-name job-name)
-             (swap! counter inc)
-             (do
-               (reset! counter 0)
-               (if (b/accept? :state p :nonce nonce :job-name job-name)
-                 (reset! counter 1000)
-                 (reset! counter 0))))))))
+        (tx-batch! (fn [& _]))))
     (fn stop-tick! [] (reset! running_ false))))
 
 (defn ctx-start []
-  (let [p_ (store! {:business-fn b/my-business
+  (let [store-key "counter-fixed" #_(str "counter-" (abs (->nonce)))
+        p_ (store! {:business-fn b/my-business
                     :initial-state b/initial-state
-                    :store-key (str "counter-" (abs (->nonce)))})
+                    :store-key store-key})
+        _ (handle! p_ [:merge {:store-key store-key}])
         counter_ (atom 0)
         nonce_ (atom (->nonce))
         tx-batch!   (h/batch!
@@ -77,14 +95,19 @@
     {:p p_
      :counter counter_
      :tx-batch! tx-batch!
-     :stop-tick (start-tick! tx-batch!)}))
+     :stop-tick (start-tick! tx-batch!)
+     :stop-worker (start-worker! p_ counter_ job-name)
+     :stop-supervisor (start-supervisor! p_ job-name)}))
 
 (defn -main [& _]
   (h/start-app
    {:max-refresh-ms 100
     :port           (h/env :port)
     :ctx-start      ctx-start
-    :ctx-stop       (fn [{:keys [stop-tick]}] (stop-tick))
+    :ctx-stop       (fn [{:keys [stop-tick stop-worker stop-supervisor]}]
+                      (stop-tick)
+                      (stop-worker)
+                      (stop-supervisor))
     :csrf-secret    (h/env :csrf-secret)}))
 
 ;; Refresh app when you re-eval file
@@ -96,6 +119,7 @@
   (clojure.java.browse/browse-url "http://localhost:8080/")
 
   ;; stop server
+
   ((app :stop))
 
   (-> app
