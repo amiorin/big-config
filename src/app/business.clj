@@ -7,13 +7,16 @@
 
 (def initial-state
   {:theme "light"
-   :debug false})
+   :debug false
+   :counter 0})
 
 (defn ->nonce []
   (.nextLong (ThreadLocalRandom/current)))
 
 (defn my-business [state [op op-val] timestamp]
   (case op
+    :reset-counter (assoc state :counter op-val)
+    :inc-counter (update state :counter (fnil inc 0))
     :accept-job (let [{:keys [job-name nonce]} op-val
                       job (get-in state [:jobs job-name] {})]
                   (if (and (= (:nonce job) :none)

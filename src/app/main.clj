@@ -17,7 +17,7 @@
             :data-init "el.nextElementSibling && isFullyInViewport(el.nextElementSibling) && el.scrollIntoView()"} (str id ": " content)]))
 
 (defview handler-home {:path "/" :shim-headers f/shim-headers}
-  [{:keys [counter p] :as _req}]
+  [{:keys [p] :as _req}]
   (let [running (-> @p
                     (get :jobs {})
                     (get job-name {})
@@ -34,7 +34,7 @@
              :data-signals:debug (format "%s" (:debug @p))
              :data-init "el.parentElement.parentElement.parentElement.setAttribute('data-theme', $theme); el.remove()"}]
       [:section#tables.container
-       [:h2#counter @counter]]
+       [:h2#counter (:counter @p)]]
       [:section#debug.container
        {:data-show "$debug"}
        [:pre
@@ -43,19 +43,19 @@
         (with-out-str
           (pp/pprint @p))]]])))
 
-(defn start-worker! [p counter job-name]
+(defn start-worker! [p job-name]
   (let [running_ (atom true)
         nonce (atom (->nonce))]
     (h/thread
       (while @running_
         (Thread/sleep 1000)
-        (if (> @counter 1010)
+        (if (> (:counter @p) 1010)
           (do (handle! p [:stop-job {:job-name job-name}])
-              (reset! counter 0))
+              (handle! p [:reset-counter 0]))
           (if (b/refresh? :state p :nonce nonce :job-name job-name)
-            (swap! counter inc)
+            (handle! p [:inc-counter])
             (if (b/accept? :state p :nonce nonce :job-name job-name)
-              (reset! counter 1000)
+              (handle! p [:reset-counter 1000])
               (println "kill the job"))))))
     (fn stop-worker! [] (reset! running_ false))))
 
@@ -77,26 +77,23 @@
     (fn stop-tick! [] (reset! running_ false))))
 
 (defn ctx-start []
-  (let [store-key "counter-fixed" #_(str "counter-" (abs (->nonce)))
+  (let [store-key "counter-fixed-v2" #_(str "counter-" (abs (->nonce)))
         p_ (store! {:business-fn b/my-business
                     :initial-state b/initial-state
                     :store-key store-key})
         _ (handle! p_ [:merge {:store-key store-key}])
-        counter_ (atom 0)
         nonce_ (atom (->nonce))
         tx-batch!   (h/batch!
                      (fn [thunks]
                        (run! (fn [thunk] (thunk {:p p_
-                                                 :counter counter_
                                                  :nonce nonce_
                                                  :job-name job-name})) thunks)
                        (h/refresh-all!))
                      {:run-every-ms 100})]
     {:p p_
-     :counter counter_
      :tx-batch! tx-batch!
      :stop-tick (start-tick! tx-batch!)
-     :stop-worker (start-worker! p_ counter_ job-name)
+     :stop-worker (start-worker! p_ job-name)
      :stop-supervisor (start-supervisor! p_ job-name)}))
 
 (defn -main [& _]
