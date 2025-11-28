@@ -1,6 +1,7 @@
 {:paths   ["src" "resources"]
  :deps    {org.clojure/clojure {:mvn/version "1.12.3"}
            org.clojure/data.json {:mvn/version "2.5.1"}
+           babashka/process {:mvn/version "0.6.23"}
            io.github.andersmurphy/hyperlith {:local/root "../../hyperlith/master"}
            io.github.amiorin/big-config {:local/root "../../big-config/main"}
            com.rpl/specter {:mvn/version "1.1.6"}}
@@ -9,7 +10,6 @@
                  ["--enable-native-access=ALL-UNNAMED"
                   "-Duser.timezone=UTC"
                   "-XX:+UseZGC"
-                  "-XX:+ZGenerational"
                   "-Djdk.attach.allowAttachSelf"
                   "-XX:+EnableDynamicAgentLoading"]}
            :build {:deps {io.github.clojure/tools.build {:git/tag "v0.10.5" :git/sha "2a21b7a"}}

@@ -4,7 +4,9 @@
    [app.actions :refer [job-name]]
    [app.business :as b :refer [->nonce]]
    [app.fragments :as f]
+   [babashka.process :as p]
    [big-config.store :refer [handle! store!]]
+   [clojure.java.io :as io]
    [clojure.pprint :as pp]
    [dev.onionpancakes.chassis.core :as c]
    [hyperlith.core :as h :refer [defview]]))
@@ -42,6 +44,22 @@
        [:pre
         (with-out-str
           (pp/pprint @state))]]])))
+
+(defn start-task! []
+  (let [number-stream (p/process
+                       {:err :inherit
+                        :shutdown p/destroy-tree}
+                       "bb -o range.bb")]
+    (h/thread
+      (with-open [rdr (io/reader (:out number-stream))]
+        (binding [*in* rdr]
+          (loop []
+            (if-let [line (read-line)]
+              (do (println :line line)
+                  (recur))
+              (p/destroy-tree number-stream))))))
+    (fn stop-task! []
+      (p/destroy-tree number-stream))))
 
 (defn start-worker! [state job-name]
   (let [running_ (atom true)
