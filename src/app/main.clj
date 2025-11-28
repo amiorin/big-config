@@ -17,8 +17,8 @@
             :data-init "el.nextElementSibling && isFullyInViewport(el.nextElementSibling) && el.scrollIntoView()"} (str id ": " content)]))
 
 (defview handler-home {:path "/" :shim-headers f/shim-headers}
-  [{:keys [p] :as _req}]
-  (let [running (-> @p
+  [{:keys [state] :as _req}]
+  (let [running (-> @state
                     (get :jobs {})
                     (get job-name {})
                     (get :state)
@@ -30,42 +30,35 @@
      [:script#myjs {:defer true :type "module" :src f/myjs}]
      (f/header :running running)
      [:main#main
-      [:div {:data-signals:theme (format "'%s'" (:theme @p))
-             :data-signals:debug (format "%s" (:debug @p))
+      [:div {:data-signals:theme (format "'%s'" (:theme @state))
+             :data-signals:debug (format "%s" (:debug @state))
              :data-init "el.parentElement.parentElement.parentElement.setAttribute('data-theme', $theme); el.remove()"}]
       [:section#tables.container
-       [:h2#counter (:counter @p)]]
+       [:h2#counter (:counter @state)]]
       [:section#debug.container
        {:data-show "$debug"}
        [:pre
         {:data-json-signals true}]
        [:pre
         (with-out-str
-          (pp/pprint @p))]]])))
+          (pp/pprint @state))]]])))
 
-(defn start-worker! [p job-name]
+(defn start-worker! [state job-name]
   (let [running_ (atom true)
         nonce (atom (->nonce))]
     (h/thread
       (while @running_
         (Thread/sleep 1000)
-        (if (> (:counter @p) 1010)
-          (do (handle! p [:stop-job {:job-name job-name}])
-              (handle! p [:reset-counter 0]))
-          (if (b/refresh? :state p :nonce nonce :job-name job-name)
-            (handle! p [:inc-counter])
-            (if (b/accept? :state p :nonce nonce :job-name job-name)
-              (handle! p [:reset-counter 1000])
+        (handle! state [:reset-job {:job-name job-name
+                                    :delta 5000}])
+        (if (> (:counter @state) 1010)
+          (do (handle! state [:stop-job {:job-name job-name}])
+              (handle! state [:reset-counter 0]))
+          (if (b/refresh? :state state :nonce nonce :job-name job-name)
+            (handle! state [:inc-counter])
+            (if (b/accept? :state state :nonce nonce :job-name job-name)
+              (handle! state [:reset-counter 1000])
               (println "kill the job"))))))
-    (fn stop-worker! [] (reset! running_ false))))
-
-(defn start-supervisor! [p job-name]
-  (let [running_ (atom true)]
-    (h/thread
-      (while @running_
-        (Thread/sleep 1000)
-        (handle! p [:reset-job {:job-name job-name
-                                :delta 5000}])))
     (fn stop-worker! [] (reset! running_ false))))
 
 (defn start-tick! [tx-batch!]
@@ -78,33 +71,28 @@
 
 (defn ctx-start []
   (let [store-key "counter-fixed-v2" #_(str "counter-" (abs (->nonce)))
-        p_ (store! {:business-fn b/my-business
-                    :initial-state b/initial-state
-                    :store-key store-key})
-        _ (handle! p_ [:merge {:store-key store-key}])
-        nonce_ (atom (->nonce))
+        state_ (store! {:business-fn b/my-business
+                        :initial-state b/initial-state
+                        :store-key store-key})
+        _ (handle! state_ [:merge {:store-key store-key}])
         tx-batch!   (h/batch!
                      (fn [thunks]
-                       (run! (fn [thunk] (thunk {:p p_
-                                                 :nonce nonce_
-                                                 :job-name job-name})) thunks)
+                       (run! (fn [thunk] (thunk {:state state_})) thunks)
                        (h/refresh-all!))
                      {:run-every-ms 100})]
-    {:p p_
+    {:state state_
      :tx-batch! tx-batch!
      :stop-tick (start-tick! tx-batch!)
-     :stop-worker (start-worker! p_ job-name)
-     :stop-supervisor (start-supervisor! p_ job-name)}))
+     :stop-worker (start-worker! state_ job-name)}))
 
 (defn -main [& _]
   (h/start-app
    {:max-refresh-ms 100
     :port           (h/env :port)
     :ctx-start      ctx-start
-    :ctx-stop       (fn [{:keys [stop-tick stop-worker stop-supervisor]}]
+    :ctx-stop       (fn [{:keys [stop-tick :stop-worker]}]
                       (stop-tick)
-                      (stop-worker)
-                      (stop-supervisor))
+                      (stop-worker))
     :csrf-secret    (h/env :csrf-secret)}))
 
 ;; Refresh app when you re-eval file

@@ -3,19 +3,19 @@
    [big-config.store :refer [handle!]]
    [hyperlith.core :refer [defaction]]))
 
-(defaction handler-toggle-theme [{:keys [p]}]
-  (handle! p [:merge {:theme (case (:theme @p)
-                               "dark" "light"
-                               "light" "dark"
-                               "light")}]))
+(defaction handler-toggle-theme [{:keys [state]}]
+  (handle! state [:merge {:theme (case (:theme @state)
+                                   "dark" "light"
+                                   "light" "dark"
+                                   "light")}]))
 
-(defaction handler-toggle-debug [{:keys [p]}]
-  (handle! p [:merge {:debug (not (:debug @p))}]))
+(defaction handler-toggle-debug [{:keys [state]}]
+  (handle! state [:merge {:debug (not (:debug @state))}]))
 
 (def job-name "tofu")
 
-(defaction handler-run-job [{:keys [p]}]
-  (handle! p [:run-job {:job-name job-name}]))
+(defaction handler-run-job [{:keys [state]}]
+  (handle! state [:run-job {:job-name job-name}]))
 
-(defaction handler-stop-job [{:keys [p]}]
-  (handle! p [:stop-job {:job-name job-name}]))
+(defaction handler-stop-job [{:keys [state]}]
+  (handle! state [:stop-job {:job-name job-name}]))
