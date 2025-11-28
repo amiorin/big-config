@@ -49,8 +49,7 @@
     (h/thread
       (while @running_
         (Thread/sleep 1000)
-        (handle! state [:reset-job {:job-name job-name
-                                    :delta 5000}])
+        (handle! state [:reset-job {:job-name job-name :delta 5000}])
         (if (> (:counter @state) 1010)
           (do (handle! state [:stop-job {:job-name job-name}])
               (handle! state [:reset-counter 0]))
