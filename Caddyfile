@@ -1,0 +1,15 @@
+example.bigconfig.it {
+	handle_errors 5xx {
+		abort
+	}
+	reverse_proxy localhost:8080 {
+	}
+}
+
+hyper.bigconfig.it {
+	handle_errors 5xx {
+		abort
+	}
+	reverse_proxy localhost:6060 {
+	}
+}
