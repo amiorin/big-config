@@ -45,7 +45,7 @@
         (with-out-str
           (pp/pprint @state))]]])))
 
-(defn start-task! []
+(defn start-task! [state job-name]
   (let [number-stream (p/process
                        {:err :inherit
                         :shutdown p/destroy-tree}
@@ -53,13 +53,25 @@
     (h/thread
       (with-open [rdr (io/reader (:out number-stream))]
         (binding [*in* rdr]
+          (handle! state [:reset-lines {:job-name job-name}])
           (loop []
             (if-let [line (read-line)]
-              (do (println :line line)
+              (do (handle! state [:add-line {:job-name job-name :line line}])
                   (recur))
               (p/destroy-tree number-stream))))))
     (fn stop-task! []
       (p/destroy-tree number-stream))))
+
+(comment
+  (def state (store! {:business-fn b/my-business
+                      :store-key (str "test-" (abs (->nonce)))
+                      :wcar-opts {:pool :none}}))
+  (def job-name "tofu")
+  (def task (start-task! state job-name))
+  (-> @state
+      :jobs-lines
+      (get "tofu"))
+  (-> task))
 
 (defn start-worker! [state job-name]
   (let [running_ (atom true)

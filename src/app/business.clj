@@ -8,7 +8,9 @@
 (def initial-state
   {:theme "light"
    :debug false
-   :counter 0})
+   :counter 0
+   :jobs {}
+   :jobs-lines {}})
 
 (defn ->nonce []
   (.nextLong (ThreadLocalRandom/current)))
@@ -17,6 +19,10 @@
   (case op
     :reset-counter (assoc state :counter op-val)
     :inc-counter (update state :counter (fnil inc 0))
+    :add-line (let [{:keys [job-name line]} op-val]
+                (update-in state [:jobs-lines job-name] (fnil conj []) line))
+    :reset-lines (let [{:keys [job-name]} op-val]
+                   (update-in state [:jobs-lines] dissoc job-name))
     :accept-job (let [{:keys [job-name nonce]} op-val
                       job (get-in state [:jobs job-name] {})]
                   (if (and (= (:nonce job) :none)
@@ -69,6 +75,14 @@
   (let [written-once (get-in (handle! state [:refresh-job {:job-name job-name :nonce @nonce :new-nonce (reset! nonce (->nonce))}])
                              [:jobs job-name :nonce])]
     (= written-once @nonce)))
+
+(comment
+  (def state (store! {:business-fn my-business
+                      :store-key (str "test-" (abs (->nonce)))
+                      :wcar-opts {:pool :none}}))
+  (def job-name "tofu")
+  (handle! state [:add-line {:job-name job-name :line "line 3"}])
+  (handle! state [:reset-lines {:job-name job-name}]))
 
 (comment
   (def opts {:business-fn my-business
