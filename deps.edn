@@ -6,6 +6,7 @@
            io.github.amiorin/big-config {:local/root "../../big-config/main"}
            com.rpl/specter {:mvn/version "1.1.6"}}
  :aliases {:dev {:extra-paths ["env/dev/clj"]
+                 :extra-deps {io.github.tonsky/clj-reload {:mvn/version "1.0.0"}}
                  :jvm-opts
                  ["--enable-native-access=ALL-UNNAMED"
                   "-Duser.timezone=UTC"
