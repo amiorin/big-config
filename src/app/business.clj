@@ -8,7 +8,6 @@
 (def initial-state
   {:theme "dark"
    :debug true
-   :counter 0
    :jobs {}
    :jobs-lines {}})
 
@@ -17,8 +16,6 @@
 
 (defn my-business [state [op op-val] timestamp]
   (case op
-    :reset-counter (assoc state :counter op-val)
-    :inc-counter (update state :counter (fnil inc 0))
     :add-line (let [{:keys [job-name line]} op-val]
                 (update-in state [:jobs-lines job-name] (fnil conj []) line))
     :reset-lines (let [{:keys [job-name]} op-val]

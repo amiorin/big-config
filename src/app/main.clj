@@ -24,7 +24,10 @@
                     (get :jobs {})
                     (get job-name {})
                     (get :state)
-                    (= :running))]
+                    (= :running))
+        lines (-> @state
+                  :jobs-lines
+                  (get job-name []))]
     (h/html
      [:link#css {:rel "stylesheet" :type "text/css" :href f/css}]
      [:link#theme {:rel "stylesheet" :type "text/css" :href f/theme}]
@@ -36,16 +39,15 @@
              :data-signals:debug (format "%s" (:debug @state))
              :data-init "el.parentElement.parentElement.parentElement.setAttribute('data-theme', $theme); el.remove()"}]
       [:section#tables.container
-       [:h2#counter (:counter @state)]]
+       [:h2#counter nil (str "Number of lines: " (count lines))]]
       [:section#debug.container
        {:data-show "$debug"}
        [:pre
         {:data-json-signals true}]]
       [:section#task
        [:pre#lines.container
-        (render-lines (-> @state
-                          :jobs-lines
-                          (get job-name [])))]]])))
+        nil
+        (render-lines lines)]]])))
 
 (defn start-task! [state job-name]
   (let [number-stream (p/process
@@ -62,6 +64,7 @@
                   (recur))
               (p/destroy-tree number-stream))))))
     (fn stop-task! []
+      (handle! state [:reset-lines {:job-name job-name}])
       (p/destroy-tree number-stream))))
 
 (comment
@@ -75,30 +78,25 @@
       (get "tofu"))
   (-> task))
 
-(defn update-lines-count [state job-name]
-  (let [n (-> @state
-              :jobs-lines
-              (get job-name [])
-              count)]
-    (handle! state [:reset-counter n])))
-
 (defn start-worker! [state job-name]
   (let [running (atom true)
         stop-task! (atom (constantly nil))
         nonce (atom (->nonce))]
     (h/thread
       (while @running
-        (Thread/sleep 1000)
-        (handle! state [:reset-job {:job-name job-name :delta 5000}])
-        (if (> (:counter @state) 1000)
-          (do (@stop-task!)
-              (handle! state [:stop-job {:job-name job-name}])
-              (handle! state [:reset-counter 0]))
-          (if (b/refresh? :state state :nonce nonce :job-name job-name)
-            (update-lines-count state job-name)
-            (if (b/accept? :state state :nonce nonce :job-name job-name)
-              (reset! stop-task! (start-task! state job-name))
-              (@stop-task!))))))
+        (let [lines (-> @state
+                        :jobs-lines
+                        (get job-name []))]
+          (Thread/sleep 100)
+          (handle! state [:reset-job {:job-name job-name :delta 5000}])
+          (if (> (count lines) 1000)
+            (do (@stop-task!)
+                (handle! state [:stop-job {:job-name job-name}]))
+            (if (b/refresh? :state state :nonce nonce :job-name job-name)
+              nil
+              (if (b/accept? :state state :nonce nonce :job-name job-name)
+                (reset! stop-task! (start-task! state job-name))
+                (@stop-task!)))))))
     (fn stop-worker! []
       (@stop-task!)
       (reset! running false))))
@@ -112,7 +110,7 @@
     (fn stop-tick! [] (reset! running_ false))))
 
 (defn ctx-start []
-  (let [store-key "counter-fixed-v3" #_(str "counter-" (abs (->nonce)))
+  (let [store-key "counter-fixed-v4" #_(str "counter-" (abs (->nonce)))
         state_ (store! {:business-fn b/my-business
                         :initial-state b/initial-state
                         :store-key store-key})
