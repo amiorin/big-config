@@ -6,8 +6,8 @@
    [java.util.concurrent ThreadLocalRandom]))
 
 (def initial-state
-  {:theme "light"
-   :debug false
+  {:theme "dark"
+   :debug true
    :counter 0
    :jobs {}
    :jobs-lines {}})

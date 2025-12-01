@@ -82,16 +82,16 @@
 
 (defn start-worker! [state job-name]
   (let [running (atom true)
-        task (atom (identity nil))
+        task (atom (constantly nil))
         nonce (atom (->nonce))]
     (h/thread
       (while @running
         (Thread/sleep 1000)
         (handle! state [:reset-job {:job-name job-name :delta 5000}])
-        (if (> (:counter @state) 1010)
+        (if (> (:counter @state) 10)
           (do (@task)
               (handle! state [:stop-job {:job-name job-name}])
-              (update-lines-count state job-name))
+              (handle! state [:reset-counter 0]))
           (if (b/refresh? :state state :nonce nonce :job-name job-name)
             (update-lines-count state job-name)
             (if (b/accept? :state state :nonce nonce :job-name job-name)
@@ -108,7 +108,7 @@
     (fn stop-tick! [] (reset! running_ false))))
 
 (defn ctx-start []
-  (let [store-key #_"counter-fixed-v2" (str "counter-" (abs (->nonce)))
+  (let [store-key "counter-fixed-v3" #_(str "counter-" (abs (->nonce)))
         state_ (store! {:business-fn b/my-business
                         :initial-state b/initial-state
                         :store-key store-key})
