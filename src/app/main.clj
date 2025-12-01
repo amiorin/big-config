@@ -82,22 +82,24 @@
 
 (defn start-worker! [state job-name]
   (let [running (atom true)
-        task (atom (constantly nil))
+        stop-task! (atom (constantly nil))
         nonce (atom (->nonce))]
     (h/thread
       (while @running
         (Thread/sleep 1000)
         (handle! state [:reset-job {:job-name job-name :delta 5000}])
         (if (> (:counter @state) 10)
-          (do (@task)
+          (do (@stop-task!)
               (handle! state [:stop-job {:job-name job-name}])
               (handle! state [:reset-counter 0]))
           (if (b/refresh? :state state :nonce nonce :job-name job-name)
             (update-lines-count state job-name)
             (if (b/accept? :state state :nonce nonce :job-name job-name)
-              (reset! task (start-task! state job-name))
-              (@task))))))
-    (fn stop-worker! [] (reset! running false))))
+              (reset! stop-task! (start-task! state job-name))
+              (@stop-task!))))))
+    (fn stop-worker! []
+      (@stop-task!)
+      (reset! running false))))
 
 (defn start-tick! [tx-batch!]
   (let [running_ (atom true)]
