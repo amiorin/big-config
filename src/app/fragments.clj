@@ -24,7 +24,7 @@
       :overflow-y      :scroll
       :scrollbar-width :none
       :display         :flex
-      :flex-direction  :column-reverse}]]))
+      :flex-direction  :column}]]))
 
 (def shim-headers
   (h/html

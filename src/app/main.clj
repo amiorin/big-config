@@ -14,9 +14,9 @@
 (alter-var-root #'c/escape-attribute-value-fragment (constantly identity))
 
 (defn render-lines [lines]
-  (for [[id content] (reverse @lines)]
-    [:span {:id id
-            :data-init "el.nextElementSibling && isFullyInViewport(el.nextElementSibling) && el.scrollIntoView()"} (str id ": " content)]))
+  (for [[id line] (map-indexed vector lines)]
+    [:span {:id (str "line-" id)
+            :data-init "el.previousElementSibling && isFullyInViewport(el.previousElementSibling) && el.scrollIntoView()"} (str id ": " line)]))
 
 (defview handler-home {:path "/" :shim-headers f/shim-headers}
   [{:keys [state] :as _req}]
@@ -40,10 +40,12 @@
       [:section#debug.container
        {:data-show "$debug"}
        [:pre
-        {:data-json-signals true}]
-       [:pre
-        (with-out-str
-          (pp/pprint @state))]]])))
+        {:data-json-signals true}]]
+      [:section#task
+       [:pre#lines.container
+        (render-lines (-> @state
+                          :jobs-lines
+                          (get job-name [])))]]])))
 
 (defn start-task! [state job-name]
   (let [number-stream (p/process
@@ -88,7 +90,7 @@
       (while @running
         (Thread/sleep 1000)
         (handle! state [:reset-job {:job-name job-name :delta 5000}])
-        (if (> (:counter @state) 10)
+        (if (> (:counter @state) 1000)
           (do (@stop-task!)
               (handle! state [:stop-job {:job-name job-name}])
               (handle! state [:reset-counter 0]))
