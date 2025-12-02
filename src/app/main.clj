@@ -51,17 +51,15 @@
 
 (defn start-task! [state job-name]
   (let [number-stream (p/process
-                       {:dir "./"
+                       {:dir "task"
                         :err :out
                         :shutdown p/destroy-tree}
-                       "bat --style plain -f build.clj"
-                       #_"bb -o range.bb")]
+                       "bb lines.clj")]
     (h/thread
       (with-open [rdr (io/reader (:out number-stream))]
         (binding [*in* rdr]
           (handle! state [:reset-lines {:job-name job-name}])
           (loop []
-            (Thread/sleep 300)
             (if-let [line (read-line)]
               (do (handle! state [:add-line {:job-name job-name :line line}])
                   (recur))
