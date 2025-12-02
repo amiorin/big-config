@@ -22,9 +22,7 @@
    [[:#lines
      {:margin-inline   :auto
       :overflow-y      :scroll
-      :scrollbar-width :none
-      :display         :flex
-      :flex-direction  :column}]]))
+      :scrollbar-width :none}]]))
 
 (def shim-headers
   (h/html

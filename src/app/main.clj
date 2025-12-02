@@ -4,19 +4,19 @@
    [app.actions :refer [job-name]]
    [app.business :as b :refer [->nonce]]
    [app.fragments :as f]
+   [app.colors :as colors]
    [babashka.process :as p]
    [big-config.store :refer [handle! store!]]
    [clojure.java.io :as io]
-   [clojure.pprint :as pp]
+   [clojure.string :as str]
    [dev.onionpancakes.chassis.core :as c]
    [hyperlith.core :as h :refer [defview]]))
 
 (alter-var-root #'c/escape-attribute-value-fragment (constantly identity))
 
 (defn render-lines [lines]
-  (for [[id line] (map-indexed vector lines)]
-    [:span {:id (str "line-" id)
-            :data-init "el.previousElementSibling && isFullyInViewport(el.previousElementSibling) && el.scrollIntoView()"} (str id ": " line)]))
+  (-> (str/join "\n" lines)
+      colors/text->hiccup))
 
 (defview handler-home {:path "/" :shim-headers f/shim-headers}
   [{:keys [state] :as _req}]
@@ -51,14 +51,17 @@
 
 (defn start-task! [state job-name]
   (let [number-stream (p/process
-                       {:err :inherit
+                       {:dir "./"
+                        :err :out
                         :shutdown p/destroy-tree}
-                       "bb -o range.bb")]
+                       "bat --style plain -f build.clj"
+                       #_"bb -o range.bb")]
     (h/thread
       (with-open [rdr (io/reader (:out number-stream))]
         (binding [*in* rdr]
           (handle! state [:reset-lines {:job-name job-name}])
           (loop []
+            (Thread/sleep 300)
             (if-let [line (read-line)]
               (do (handle! state [:add-line {:job-name job-name :line line}])
                   (recur))

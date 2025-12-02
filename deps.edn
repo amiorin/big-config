@@ -4,6 +4,7 @@
            babashka/process {:mvn/version "0.6.23"}
            io.github.andersmurphy/hyperlith {:local/root "../../hyperlith/master"}
            io.github.amiorin/big-config {:local/root "../../big-config/main"}
+           lambdaisland/ansi {:mvn/version "0.2.37"}
            com.rpl/specter {:mvn/version "1.1.6"}}
  :aliases {:dev {:extra-paths ["env/dev/clj"]
                  :extra-deps {io.github.tonsky/clj-reload {:mvn/version "1.0.0"}}
