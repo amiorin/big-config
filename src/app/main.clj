@@ -29,25 +29,7 @@
                   :jobs-lines
                   (get job-name []))]
     (h/html
-     [:link#css {:rel "stylesheet" :type "text/css" :href f/css}]
-     [:link#theme {:rel "stylesheet" :type "text/css" :href f/theme}]
-     [:link#css-lines {:rel "stylesheet" :type "text/css" :href f/css-lines}]
-     [:script#myjs {:defer true :type "module" :src f/myjs}]
-     (f/header :running running)
-     [:main#main
-      [:div {:data-signals:theme (format "'%s'" (:theme @state))
-             :data-signals:debug (format "%s" (:debug @state))
-             :data-init "el.parentElement.parentElement.parentElement.setAttribute('data-theme', $theme); el.remove()"}]
-      [:section#tables.container
-       [:h2#counter nil (str "Number of lines: " (count lines))]]
-      [:section#debug.container
-       {:data-show "$debug"}
-       [:pre
-        {:data-json-signals true}]]
-      [:section#task
-       [:pre#lines.container
-        nil
-        (render-lines lines)]]])))
+     [:main#main])))
 
 (defn start-task! [state job-name]
   (let [number-stream (p/process
@@ -136,9 +118,6 @@
                       (stop-worker))
     :csrf-secret    (h/env :csrf-secret)}))
 
-;; Refresh app when you re-eval file
-(h/refresh-all!)
-
 (comment
   (def app (-main))
 
@@ -146,10 +125,4 @@
 
   ;; stop server
 
-  ((app :stop))
-
-  (-> app
-      :ctx
-      :p
-      deref
-      #_(handle! [:stop-job {:job-name "tofu"}])))
+  ((app :stop)))

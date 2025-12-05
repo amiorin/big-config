@@ -34,3 +34,8 @@ window.getNthNextElementSibling = (element, n) => {
   }
   return current;
 }
+
+window.setTheme = (themeName) => {
+  const htmlElement = document.documentElement;
+  htmlElement.setAttribute('data-theme', themeName);
+}
