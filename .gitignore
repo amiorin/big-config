@@ -1,4 +1,6 @@
 /target/
-
+node_modules/
 .*
 !.dir-locals.el
+!.gitignore
+!.tool-versions

@@ -5,19 +5,15 @@
    [clojure.java.io :as io]
    [hyperlith.core :as h]))
 
-(def daisy-css
-  (h/static-css (h/load-resource "daisyui.css")))
-
-(def tailwind
+(def main
   (h/static-asset
-   {:body         (h/load-resource "tailwindcss.js")
+   {:body         (h/load-resource "main.js")
     :content-type "text/javascript"
     :compress?    true}))
 
 (def shim-headers
   (h/html
-   [:link {:rel "stylesheet" :type "text/css" :href daisy-css}]
-   [:script {:defer true :type "module" :src tailwind}]
+   [:script {:defer true :type "module" :src main}]
    [:link {:rel "icon", :href "favicon.svg", :type "image/svg+xml"}]
    [:title nil "Playground"]
    [:meta {:content "Playground" :name "description"}]))

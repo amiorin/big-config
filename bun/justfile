@@ -1,0 +1,8 @@
+# list of all recipes
+help:
+    @just -f {{ justfile() }} --list --unsorted
+
+compile:
+    bunx --bun squint compile
+    bun build src/js/main.mjs --outfile ../resources/main.js
+    touch ../src/app/fragments.clj
