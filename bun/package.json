@@ -1,5 +1,12 @@
 {
   "dependencies": {
     "squint-cljs": "^0.9.182"
-  }
+  },
+  "devDependencies": {
+    "@tailwindcss/cli": "^4.1.17",
+    "tailwindcss": "^4.1.17"
+  },
+  "trustedDependencies": [
+    "@parcel/watcher"
+  ]
 }

@@ -27,8 +27,15 @@
                     (= :running))
         lines (-> @state
                   :jobs-lines
-                  (get job-name []))]
+                  (get job-name []))
+        app-js f/app-js #_(str f/app-js "?t=" (h/new-uid))]
     (h/html
+     [:header#header
+      [:script {:data-init (format "typeof refresh_app_js !== 'undefined' && refresh_app_js(el, '%s')" app-js)
+                :defer true
+                :type "module"
+                :src app-js}]]
+     [:link#app-css {:rel "stylesheet" :type "text/css" :href f/app-css}]
      [:main#main])))
 
 (defn start-task! [state job-name]
@@ -88,7 +95,7 @@
   (let [running_ (atom true)]
     (h/thread
       (while @running_
-        (Thread/sleep 100)
+        (Thread/sleep 1000)
         (tx-batch! (fn [& _]))))
     (fn stop-tick! [] (reset! running_ false))))
 

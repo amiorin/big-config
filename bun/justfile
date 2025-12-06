@@ -3,6 +3,7 @@ help:
     @just -f {{ justfile() }} --list --unsorted
 
 compile:
+    bunx --bun tailwindcss -i src/css/app.css -o ../resources/app.css
     bunx --bun squint compile
-    bun build src/js/main.mjs --outfile ../resources/main.js
+    bun build src/js/app.mjs --outfile ../resources/app.js
     touch ../src/app/fragments.clj
