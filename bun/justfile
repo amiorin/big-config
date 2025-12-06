@@ -2,8 +2,13 @@
 help:
     @just -f {{ justfile() }} --list --unsorted
 
+# watch for changes and compile
+watch:
+    watchexec -e cljs,css just compile
+
+# compile cljs, bundle mjs, and compile css
 compile:
     bunx --bun tailwindcss -i src/css/app.css -o ../resources/app.css
     bunx --bun squint compile
     bun build src/js/app.mjs --outfile ../resources/app.js
-    touch ../src/app/fragments.clj
+    touch ../.reload

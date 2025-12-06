@@ -1,7 +1,7 @@
 (ns app
   (:require [core]))
 
-(println "app-h")
+(println "app-g")
 
 (defn refresh-app-js [el uid]
   (when (and el

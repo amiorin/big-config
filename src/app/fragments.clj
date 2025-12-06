@@ -1,8 +1,5 @@
 (ns app.fragments
   (:require
-   [app.actions :refer [handler-run-job handler-stop-job handler-toggle-debug
-                        handler-toggle-theme]]
-   [clojure.java.io :as io]
    [hyperlith.core :as h]))
 
 (def app-css
