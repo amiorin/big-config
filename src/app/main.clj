@@ -30,11 +30,10 @@
                   (get job-name []))
         app-js f/app-js #_(str f/app-js "?t=" (h/new-uid))]
     (h/html
-     [:header#header
-      [:script {:data-init (format "typeof refresh_app_js !== 'undefined' && refresh_app_js(el, '%s')" app-js)
-                :defer true
-                :type "module"
-                :src app-js}]]
+     [:script#app-js {:data-init (format "typeof refresh_app_js !== 'undefined' && refresh_app_js(el, '%s')" app-js)
+                      :defer true
+                      :type "module"
+                      :src app-js}]
      [:link#app-css {:rel "stylesheet" :type "text/css" :href f/app-css}]
      [:main#main])))
 
