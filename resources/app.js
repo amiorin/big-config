@@ -135,7 +135,7 @@ var _metaSym = Symbol("meta");
 println("core");
 
 // src/js/app.mjs
-println("app-g");
+println("app-f");
 var refresh_app_js = function(el, uid) {
   if (truth_((() => {
     const and__23248__auto__1 = el;

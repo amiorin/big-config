@@ -6,43 +6,58 @@
    [clj-reload.core :as reload]
    [hyperlith.core :as h]))
 
-(defonce ^:dynamic *server* nil)
+(defonce server (atom nil))
+(defonce watcher (atom nil))
 
 (defn start! []
-  (alter-var-root #'*server*
-                  (fn [current-server]
-                    (if current-server
-                      current-server
-                      (-main)))))
+  (swap! server
+         (fn [current-server]
+           (if current-server
+             current-server
+             (-main)))))
 
 (defn stop! []
-  (alter-var-root #'*server*
-                  (fn [current-server]
-                    (when current-server
-                      ((current-server :stop)))
-                    nil)))
+  (swap! server
+         (fn [current-server]
+           (when current-server
+             (println "Stopping server...")
+             ((:stop current-server)))
+           nil)))
 
 (comment
-  (-> *server*)
+  @server   ;; Check server state
   (start!)
   (stop!))
 
-(defn start-watcher! []
+(defn watcher! []
   (let [running_ (atom true)
         path ".reload"]
     (h/thread
       (while @running_
-        (println "check")
         (Thread/sleep 1000)
         (when (fs/exists? path)
           (p/sh (format "touch %s" "src/app/fragments.clj"))
           (stop!)
           (reload/reload)
           (start!)
-          (fs/delete path)
-          (println "reload"))))
-    (fn stop-tick! [] (reset! running_ false))))
+          (fs/delete path))))
+    (fn stop-watcher! [] (reset! running_ false))))
+
+(defn start-watcher! []
+  (swap! watcher
+         (fn [current-watcher]
+           (if current-watcher
+             current-watcher
+             (watcher!)))))
+
+(defn stop-watcher! []
+  (swap! watcher
+         (fn [current-watcher]
+           (when current-watcher
+             (current-watcher))
+           nil)))
 
 (comment
-  (def stop-watcher! (start-watcher!))
+  @watcher
+  (start-watcher!)
   (stop-watcher!))
