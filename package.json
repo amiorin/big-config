@@ -1,0 +1,17 @@
+{
+  "type": "module",
+  "devDependencies": {
+    "@tailwindcss/vite": "^4.1.18",
+    "@vitejs/plugin-react": "^5.1.2",
+    "daisyui": "^5.5.14",
+    "rollup-plugin-visualizer": "^6.0.5",
+    "tailwindcss": "^4.1.18",
+    "vite": "^7.3.0",
+    "vitest": "^4.0.16"
+  },
+  "dependencies": {
+    "react": "^19.2.3",
+    "react-dom": "^19.2.3",
+    "squint-cljs": "^0.9.182"
+  }
+}

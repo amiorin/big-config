@@ -1,0 +1,21 @@
+{:tasks
+ {install (shell "bun install")
+
+  update (shell "bun update --latest")
+
+  dev:squint (shell "bunx --bun squint watch --repl true")
+  dev:vite (shell "bunx --bun vite --config=vite.config.js")
+  dev:caddy (shell "caddy reverse-proxy --to http://localhost:5173")
+  -dev {:depends [dev:squint dev:vite dev:caddy]}
+  dev (run '-dev {:parallel true})
+
+  test:watch:squint (shell "bunx --bun squint watch --paths src/cljs test/cljs --output-dir test/js")
+  test:watch:vite (shell "bunx --bun vitest --config=vite.config.js")
+  -test:watch {:depends [test:watch:squint test:watch:vite]}
+  test:watch (run '-test:watch {:parallel true})
+
+  build:squint (shell "bunx --bun squint compile")
+  build:vite (shell "bunx --bun vite --config vite.config.js build")
+  build:caddy {:depends [build]
+               :task (shell "caddy file-server --root dist --browse --listen :443 --domain localhost")}
+  build {:depends [build:squint build:vite]}}}
