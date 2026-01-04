@@ -1,10 +1,12 @@
 # vite-react
 
 An example react project including tests with vite(st) + react + squint + caddy.
-There is only one URL: [http://localhost](https://localhost). TLS is provided automatically by Caddy.
+There is only one URL: [https://localhost](https://localhost). TLS is provided automatically by Caddy.
 
 ## Requirements
-- [asdf](https://asdf-vm.com/)
+- [devenv](https://devenv.sh/)
+
+If you don't use `devenv`.
 - [caddy](https://caddyserver.com/)
 - [bun](https://bun.com/)
 - [babashka](https://babashka.org/)
