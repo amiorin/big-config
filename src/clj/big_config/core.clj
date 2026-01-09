@@ -20,7 +20,7 @@
 
 (defn resolve-step-fns [step-fns]
   (-> (map (fn [f] (cond
-                     (fn? f) f
+                     (ifn? f) f
                      (string? f) (-> f symbol requiring-resolve)
                      :else (throw (ex-info "f is neither a string nor a fn" {:f f}))))
            step-fns)
