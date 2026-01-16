@@ -40,13 +40,16 @@
                :cmd (format "rm -rf %s" dir)))
 
 (defn run-cmd [{:keys [::bc/env ::shell-opts ::cmds] :as opts}]
-  (let [shell-opts (assoc shell-opts :continue true)
+  (let [cmd (first cmds)
+        [shell-opts cmd] (cond
+                           (string? cmd) [shell-opts cmd]
+                           (sequential? cmd) [(merge shell-opts (first cmd)) (second cmd)])
+        shell-opts (assoc shell-opts :continue true)
         shell-opts (case env
                      :shell shell-opts
                      :repl (merge {:out :string
                                    :err :string} shell-opts)
                      (throw (ex-info ":big-config/env not defined in opts" opts)))
-        cmd (first cmds)
         proc (process/shell shell-opts cmd)]
     (handle-cmd opts proc)))
 
@@ -74,6 +77,9 @@
                             :else [::end opts]))}))
 
 (comment
+  (run-cmds {::bc/env :repl
+             ::cmds [[{:dir ".."} "pwd"]
+                     [{:dir "../.."} "pwd"]]})
   (run-cmds [(fn [f step opts]
                (println step)
                (f step opts))]
