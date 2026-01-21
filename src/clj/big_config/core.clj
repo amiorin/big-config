@@ -61,21 +61,47 @@
       ([step-fns opts]
        (when (nil? opts)
          (throw (IllegalArgumentException. "ops should never be nil")))
-       (let [step-fns (resolve-step-fns step-fns)]
-         (loop [step first-step
-                opts opts]
-           (let [[f next-step] (wire-fn step step-fns)
-                 f (compose step-fns f)
-                 {:keys [::bc/exit] :as opts} (try-f f step opts)
-                 _ (when (nil? opts)
-                     (throw (ex-info "ops must never be nil" {:step step})))
-                 _ (when-not (nat-int? exit)
-                     (throw (ex-info ":big-config/exit must be a natural number" opts)))
-                 next-fn (resolve-next-fn next-fn last-step)
-                 [next-step next-opts] (next-fn step next-step opts)]
-             (if next-step
-               (recur next-step next-opts)
-               next-opts))))))))
+       (let [step-fns (resolve-step-fns step-fns)
+             run-workflow (fn [step opts]
+                            (let [[f next-step] (wire-fn step step-fns)
+                                  f (compose step-fns f)
+                                  {:keys [::bc/exit] :as opts} (try-f f step opts)
+                                  _ (when (nil? opts)
+                                      (throw (ex-info "opts must never be nil" {:step step})))
+                                  _ (when-not (nat-int? exit)
+                                      (throw (ex-info ":big-config/exit must be a natural number" opts)))
+                                  next-fn (resolve-next-fn next-fn last-step)
+                                  [next-step next-opts] (next-fn step next-step opts)]
+                              (if next-step
+                                (recur next-step next-opts)
+                                next-opts)))]
+         (if (map? opts)
+           (run-workflow first-step opts)
+           (loop [in opts #_(update-in opts [(dec (count opts))] assoc ::last true)
+                  out []
+                  exit 0]
+             (let [opts (first in)
+                   [opts new-exit] (if (= exit 0)
+                                     (let [{:keys [::bc/exit] :as opts} (run-workflow first-step opts)]
+                                       [opts exit])
+                                     [opts exit])
+                   xs (rest in)
+                   new-out (conj out opts)]
+               (if (seq xs)
+                 (recur xs new-out new-exit)
+                 new-out)))))))))
+
+(comment
+  (let [wf (->workflow {:first-step ::start
+                        :step-fns ["big-config.step-fns/bling-step-fn"]
+                        :wire-fn (fn [step _]
+                                   (case step
+                                     ::start [(fn [opts]
+                                                (println "foo")
+                                                (merge opts {::bc/exit 1
+                                                             ::bc/err "Failure"})) ::end]
+                                     ::end [identity]))})]
+    [(wf {}) (wf [{} {}])]))
 
 (defn ->step-fn [{:keys [before-f after-f]}]
   (cond
@@ -91,14 +117,3 @@
                     after-f)]
       (after-f step opts)
       opts)))
-
-(comment
-  (let [wf (->workflow {:first-step ::start
-                        :step-fns ["big-config.step-fns/bling-step-fn"]
-                        :wire-fn (fn [step _]
-                                   (case step
-                                     ::start [(fn [opts]
-                                                (println "foo")
-                                                (ok opts)) ::end]
-                                     ::end [identity]))})]
-    (wf {})))
