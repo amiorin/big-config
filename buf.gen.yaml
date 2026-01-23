@@ -1,0 +1,13 @@
+version: v2
+managed:
+  enabled: true
+  override:
+    - file_option: java_package
+      value: "com.terraform.plugin.v6"
+    - file_option: java_multiple_files
+      value: true
+plugins:
+  - remote: buf.build/protocolbuffers/java
+    out: gen/java
+  - remote: buf.build/grpc/java
+    out: gen/java

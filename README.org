@@ -1,0 +1,19 @@
+#+title: Terraform
+
+|---------------------------------------------------------------------------------------+------------------------|
+| https://www.youtube.com/watch?v=TYPKCjGBLyY                                           | Buf, gRPC, and Clojure |
+| https://github.com/provide-io                                                         |                        |
+| https://github.com/smheidrich/non-go-terraform-provider-assessment                    |                        |
+| https://github.com/rpcplugin/spec/blob/master/rpcplugin-spec.md                       |                        |
+| https://developer.hashicorp.com/terraform/plugin/terraform-plugin-protocol            |                        |
+| https://search.opentofu.org/docs/providers/creating                                   |                        |
+| https://github.com/hashicorp/terraform/blob/main/docs/plugin-protocol/tfplugin6.proto |                        |
+| https://github.com/bufbuild/buf                                                       |                        |
+| https://github.com/s-expresso/clojobuf                                                |                        |
+| https://github.com/AppsFlyer/pronto                                                   |                        |
+| https://github.com/AppsFlyer/lein-protodeps                                           |                        |
+| https://protojure.readthedocs.io/en/latest/                                           |                        |
+| https://github.com/otwieracz/clj-grpc                                                 |                        |
+| https://github.com/fourteatoo/protobluff                                              | Grpc, very old         |
+| https://blog.jmibanez.com/2018/07/22/grpc-with-clojure-and-leiningen.html             |                        |
+| https://github.com/aphyr/less-awful-ssl                                               |                        |
