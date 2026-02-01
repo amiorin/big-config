@@ -2,9 +2,13 @@
   (:require
    [big-config :as bc]))
 
-(defn ok [opts]
-  (merge opts {::bc/exit 0
-               ::bc/err nil}))
+(defn ok
+  ([]
+   {::bc/exit 0
+    ::bc/err nil})
+  ([opts]
+   (merge opts {::bc/exit 0
+                ::bc/err nil})))
 
 (defn choice [{:keys [on-success
                       on-failure

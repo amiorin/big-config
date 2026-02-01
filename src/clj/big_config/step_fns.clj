@@ -15,7 +15,7 @@
 
 (defn ->exit-step-fn
   "if the workflow is invoked with a seq of opts, we need to exit with the last ::end or as soon as ::exit is greater than 0"
-   [end & [opts-seq exit-fn]]
+  [end & [opts-seq exit-fn]]
   (let [n (atom (count opts-seq))
         f (or exit-fn exit-with-code)]
     (->step-fn {:after-f (fn [step {:keys [::bc/env ::bc/exit] :as opts}]
