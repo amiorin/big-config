@@ -69,6 +69,9 @@
                                             (run/generic-cmd :opts opts :cmd (format "rm -rf %s" pg-data-dir))
                                             opts)))))
 
+(defn add-stop-fn [opts f]
+  (update opts ::stop-fns (fnil conj []) f))
+
 (defn stop [{:keys [::stop-fns ::async] :as opts}]
   (if async
     (assoc opts ::stop #(run! (fn [stop-fn] (stop-fn opts)) stop-fns))
@@ -85,11 +88,11 @@
       (let [cmd #_"bash -c 'exit 1'" "bash -c 'for i in {10..1}; do echo $i; sleep 0.1; done;'"
             regex #"7"]
         (-> (re-program cmd regex ::proc opts)
-            (update ::stop-fns (fnil conj []) (fn [{:keys [::proc] :as opts}]
-                                                (when proc
-                                                  @(p/destroy-tree proc)
-                                                  @(destroy-forcibly proc))
-                                                opts)))))
+            (add-stop-fn (fn [{:keys [::proc] :as opts}]
+                           (when proc
+                             @(p/destroy-tree proc)
+                             @(destroy-forcibly proc))
+                           opts)))))
     (def ->system (->workflow {:first-step ::start
                                :wire-fn (fn [step _]
                                           (case step
