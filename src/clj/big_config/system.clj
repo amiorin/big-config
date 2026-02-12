@@ -3,7 +3,6 @@
    [babashka.process :as p]
    [big-config :as bc]
    [big-config.core :refer [->workflow]]
-   [big-config.run :as run]
    [big-config.step-fns :refer [log-step-fn]]
    [clojure.core.async :as a]
    [clojure.java.io :as io]
@@ -22,35 +21,55 @@
 
 (def env (read-system-env))
 
+(comment
+  (env :path))
+
 (defn destroy-forcibly [proc]
   (when (p/alive? proc)
     (.destroyForcibly ^java.lang.Process (:proc proc)))
   proc)
 
-(defn- re-stream [stream regex & {:keys [timeout]}]
-  (let [signal-chan (a/chan (a/dropping-buffer 1))
-        ms (or timeout 1000)]
-    (a/thread
-      (with-open [reader (io/reader stream)]
-        (doseq [line (line-seq reader)]
-          (binding [*out* *err*]
-            (println line)
-            (.flush *err*))
-          (when (re-find regex line)
-            (a/>!! signal-chan line)))))
-    (let [[val port] (a/alts!! [signal-chan (a/timeout ms)])]
-      (if (= port signal-chan)
-        val
-        :timeout))))
+(defmacro assert-args-present [& symbols]
+  `(doseq [pair# ~(zipmap (map keyword symbols) symbols)]
+     (when (nil? (val pair#))
+       (throw (IllegalArgumentException. (format "Argument %s is nil" (key pair#)))))))
 
-(defn re-program [cmd regex key opts]
-  (let [proc (p/process {:err :out} cmd)
-        stream (:out proc)]
-    (case (re-stream stream regex {:timeout 500})
+(defn re-process
+  "Creates a child process and blocks until `:timeout` or the `:regex` is
+      found. `:re-opts` is pass to `babashka.process/process`.
+
+      Supported options in `:re-opts`:
+      - all `babashka.process/process` options.
+      - `:cmd`: like `babashka.process/process`. By default is to redirect `:err` to `:out`.
+      - `:regex`: the regex to match from either `:std` or `:err` or both of the process.
+      - `:key`: the key used to store the process created when returning `:opts`.
+      - `:capture`: either `:err` or `:out`. By default is `:out`.
+      - `:line-fn`: a function to do something with every line. By default it prints to `*err*` and it flushes it.
+      - `:timeout`: the timeout for finding the `:regex`. By default is 1 second."
+  [{:keys [cmd regex key capture line-fn timeout] :as re-opts} opts]
+  (assert-args-present re-opts opts cmd regex key)
+  (let [proc (p/process (merge {:err :out} re-opts) cmd)
+        stream ((or capture :out) proc)
+        line-fn (or line-fn #(binding [*out* *err*]
+                               (println %)
+                               (.flush *err*)))
+        re-stream (let [signal-chan (a/chan (a/dropping-buffer 1))
+                        ms (or timeout 1000)]
+                    (a/thread
+                      (with-open [reader (io/reader stream)]
+                        (doseq [line (line-seq reader)]
+                          (line-fn line)
+                          (when (re-find regex line)
+                            (a/>!! signal-chan line)))))
+                    (let [[val port] (a/alts!! [signal-chan (a/timeout ms)])]
+                      (if (= port signal-chan)
+                        val
+                        :timeout)))]
+    (case re-stream
       :timeout (if (p/alive? proc)
                  (merge opts {key @(p/destroy-tree proc)
                               ::bc/exit 1
-                              ::bc/err (format "regex `%s` not found in `%s`" regex cmd)})
+                              ::bc/err (format "regex `%s` not found in `%s` before the timeout" regex cmd)})
                  (merge opts {key @proc
                               ::bc/exit 1
                               ::bc/err (format "`%s` exit with code `%s` before the timeout" cmd (:exit @proc))}))
@@ -59,15 +78,13 @@
                    ::bc/err nil}))))
 
 (comment
-  (let [cmd #_"bash -c 'exit 1'" "bash -c 'for i in {10..1}; do echo $i; sleep 0.1; done;'"
-        regex #"7"]
-    (-> (re-program cmd regex ::pg-proc {})
-        (update ::stop-fns (fnil conj []) (fn [{:keys [::pg-proc ::pg-data-dir] :as opts}]
-                                            (when pg-proc
-                                              @(p/destroy-tree pg-proc)
-                                              @(destroy-forcibly pg-proc))
-                                            (run/generic-cmd :opts opts :cmd (format "rm -rf %s" pg-data-dir))
-                                            opts)))))
+  (let [re-opts (into {} [[:key ::proc]
+                          #_[:cmd "bash -c 'exit 1'"]
+                          [:cmd "bash -c 'for i in {10..1}; do echo $i; sleep 0.1; done;'"]
+                          #_[:regex #"11"]
+                          [:regex #"5"]
+                          [:timeout 600]])]
+    (re-process re-opts {})))
 
 (defn add-stop-fn [opts f]
   (update opts ::stop-fns (fnil conj []) f))
@@ -85,9 +102,11 @@
 (comment
   (do
     (defn background-process [opts]
-      (let [cmd #_"bash -c 'exit 1'" "bash -c 'for i in {10..1}; do echo $i; sleep 0.1; done;'"
-            regex #"7"]
-        (-> (re-program cmd regex ::proc opts)
+      (let [re-opts (into {} [#_[:cmd "bash -c 'exit 1'"]
+                              [:cmd  "bash -c 'for i in {10..1}; do echo $i; sleep 0.1; done;'"]
+                              [:regex #"7"]
+                              [:key ::proc]])]
+        (-> (re-process re-opts opts)
             (add-stop-fn (fn [{:keys [::proc] :as opts}]
                            (when proc
                              @(p/destroy-tree proc)
