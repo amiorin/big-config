@@ -19,12 +19,16 @@
        (map (fn [[k v]] [(keywordize k) v]))
        (into {})))
 
-(def env (read-system-env))
+(def
+  ^{:doc "Map of the environment variables keywordize"
+    :arglists '([key default-value])}
+  env (read-system-env))
 
 (comment
   (env :path))
 
-(defn destroy-forcibly [proc]
+(defn destroy-forcibly
+  [proc]
   (when (p/alive? proc)
     (.destroyForcibly ^java.lang.Process (:proc proc)))
   proc)
@@ -36,16 +40,17 @@
 
 (defn re-process
   "Creates a child process and blocks until `:timeout` or the `:regex` is
-      found. `:re-opts` is pass to `babashka.process/process`.
+  found. `re-opts` is pass to `babashka.process/process`.
 
-      Supported options in `:re-opts`:
-      - all `babashka.process/process` options.
-      - `:cmd`: like `babashka.process/process`. By default is to redirect `:err` to `:out`.
-      - `:regex`: the regex to match from either `:std` or `:err` or both of the process.
-      - `:key`: the key used to store the process created when returning `:opts`.
-      - `:capture`: either `:err` or `:out`. By default is `:out`.
-      - `:line-fn`: a function to do something with every line. By default it prints to `*err*` and it flushes it.
-      - `:timeout`: the timeout for finding the `:regex`. By default is 1 second."
+  Supported options in `re-opts`:
+   - all `babashka.process/process` options.
+   - `:cmd`: like `babashka.process/process`. By default is to redirect `:err` to `:out`.
+   - `:regex`: the regex to match from either `:std` or `:err` or both of the process.
+   - `:key`: the key used to store the process created when returning `opts`.
+   - `:capture`: either `:err` or `:out`. By default is `:out`.
+   - `:line-fn`: a function to do something with every line. By default it prints to `*err*` and it flushes it.
+   - `:timeout`: the timeout for finding the `:regex`. By default is 1 second."
+  {:arglists '([re-opts opts])}
   [{:keys [cmd regex key capture line-fn timeout] :as re-opts} opts]
   (assert-args-present re-opts opts cmd regex key)
   (let [proc (p/process (merge {:err :out} re-opts) cmd)

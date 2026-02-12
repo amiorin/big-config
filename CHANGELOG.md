@@ -12,7 +12,8 @@ The patch number is calculated with `git rev-list --count HEAD`
 ### Added
 
 - bump `selmer` to support template inheritance
-- BigConfig Store is a datastore for Redis 
+- BigConfig Store is a datastore for Redis, a fork of https://github.com/klauswuestefeld/prevayler-clj
+- BigConfig System is an alternative to Integrant to create systems with a workflow instead of a graph.
 
 ### Changed
 

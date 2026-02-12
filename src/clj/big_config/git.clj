@@ -46,17 +46,21 @@
                   {::bc/exit 1
                    ::bc/err "The local revisions don't match the remote revision"}))))
 
-(def check (->workflow {:first-step ::git-diff
-                        :wire-fn (fn [step _]
-                                   (case step
-                                     ::git-diff [git-diff ::fetch-origin]
-                                     ::fetch-origin [fetch-origin ::upstream-name]
-                                     ::upstream-name [(partial upstream-name ::upstream-name) ::pre-revision]
-                                     ::pre-revision [(partial get-revision "HEAD~1" ::prev-revision) ::current-revision]
-                                     ::current-revision [(partial get-revision "HEAD" ::current-revision) ::origin-revision]
-                                     ::origin-revision [(partial get-revision ::upstream-name ::origin-revision) ::compare-revisions]
-                                     ::compare-revisions [compare-revisions ::end]
-                                     ::end [identity]))}))
+(def ^{:doc "Check if the local revision matches origin"
+       :arglists '([]
+                   [opts]
+                   [step-fns opts])}
+  check (->workflow {:first-step ::git-diff
+                     :wire-fn (fn [step _]
+                                (case step
+                                  ::git-diff [git-diff ::fetch-origin]
+                                  ::fetch-origin [fetch-origin ::upstream-name]
+                                  ::upstream-name [(partial upstream-name ::upstream-name) ::pre-revision]
+                                  ::pre-revision [(partial get-revision "HEAD~1" ::prev-revision) ::current-revision]
+                                  ::current-revision [(partial get-revision "HEAD" ::current-revision) ::origin-revision]
+                                  ::origin-revision [(partial get-revision ::upstream-name ::origin-revision) ::compare-revisions]
+                                  ::compare-revisions [compare-revisions ::end]
+                                  ::end [identity]))}))
 
 (comment
   (->> (check {})

@@ -50,6 +50,20 @@
     next-fn))
 
 (defn ->workflow
+  "Creates a workflow.
+
+  Supported options in `wf-opts`:
+   - `:first-step`: the qualified keyword of the first step in the workflow.
+      Usually `::start`.
+   - `:last-step`: the qualified keyword of the last step in the workflow. If
+      not defined, it will be `::end` with the same namespace of `::start`.
+   - `:step-fns`: an array of step functions to be invoked before and after
+      every step for purposes like logging or tracing. Is is optional.
+   - `:wire-fn`: a function taking 2 arguments (step and step-fns) to wire
+      together steps, functions and next-steps.
+   - `:next-fn`: a function to handle special flows in the workflow when the
+      default next-step provided in the wire-fn is not enough. It is optional"
+  {:arglists '([wf-opts])}
   [{:keys [first-step
            last-step
            step-fns
@@ -81,7 +95,7 @@
                                 next-opts)))]
          (if (map? opts)
            (run-workflow first-step opts)
-           (loop [in opts #_(update-in opts [(dec (count opts))] assoc ::last true)
+           (loop [in opts
                   out []
                   exit 0]
              (let [opts (first in)
