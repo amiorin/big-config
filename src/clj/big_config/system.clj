@@ -125,7 +125,46 @@
                        (stop! @system)
                        @system)]])))
 
-(defn main [& {:keys [shutdown-timeout]}]
+(defn test-bb
+  "kill-timeout 50 -> signal 15 and then signal 9 -> exit 137
+  kill-timeout 200 -> signal 15 -> exit 143"
+  []
+  (let [kill-timeout 50
+        shutdown-timeout 100
+        clj-timeout 3000
+        background-process (fn [opts]
+                             (let [re-opts (into {} [[:cmd (format "clj -X big-config.system/main :shutdown-timeout %s" shutdown-timeout)]
+                                                     [:regex #"token"]
+                                                     [:timeout clj-timeout]
+                                                     [:key ::proc]])
+                                   opts (re-process re-opts opts)]
+                               (add-stop-fn opts (fn [{:keys [::proc] :as opts}]
+                                                   (when proc
+                                                     (destroy! proc kill-timeout))))))
+        ->system (->workflow {:first-step ::start
+                              :wire-fn (fn [step _]
+                                         (case step
+                                           ::start [background-process ::end]
+                                           ::end [stop]))})]
+
+    (println (into {} [[:exit1 (-> (into (sorted-map) (->system [log-step-fn] {::bc/env :repl}))
+                                   ::proc
+                                   deref
+                                   :exit)]
+                       [:exit2 (let [system (atom (into (sorted-map) (->system [log-step-fn] {::bc/env :repl
+                                                                                              ::async true})))]
+                                 (stop! @system)
+                                 (-> @system
+                                     ::proc
+                                     deref
+                                     :exit))]]))))
+
+(comment
+  (test-bb))
+
+(defn main
+  "The :out and :err of the hook are not capture by the REPL"
+  [& {:keys [shutdown-timeout]}]
   (assert shutdown-timeout)
   (.addShutdownHook (Runtime/getRuntime)
                     (Thread. (fn []
