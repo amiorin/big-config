@@ -84,19 +84,14 @@
                    ::bc/exit 0
                    ::bc/err nil}))))
 
-(comment
-  (let [re-opts (into {} [[:key ::proc]
-                          #_[:cmd "bash -c 'exit 1'"]
-                          [:cmd "bash -c 'for i in {10..1}; do echo $i; sleep 0.1; done;'"]
-                          #_[:regex #"11"]
-                          [:regex #"5"]
-                          [:timeout 600]])]
-    (re-process re-opts {})))
-
-(defn add-stop-fn [opts f]
+(defn add-stop-fn
+  "f does not return opts"
+  [opts f]
   (update opts ::stop-fns (fnil conj []) f))
 
-(defn stop [{:keys [::stop-fns ::async] :as opts}]
+(defn stop
+  "it returns the same version of opts that it has received"
+  [{:keys [::stop-fns ::async] :as opts}]
   (if async
     (assoc opts ::stop #(run! (fn [stop-fn] (stop-fn opts)) stop-fns))
     (do (run! (fn [stop-fn] (stop-fn opts)) stop-fns)
@@ -111,7 +106,7 @@
         shutdown-timeout 100
         clj-timeout 3000]
     (defn background-process [opts]
-      (let [re-opts (into {} [[:cmd (format "clj -X big-config.system/run-this :shutdown-timeout %s" shutdown-timeout)]
+      (let [re-opts (into {} [[:cmd (format "clj -X big-config.system/main :shutdown-timeout %s" shutdown-timeout)]
                               [:regex #"token"]
                               [:timeout clj-timeout]
                               [:key ::proc]])
@@ -129,7 +124,8 @@
                                                                                     ::async true})))]
                        (stop! @system)
                        @system)]])))
-(defn run-this [& {:keys [shutdown-timeout]}]
+
+(defn main [& {:keys [shutdown-timeout]}]
   (assert shutdown-timeout)
   (.addShutdownHook (Runtime/getRuntime)
                     (Thread. (fn []
