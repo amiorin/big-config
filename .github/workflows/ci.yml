@@ -38,6 +38,7 @@ jobs:
           --rm
           -u vscode
           -v /tmp:/tmp
+          -e SHELL=fish
           -e SSH_AUTH_SOCK=$SSH_AUTH_SOCK
           -e GITHUB_WORKSPACE=$GITHUB_WORKSPACE
           -v $GITHUB_WORKSPACE:$GITHUB_WORKSPACE
