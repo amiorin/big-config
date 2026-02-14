@@ -43,12 +43,12 @@ jobs:
           -v $GITHUB_WORKSPACE:$GITHUB_WORKSPACE
           ghcr.io/amiorin/big-container:latest
           fish -c 'cd $GITHUB_WORKSPACE
-          && bb build
           && direnv allow
+          && direnv exec . bb build
           && direnv exec . just test'
 
-# test locally
-# cat .github/workflows/ci.yml | jet -i yaml -o json | jq -r .jobs.test.steps[3].run | GITHUB_WORKSPACE=$(pwd) bash -s
+  # test locally
+  # cat .github/workflows/ci.yml | jet -i yaml -o json | jq -r .jobs.test.steps[3].run | GITHUB_WORKSPACE=$(pwd) bash -s
 
   tag:
     needs:
