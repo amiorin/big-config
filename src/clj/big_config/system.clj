@@ -27,11 +27,12 @@
 (comment
   (env :path))
 
-(defn destroy-forcibly
-  [proc]
-  (when (p/alive? proc)
+(defn destroy!
+  [proc & [timeout]]
+  (p/destroy proc)
+  (when (= (deref proc (or timeout 1000) :timeout) :timeout)
     (.destroyForcibly ^java.lang.Process (:proc proc)))
-  proc)
+  @proc)
 
 (defmacro assert-args-present [& symbols]
   `(doseq [pair# ~(zipmap (map keyword symbols) symbols)]
@@ -49,9 +50,10 @@
    - `:key`: the key used to store the process created when returning `opts`.
    - `:capture`: either `:err` or `:out`. By default is `:out`.
    - `:line-fn`: a function to do something with every line. By default it prints to `*err*` and it flushes it.
-   - `:timeout`: the timeout for finding the `:regex`. By default is 1 second."
+   - `:timeout`: the timeout for finding the `:regex`. By default is 1 second.
+   - `:kill-timeout`: the timeout for invoking `destroy!`. By default is 1 second. "
   {:arglists '([re-opts opts])}
-  [{:keys [cmd regex key capture line-fn timeout] :as re-opts} opts]
+  [{:keys [cmd regex key capture line-fn timeout kill-timeout] :as re-opts} opts]
   (assert-args-present re-opts opts cmd regex key)
   (let [proc (p/process (merge {:err :out} re-opts) cmd)
         stream ((or capture :out) proc)
@@ -72,12 +74,12 @@
                         :timeout)))]
     (case re-stream
       :timeout (if (p/alive? proc)
-                 (merge opts {key @(p/destroy-tree proc)
+                 (merge opts {key (destroy! proc (or kill-timeout 1000))
                               ::bc/exit 1
                               ::bc/err (format "regex `%s` not found in `%s` before the timeout" regex cmd)})
                  (merge opts {key @proc
                               ::bc/exit 1
-                              ::bc/err (format "`%s` exit with code `%s` before the timeout" cmd (:exit @proc))}))
+                              ::bc/err (format "`%s` exits with code `%s` before the timeout" cmd (:exit @proc))}))
       (merge opts {key proc
                    ::bc/exit 0
                    ::bc/err nil}))))
@@ -105,18 +107,18 @@
     (f)))
 
 (comment
-  (do
+  (let [kill-timeout 150
+        shutdown-timeout 100
+        clj-timeout 3000]
     (defn background-process [opts]
-      (let [re-opts (into {} [#_[:cmd "bash -c 'exit 1'"]
-                              [:cmd  "bash -c 'for i in {10..1}; do echo $i; sleep 0.1; done;'"]
-                              [:regex #"7"]
-                              [:key ::proc]])]
-        (-> (re-process re-opts opts)
-            (add-stop-fn (fn [{:keys [::proc] :as opts}]
-                           (when proc
-                             @(p/destroy-tree proc)
-                             @(destroy-forcibly proc))
-                           opts)))))
+      (let [re-opts (into {} [[:cmd (format "clj -X big-config.system/run-this :shutdown-timeout %s" shutdown-timeout)]
+                              [:regex #"token"]
+                              [:timeout clj-timeout]
+                              [:key ::proc]])
+            opts (re-process re-opts opts)]
+        (add-stop-fn opts (fn [{:keys [::proc] :as opts}]
+                            (when proc
+                              (destroy! proc kill-timeout))))))
     (def ->system (->workflow {:first-step ::start
                                :wire-fn (fn [step _]
                                           (case step
@@ -127,3 +129,12 @@
                                                                                     ::async true})))]
                        (stop! @system)
                        @system)]])))
+(defn run-this [& {:keys [shutdown-timeout]}]
+  (assert shutdown-timeout)
+  (.addShutdownHook (Runtime/getRuntime)
+                    (Thread. (fn []
+                               (println "\n[Shutdown Hook] Cleaning up resources before exit...")
+                               (Thread/sleep shutdown-timeout))))
+  (println "Script is running... (Press Ctrl+C to test)")
+  (println "token")
+  @(promise))
