@@ -21,7 +21,14 @@
        (into {})))
 
 (def
-  ^{:doc "Map of the environment variables keywordized."
+  ^{:doc "Map of the environment variables keywordized. All `_` are transformed
+  to `-`. All `.` are transformed to `-`. All evironment variables are
+  lowercased.
+  Example
+
+  ```clojure
+  (env :path)
+  ```"
     :arglists '([key default-value])}
   env (read-system-env))
 
@@ -29,7 +36,15 @@
   (env :path))
 
 (defn destroy!
-  "Destroy a `babashka.process/process`."
+  "Destroy a `babashka.process/process`.
+
+  Example:
+
+  ```clojure
+  (add-stop-fn opts (fn [{:keys [::proc] :as opts}]
+                      (when proc
+                        (destroy! proc kill-timeout))))
+  ```"
   [proc & [timeout]]
   (p/destroy proc)
   (when (= (deref proc (or timeout 1000) :timeout) :timeout)
@@ -54,7 +69,21 @@
    - `:capture`: either `:err` or `:out`. By default is `:out`.
    - `:line-fn`: a function to do something with every line. By default it prints to `*err*` and it flushes it.
    - `:timeout`: the timeout for finding the `:regex`. By default is 1 second.
-   - `:kill-timeout`: the timeout for invoking `destroy!`. By default is 1 second. "
+   - `:kill-timeout`: the timeout for invoking `destroy!`. By default is 1 second.
+
+  Example of `re-process`
+
+  ```clojure
+  (defn background-process [opts]
+    (let [re-opts (into {} [[:cmd cmd ]
+                            [:regex regex]
+                            [:timeout 1000]
+                            [:key ::proc]])
+          opts (re-process re-opts opts)]
+      (add-stop-fn opts (fn [{:keys [::proc] :as opts}]
+                          (when proc
+                            (destroy! proc 1000))))))
+  ```"
   {:arglists '([re-opts opts])}
   [{:keys [cmd regex key capture line-fn timeout kill-timeout] :as re-opts} opts]
   (assert-args-present re-opts opts cmd regex key)
@@ -88,13 +117,40 @@
                    ::bc/err nil}))))
 
 (defn add-stop-fn
-  "`f` does not return `opts`"
+  "It returns `opts` but `f` does not return `opts`. While Integrant has an
+  `init-key` and an `halt-key`, here you have only a `step` and `add-stop-fn`
+  that adds a `f` for future invocations to halt the pending resources.
+
+  Example:
+
+  ```clojure
+  (defn background-process [opts]
+    (let [re-opts (into {} [[:cmd cmd ]
+                            [:regex regex]
+                            [:timeout 1000]
+                            [:key ::proc]])
+          opts (re-process re-opts opts)]
+      (add-stop-fn opts (fn [{:keys [::proc] :as opts}]
+                          (when proc
+                            (destroy! proc 1000))))))
+  ```"
   [opts f]
   (update opts ::stop-fns (fnil conj []) f))
 
 (defn stop
   "it returns the same version of `opts` that it has received. To be used in the
-  `:wire-fn` with the last step."
+  `:wire-fn` with the last step.
+
+  Example:
+
+  ```clojure
+  (->workflow {:first-step ::start
+               :wire-fn (fn [step _]
+                          (case step
+                            ::start [background-process ::end]
+                            ::end [stop]))})
+  ```"
+  {:arglists '([opts])}
   [{:keys [::stop-fns ::async] :as opts}]
   (if async
     (assoc opts ::stop #(run! (fn [stop-fn] (stop-fn opts)) stop-fns))
