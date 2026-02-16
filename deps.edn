@@ -21,6 +21,7 @@
                   :extra-deps  {com.lambdaisland/classpath          {:mvn/version "0.6.58"}
                                 expound/expound                     {:mvn/version "0.9.0"}
                                 pjstadig/humane-test-output         {:mvn/version "0.11.0"}
+                                io.github.borkdude/quickdoc         {:git/sha "026b4fab8570853e38c3097fe1f8619abc95b2e0"}
                                 org.clojure/tools.namespace         {:mvn/version "1.5.0"}}
                   :extra-paths ["env/dev/clj" "env/test/resources" "test/clj"]}
 

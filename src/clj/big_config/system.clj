@@ -1,4 +1,5 @@
 (ns big-config.system
+  "An alternative to Integrant to create a `system` using `big-config.core/->workflow`."
   (:require
    [babashka.process :as p]
    [big-config :as bc]
@@ -20,7 +21,7 @@
        (into {})))
 
 (def
-  ^{:doc "Map of the environment variables keywordize"
+  ^{:doc "Map of the environment variables keywordized."
     :arglists '([key default-value])}
   env (read-system-env))
 
@@ -28,13 +29,15 @@
   (env :path))
 
 (defn destroy!
+  "Destroy a `babashka.process/process`."
   [proc & [timeout]]
   (p/destroy proc)
   (when (= (deref proc (or timeout 1000) :timeout) :timeout)
     (.destroyForcibly ^java.lang.Process (:proc proc)))
   @proc)
 
-(defmacro assert-args-present [& symbols]
+(defmacro ^:private assert-args-present
+  [& symbols]
   `(doseq [pair# ~(zipmap (map keyword symbols) symbols)]
      (when (nil? (val pair#))
        (throw (IllegalArgumentException. (format "Argument %s is nil" (key pair#)))))))
@@ -85,20 +88,23 @@
                    ::bc/err nil}))))
 
 (defn add-stop-fn
-  "f does not return opts"
+  "`f` does not return `opts`"
   [opts f]
   (update opts ::stop-fns (fnil conj []) f))
 
 (defn stop
-  "it returns the same version of opts that it has received"
+  "it returns the same version of `opts` that it has received. To be used in the
+  `:wire-fn` with the last step."
   [{:keys [::stop-fns ::async] :as opts}]
   (if async
     (assoc opts ::stop #(run! (fn [stop-fn] (stop-fn opts)) stop-fns))
     (do (run! (fn [stop-fn] (stop-fn opts)) stop-fns)
         opts)))
 
-(defn stop! [system-state]
-  (when-let [f (::stop system-state)]
+(defn stop!
+  "it stops a `system` created with `:async true`."
+  [system]
+  (when-let [f (::stop system)]
     (f)))
 
 (comment
@@ -125,7 +131,7 @@
                        (stop! @system)
                        @system)]])))
 
-(defn test-bb
+(defn ^:private test-bb
   "kill-timeout 50 -> signal 15 and then signal 9 -> exit 137
   kill-timeout 200 -> signal 15 -> exit 143"
   []
@@ -162,8 +168,8 @@
 (comment
   (test-bb))
 
-(defn main
-  "The :out and :err of the hook are not capture by the REPL"
+(defn ^:private main
+  "The :out and :err of the hook are not captured by the REPL"
   [& {:keys [shutdown-timeout]}]
   (assert shutdown-timeout)
   (.addShutdownHook (Runtime/getRuntime)

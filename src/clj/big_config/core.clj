@@ -1,8 +1,22 @@
 (ns big-config.core
+  "A workflow performs a series of steps, threading an `opts` map through each one."
   (:require
    [big-config :as bc]))
 
 (defn ok
+  "Return opts with success. Each step must return `opts` with a
+  `:big-config/exit` key value greater than or equal to 0, consistent with Unix
+  shell exit codes.
+
+  ```clojure
+  (defn step-a [opts]
+    ...
+    (merge opts (ok) {::some-new-key value}))
+
+  (defn step-b [opts]
+    ...
+    (ok opts))
+  ```"
   ([]
    {::bc/exit 0
     ::bc/err nil})
@@ -10,19 +24,21 @@
    (merge opts {::bc/exit 0
                 ::bc/err nil})))
 
-(defn choice [{:keys [on-success
-                      on-failure
-                      opts]}]
+(defn choice
+  "To be used in the `next-fn`. See `->workflow`"
+  [{:keys [on-success
+           on-failure
+           opts]}]
   (let [exit (::bc/exit opts)]
     (if (= exit 0)
       [on-success opts]
       [on-failure opts])))
 
-(defn compose [step-fns f]
+(defn- compose [step-fns f]
   (reduce (fn [f-acc f-next]
             (partial f-next f-acc)) (fn [_ opts] (f opts)) step-fns))
 
-(defn resolve-step-fns [step-fns]
+(defn- resolve-step-fns [step-fns]
   (-> (map (fn [f] (cond
                      (ifn? f) f
                      (string? f) (-> f symbol requiring-resolve)
@@ -30,7 +46,7 @@
            step-fns)
       reverse))
 
-(defn try-f [f step opts]
+(defn- try-f [f step opts]
   (try (f step opts)
        (catch Exception e
          (merge opts
@@ -39,7 +55,7 @@
                  ::bc/exit 1
                  ::bc/stack-trace (apply str (interpose "\n" (map str (.getStackTrace e))))}))))
 
-(defn resolve-next-fn [next-fn last-step]
+(defn- resolve-next-fn [next-fn last-step]
   (if (nil? next-fn)
     (fn [_ next-step opts]
       (if next-step
@@ -50,19 +66,60 @@
     next-fn))
 
 (defn ->workflow
-  "Creates a workflow.
+  "Creates a workflow based on the following `wf-opts` map:
+   * **`:first-step`** (Required): The qualified keyword representing the
+     initial step in the workflow. Defaults typically to `::start`.
+   * **`:last-step`** (Optional): The qualified keyword for the final step. If
+     omitted, it defaults to `::end`, sharing the same namespace as `:first-step`.
+   * **`:step-fns`** (Optional): An array of functions to be executed before and
+     after every step. Useful for cross-cutting concerns like logging, telemetry,
+     or tracing.
+   * **`:wire-fn`** (Required): A function that accepts two arguments—the
+     current step and the `step-fns`. `step-fns` is used to invoke subworkflow
+     using `partial`. It must return a `seq` of function and next step.
+   * **`:next-fn`** (Optional): A function used to handle complex or conditional
+     branching logic when the default transitions provided by the `wire-fn` are
+     insufficient.
 
-  Supported options in `wf-opts`:
-   - `:first-step`: the qualified keyword of the first step in the workflow.
-      Usually `::start`.
-   - `:last-step`: the qualified keyword of the last step in the workflow. If
-      not defined, it will be `::end` with the same namespace of `::start`.
-   - `:step-fns`: an array of step functions to be invoked before and after
-      every step for purposes like logging or tracing. Is is optional.
-   - `:wire-fn`: a function taking 2 arguments (step and step-fns) to wire
-      together steps, functions and next-steps.
-   - `:next-fn`: a function to handle special flows in the workflow when the
-      default next-step provided in the wire-fn is not enough. It is optional"
+  Example with of workflow subworkflow:
+
+  ```clojure
+  (let [wf (->workflow {:first-step ::start
+                        :wire-fn (fn [step step-fns]
+                                   (case step
+                                     ::start [#(ok %) ::sub-wf]
+                                     ::sub-wf [(partial sub-wf step-fns) ::end]
+                                     ::end [identity]))})]
+    (wf [my-step-fn] {::my :value})
+    (wf [my-step-fn] [{::my :value} {::his :value}]))
+  ```
+
+  Example with of workflow with `next-fn`:
+
+  ```clojure
+  (def lock (->workflow {:first-step ::generate-lock-id
+                         :wire-fn (fn [step _]
+                                    (case step
+                                      ::generate-lock-id [generate-lock-id ::delete-tag]
+                                      ::delete-tag [delete-tag ::create-tag]
+                                      ::create-tag [create-tag ::push-tag]
+                                      ::push-tag [push-tag ::get-remote-tag]
+                                      ::get-remote-tag [(comp get-remote-tag delete-tag) ::read-tag]
+                                      ::read-tag [read-tag ::check-tag]
+                                      ::check-tag [check-tag ::end]
+                                      ::end [identity]))
+                         :next-fn (fn [step next-step opts]
+                                    (case step
+                                      ::end [nil opts]
+                                      ::push-tag (choice {:on-success ::end
+                                                          :on-failure next-step
+                                                          :opts opts})
+                                      ::delete-tag [next-step opts]
+                                      (choice {:on-success next-step
+                                               :on-failure ::end
+                                               :opts opts})))}))
+  ```
+  A workflow can be invoked with a `seq` of `opts` maps."
   {:arglists '([wf-opts])}
   [{:keys [first-step
            last-step
@@ -121,7 +178,19 @@
                                      ::end [identity]))})]
     [(wf {}) (wf [{} {}])]))
 
-(defn ->step-fn [{:keys [before-f after-f]}]
+(defn ->step-fn
+  "A step function is a function that accepts three arguments: the step, the
+  step name, and the `opts` map. To maintain the execution chain, it must return
+  the updated (or original) `opts` map.
+
+  For convenience, `->step-fn` allows you to provide two simpler functions. These
+  functions take only two arguments—the step and the `opts` map—and do not need to
+  return the map. These are typically used for side effects, such as logging to
+  stdout or terminating the process with a specific exit code.
+
+  These side-effect functions are executed immediately before and after a workflow
+  step and receive the current execution context."
+  [{:keys [before-f after-f]}]
   (cond
     (every? nil? [before-f after-f]) (throw (IllegalArgumentException. "At least one f needs to be provided"))
     (= [nil :same] [before-f after-f]) (throw (IllegalArgumentException. ":before-f must be a f with :after-f :same")))
