@@ -10,6 +10,7 @@
 (defn quickdoc [source-path]
   (-> (q/quickdoc {:source-paths [(format "src/clj/%s" source-path)]
                    :github/repo "https://github.com/amiorin/big-config"
+                   :outfile false
                    :toc false})
       :markdown
       (str/replace-first #".*\R" "")
@@ -29,7 +30,7 @@
   (do
     (defn prepare [opts]
       (merge opts (ok) {::render/templates [{:template "quickdoc"
-                                             :target-dir "../../albertomiorin.com/big-config/src/content/docs/API"
+                                             :target-dir "../../albertomiorin.com/big-config/src/content/docs/api"
                                              :overwrite true
                                              :transform [["."]]}]}))
 
@@ -40,11 +41,3 @@
                                        ::render [render/render ::end]
                                        ::end [identity]))})]
       (wf {}))))
-
-
-  (let [wf (->workflow {:first-step ::start
-                        :wire-fn (fn [step _]
-                                   (case step
-                                     ::start [#(ok %) ::end]
-                                     ::end [identity]))})]
-    [(wf {}) (wf [{} {}])])
