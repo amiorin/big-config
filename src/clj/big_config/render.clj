@@ -1,4 +1,132 @@
 (ns big-config.render
+  "
+  An improved version of `seancorfield/deps-new` that integrates with BigConfig
+  workflows. The naming conventions are heavily influenced by `deps-new`.
+
+  A minimal template consists of a resource directory, a target, and a transformation:
+```clojure
+{::render/templates [{:template \"resource-path\"
+                      :target-dir \"target\"
+                      :transform [[\".\"]]}]}
+```
+  By default, `render` copies the contents of the source folder to the
+  `:target-dir` and replaces any `{{key-a}}` strings with the corresponding
+  `:key-a` value from the `data` map. These substitutions occur in the source
+  and destination filenames, as well as within the file content itself.
+
+  * [deps-new](https://github.com/seancorfield/deps-new/blob/develop/doc/templates.md)
+  documentation can be used for reference. BigConfig version extends `deps-new`
+  while attempting to minimize the breaking changes.
+
+  This documentation is created using BigConfig, quickdoc, selmer, and `render`:
+```clojure
+(defn prepare [opts]
+  (merge opts (ok) {::render/templates [{:template \"quickdoc\"
+                                         :target-dir \"../docs/api\"
+                                         :overwrite true
+                                         :transform [[\".\"]]}]}))
+(let [wf (->workflow {:first-step ::start
+                      :wire-fn (fn [step _]
+                                 (case step
+                                   ::start [prepare ::render]
+                                   ::render [render/render ::end]
+                                   ::end [identity]))})]
+  (wf {}))
+```
+
+  ## List of maps
+  * `opts` map: The BigConfig map threaded through the workflow steps.
+  * `data` map: The context passed to `yogthos/Selmer` (unless the `:raw` option
+  is used).
+  * `edn` map: In `deps-new`, this is a physical file called `template.edn`.
+  While adapting it to BigConfig, the name stuck, though it is now simply a map
+  containing high-level rendering configuration.
+  * `transform` map: Detailed configuration used to transform template files
+  into target files.
+  * `files` map: The mapping between template files and target files, including
+  renaming rules.
+  * `delimiters` map: Custom opts for `yogthos/Selmer` if the template files
+  delimiters conflicts with Selmer's default.
+  * `transform-opts` map: Includes `:only` and `:raw` (see below).
+
+
+  ## Options for `opts`
+  * `:big-config.render/templates` (require): A `seq` of `edn` maps.
+  * `:big-config.step/module` (optional): Borrowed from `weavejester/integrant`.
+  Used in monorepos to identify subprojects; available in `data`.
+  * `:big-config.step/profile` (optional): Similar to `module`, but to identify
+  environments (e.g., `prod`, `dev`).
+
+  ## Options for `data`
+  * `:module`: Populated automatically from `:big-config.step/module`.
+  * `:profile`: Populated automatically from `:big-config.step/profile`.
+
+  Note: All the other keys must be created via `data-fn` or defined in the
+  `edn` map.
+
+  ## Options for `edn`
+  * `template` (required): A resource path containing the template files. Using
+  a resource path instead of a folder ensures workflows remain portable when
+  used as dependencies.
+  * `target-dir` (required): The directory where the templates are generated.
+  (e.g., `.dist` in the current working directory).
+  * `transform` (required): a `seq` of programmatic transformations.
+  * `overwrite` (optional): Accepts `true` or `:delete`, mirror  `deps-new` behavior.
+  * `data-fn` (optional): A function called with `data` and `opts`. It must
+  return the original or a modified `data` map.
+  * `template-fn` (optional): A function called with `data` and `edn`. It must
+  return the original or a modified `edn` map.
+  * `post-process-fn` (optional): a function (or sequence of functions) invoked,
+  after copying all the template files to the target, with `edn` and `data`.
+
+  Note: Additional keys of the `edn` map are copied to the `data` map automatically.
+
+  ## Transformation Structure
+  The `transform` key is a `seq` of tuples following this schema:
+  `[src target files delimiters transform-opts]`.
+  The `src`, `target`, and `files` values are rendered with `yogthos/Selmer`.
+
+  ### `src`
+  Can be a folder or a function/symbol. If it is a function, it is invoked with
+  every key in the `files` map. The function is invoke with `key` and `data`.
+```clojure
+{:transform
+ [['ansible/render-files
+   {:inventory \"inventory.json\"
+    :config \"default.config.yml\"}
+   :raw]]}
+```
+
+  ### `target`, `files`, `delimiters`
+```clojure
+{:transform
+ [\"src\" \"target\"
+  {\"config.json\" \"config.json\"}
+  {:tag-open \\<
+   :tag-close \\>
+   :filter-open \\<
+   :filter-close \\>}]}
+```
+
+
+  ### `transform-opts`
+  * `:only`: By default, the entire folder is copied. Use `:only` as the last
+  element of the tuple to copy only specified files and ignore the rest.
+```clojure
+{:transform
+ [[\"src\" \"src/{{data-key-a}}\"
+   {\"main.clj\" \"{{data-key-b|selmer-filter:param-a:param-b}}.clj\"}]
+ [\"test\" \"test/{{data-key-b}}\"
+   {\"main_test.clj\" \"{{data-key-c}}_test.clj\"}
+   :only]]}
+```
+  * `:raw`: Use this to suppress Selmer rendering for a specific directory.
+```clojure
+{:transform
+ [[\"resources\" \"resources/{{data-key-a}}\"]
+  [\"templates\" \"resources/{{data-key-b}}/templates\" :raw]]}
+```
+  "
   (:require
    [babashka.fs :as fs]
    [big-config.core :as core]
@@ -39,7 +167,7 @@
                            :only
                            :raw]]))
 
-(defn selmer [s data & delimiters]
+(defn- selmer [s data & delimiters]
   (let [delimiters (if (seq delimiters)
                      (first delimiters)
                      {})
@@ -47,9 +175,11 @@
     (without-escaping
      (p/render s data delimiters))))
 
-(def ^:dynamic *non-replaced-exts* #{"jpg" "jpeg" "png" "gif" "bmp" "bin"})
+(def ^{:dynamic true
+       :doc "The default list of extensions that are considered binary files and therefore copied verbatim. `jpg jpeg png gif bmp bin`."}
+  *non-replaced-exts* #{"jpg" "jpeg" "png" "gif" "bmp" "bin"})
 
-(defn copy-dir
+(defn ^:no-doc copy-dir
   [& {:keys [src-dir target-dir data delimiters]}]
   (fs/walk-file-tree src-dir
                      {:visit-file (fn [path _]
@@ -66,7 +196,7 @@
                                            (fs/set-posix-file-permissions target-file)))
                                     :continue)}))
 
-(defn copy-template-dir
+(defn ^:no-doc copy-template-dir
   [& {:keys [template-dir target-dir data src target files delimiters opts]}]
   (let [target (if target (str "/" (selmer target data)) "")
         opts (set opts)
@@ -119,7 +249,7 @@
                   :data {:module "infra"}
                   (reduce concat (vec %))) (s/conform ::transform transform))))
 
-(defn get-multi-option
+(defn- get-multi-option
   "Given a hash map of options, return the value for the
   given key, or an empty sequence if the key is not present."
   [opts k]
@@ -134,20 +264,23 @@
   (get-multi-option {:foo ['bar/baz]} :foo)
   (get-multi-option {:foo ['bar/baz 'quux/wibble]} :foo))
 
-(def template-keys [:template
-                    :target-dir
-                    :overwrite
-                    :data-fn
-                    :template-fn
-                    :post-process-fn
-                    :transform])
+(def ^:private template-keys [:template
+                              :target-dir
+                              :overwrite
+                              :data-fn
+                              :template-fn
+                              :post-process-fn
+                              :transform])
 
-(def non-blank-string? (s/and string? (complement str/blank?)))
+(def ^:private non-blank-string? (s/and string? (complement str/blank?)))
 (s/def ::template non-blank-string?)
 (s/def ::target-dir non-blank-string?)
 (s/def ::tpl (s/keys :req-un [::template ::target-dir]))
 
-(defn render [{:keys [::templates :big-config.step/module :big-config.step/profile] :as opts}]
+(defn render
+  "The function version of `deps-new`."
+  {:arglists '([opts])}
+  [{:keys [::templates :big-config.step/module :big-config.step/profile] :as opts}]
   (when (nil? templates)
     (throw (IllegalArgumentException. ":big-config.render/templates should never be nil")))
   (loop [xs templates]
@@ -201,14 +334,21 @@
         (recur (rest xs)))))
   (core/ok opts))
 
-(def templates
+(def
+  ^{:doc "The workflow version of `deps-new`."
+    :arglists '([] [opts] [step-fns opts]
+                   [[opts]] [step-fns [opts]])}
+  templates
   (core/->workflow {:first-step ::start
                     :wire-fn (fn [step _]
                                (case step
                                  ::start [render ::end]
                                  ::end [identity]))}))
 
-(defn discover
+(comment
+  (templates))
+
+(defn- discover
   "discover all dirs inside a parent dir and return them as list of strings"
   [parent-dir]
   (let [profiles (atom [])]
