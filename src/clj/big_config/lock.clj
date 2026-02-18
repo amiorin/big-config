@@ -1,6 +1,6 @@
 (ns big-config.lock
   "
-  **BigConfig** manages resource locking and unlocking while applying changes.
+  BigConfig Lock manages resource locking and unlocking while applying changes.
   It provides functionality similar to **Atlantis for Terraform**, but operates
   entirely **client-side**. This makes operations interactive again by removing
   the mandatory Pull Request step, and it is versatile enough to be used with

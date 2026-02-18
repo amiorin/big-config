@@ -1,4 +1,71 @@
 (ns big-config.step
+  "
+  BigConfig Step provides a Babashka-powered DSL for defining and executing
+  infrastructure workflows directly from the CLI.
+
+  ### Usage
+  ```text
+  bb <step|cmd>+ -- <module> <profile> [global-args]
+  ```
+
+  ### Core Concepts
+  * **Steps:** Predefined functions built into the DSL (e.g., render, lock).
+  * **Commands:** Any argument not recognized as a **Step** is treated as a shell command.
+    * The `:` character is automatically replaced with a space.
+    * Example: `tofu:plan` becomes `tofu plan`.
+
+  ### Available Steps
+  | Step       | Description                                                     |
+  | :----      | :----                                                           |
+  | **render**     | Generate the configuration files.                               |
+  | **git-check**  | Verifies the working directory is clean and synced with origin. |
+  | **git-push**   | Pushes local commits to the remote repository.                  |
+  | **lock**       | Acquires an execution lock.                                     |
+  | **unlock-any** | Force-releases the lock, regardless of the current owner.       |
+  | **exec**       | Executes commands provided in the global-args.                  |
+
+  ### Command Mapping Examples
+
+  The DSL allows you to chain commands or pass arguments globally.
+
+  **1. Using exec vs. Direct Mapping**
+
+  These commands are functionally identical:
+  ```sh
+  # Using the exec step with global-args
+  bb exec -- alpha prod ansible-playbook main.yml
+
+  # Using direct command mapping
+  bb ansible-playbook:main.yml -- alpha prod
+  ```
+  **2. Handling Arguments**
+
+  You can pass arguments globally after the `--` separator, or inline using the
+  colon syntax:
+
+  ```sh
+  # Global arguments (applied to all steps)
+  bb tofu:apply tofu:destroy -- alpha prod -auto-approve
+
+  # Inline arguments (specific to each command)
+  bb tofu:apply:-auto-approve tofu:destroy:-auto-approve -- alpha prod
+  ```
+
+  **3. Quick Reference: Command Syntax**
+  * `tofu:init` -> `tofu init`
+  * `tofu:plan` -> `tofu plan`
+  * `ansible-playbook:main.yml` -> `ansible-playbook main.yml`
+
+  ### Zero-cost workflow
+  By using an alias, you can make BigConfig invisible to your daily workflow,
+  wrapping your standard tools in a safety-first pipeline (rendering, locking,
+  and syncing) automatically.
+
+  ```sh
+  # Example: Wrapping Tofu with a full safety lifecycle
+  alias tofu=\"bb render git-check lock exec git-push unlock-any -- alpha prod tofu\"
+  ```
+  "
   (:require
    [big-config :as bc]
    [big-config.build :as build]
