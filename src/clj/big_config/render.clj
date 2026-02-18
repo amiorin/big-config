@@ -1,7 +1,8 @@
 (ns big-config.render
   "
-  An improved version of `seancorfield/deps-new` that integrates with BigConfig
-  workflows. The naming conventions are heavily influenced by `deps-new`.
+  BigConfig Render is a template engine based on `yogthos/Selmer` inspired by
+  `seancorfield/deps-new`.  Its naming conventions are heavily influenced by
+  `deps-new`.
 
   A minimal template consists of a resource directory, a target, and a transformation:
 ```clojure
@@ -34,7 +35,7 @@
   (wf {}))
 ```
 
-  ## List of maps
+  ### List of maps
   * `opts` map: The BigConfig map threaded through the workflow steps.
   * `data` map: The context passed to `yogthos/Selmer` (unless the `:raw` option
   is used).
@@ -50,21 +51,21 @@
   * `transform-opts` map: Includes `:only` and `:raw` (see below).
 
 
-  ## Options for `opts`
-  * `:big-config.render/templates` (require): A `seq` of `edn` maps.
+  ### Options for `opts`
+  * `:big-config.render/templates` (required): A `seq` of `edn` maps.
   * `:big-config.step/module` (optional): Borrowed from `weavejester/integrant`.
   Used in monorepos to identify subprojects; available in `data`.
   * `:big-config.step/profile` (optional): Similar to `module`, but to identify
   environments (e.g., `prod`, `dev`).
 
-  ## Options for `data`
+  ### Options for `data`
   * `:module`: Populated automatically from `:big-config.step/module`.
   * `:profile`: Populated automatically from `:big-config.step/profile`.
 
   Note: All the other keys must be created via `data-fn` or defined in the
   `edn` map.
 
-  ## Options for `edn`
+  ### Options for `edn`
   * `template` (required): A resource path containing the template files. Using
   a resource path instead of a folder ensures workflows remain portable when
   used as dependencies.
@@ -81,12 +82,12 @@
 
   Note: Additional keys of the `edn` map are copied to the `data` map automatically.
 
-  ## Transformation Structure
+  ### Transformation Structure
   The `transform` key is a `seq` of tuples following this schema:
   `[src target files delimiters transform-opts]`.
   The `src`, `target`, and `files` values are rendered with `yogthos/Selmer`.
 
-  ### `src`
+  #### `src`
   Can be a folder or a function/symbol. If it is a function, it is invoked with
   every key in the `files` map. The function is invoke with `key` and `data`.
 ```clojure
@@ -97,7 +98,7 @@
    :raw]]}
 ```
 
-  ### `target`, `files`, `delimiters`
+  #### `target`, `files`, `delimiters`
 ```clojure
 {:transform
  [\"src\" \"target\"
@@ -109,7 +110,7 @@
 ```
 
 
-  ### `transform-opts`
+  #### `transform-opts`
   * `:only`: By default, the entire folder is copied. Use `:only` as the last
   element of the tuple to copy only specified files and ignore the rest.
 ```clojure
@@ -278,7 +279,8 @@
 (s/def ::tpl (s/keys :req-un [::template ::target-dir]))
 
 (defn render
-  "The function version of `deps-new`."
+  "This is the functional version of the template engine. See the
+  `big-config.render` namespace for more information."
   {:arglists '([opts])}
   [{:keys [::templates :big-config.step/module :big-config.step/profile] :as opts}]
   (when (nil? templates)
@@ -335,7 +337,8 @@
   (core/ok opts))
 
 (def
-  ^{:doc "The workflow version of `deps-new`."
+  ^{:doc "This is the workflow version of the template engine. See the
+  `big-config.render` namespace for more information."
     :arglists '([] [opts] [step-fns opts]
                    [[opts]] [step-fns [opts]])}
   templates

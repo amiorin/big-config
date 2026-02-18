@@ -14,7 +14,9 @@
    [selmer.parser :as parser]
    [selmer.util :as util]))
 
-(def print-step-fn
+(def ^{:doc "Print all steps of the workflow."
+       :arglists '([step opts])}
+  print-step-fn
   (core/->step-fn {:before-f (fn [step {:keys [::bc/exit] :as opts}]
                                (binding [util/*escape-variables* false]
                                  (let [[lock-start-step] (lock/lock)
@@ -51,7 +53,7 @@
 
 (comment (print-step-fn))
 
-(defn parse [s]
+(defn ^:no-doc parse [s]
   (loop [xs s
          token nil
          steps []
@@ -94,6 +96,7 @@
         (recur (rest xs) (first xs) steps cmds module profile global-args)))))
 
 (defn parse-module-and-profile
+  "Given a BigConfig DSL, it returns `module` and `profile`"
   [s]
   (let [[_ _ module profile] (parse s)]
     {:module module
@@ -102,7 +105,7 @@
 (comment
   (parse-module-and-profile "render -- dotfiles ubuntu"))
 
-(defn run-step
+(defn ^:no-doc run-step
   ([step-fns opts]
    (run-step (fn [opts] (core/ok opts)) step-fns opts))
   ([build-fn step-fns {:keys [::steps] :as opts}]
@@ -122,7 +125,7 @@
                   (nil? exit))) (recur (rest steps) opts)
          :else opts)))))
 
-(defn ->run-steps
+(defn ^:no-doc ->run-steps
   ([]
    (->run-steps (fn [opts] (core/ok opts))))
   ([build-fn]
@@ -133,6 +136,8 @@
                                   ::end [identity]))})))
 
 (defn run-steps
+  "A function that takes a BigConfig DSL and an `opts` map. It run a dynamic
+  workflow based on the steps defined in the DSL."
   ([s]
    (run-steps s nil))
   ([s opts]
