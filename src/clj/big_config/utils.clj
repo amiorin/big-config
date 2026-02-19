@@ -34,3 +34,9 @@
 
 (comment
   (port-assigner ["postgres"]))
+
+(defmacro assert-args-present
+  [& symbols]
+  `(doseq [pair# ~(zipmap (map keyword symbols) symbols)]
+     (when (nil? (val pair#))
+       (throw (IllegalArgumentException. (format "Argument %s is nil" (key pair#)))))))

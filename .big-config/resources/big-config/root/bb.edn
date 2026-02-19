@@ -1,3 +1,4 @@
+; edit `.big-config/resources/big-config/root/bb.edn`
 {:deps {amiorin/big-config {:local/root "."}}
  :tasks
  {:requires ([clojure.string :as str])

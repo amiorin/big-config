@@ -1,3 +1,4 @@
+# edit `.big-config/resources/big-config/root/pc-dev.yaml`
 is_tui_disabled: true
 disable_env_expansion: true
 

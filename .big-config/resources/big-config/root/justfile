@@ -1,3 +1,5 @@
+# edit `.big-config/resources/big-config/root/justfile`
+
 # list of all recipes
 help:
     @just -f {{ justfile() }} --list --unsorted

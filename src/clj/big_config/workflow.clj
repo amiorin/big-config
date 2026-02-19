@@ -41,11 +41,12 @@
   * **`parse-tool-args` / `parse-comp-args`**: Utility functions to normalize
   string or vector-based arguments.
 
-  #### Configuration Options (`opts`)
-  * `::path-fn`: Logic for resolving file paths.
-  * `::params`: The input data for the workflow.
-  * `::name`: The unique identifier for the workflow instance.
-  * `::dirs`: Directory context for execution and output discovery.
+  ### Options for `opts`
+  * `::name` (required): The unique identifier for the workflow instance.
+  * `::dirs` (generated): Directory context for execution and output discovery.
+  It is generated automatically by `prepare`.
+  * `::path-fn` (optional): Logic for resolving file paths.
+  * `::params` (optional): The input data for the workflow.
 
   ### Naming Conventions
   To distinguish between the library core and the Babashka CLI implementation:
@@ -54,6 +55,7 @@
   * **`[workflow name]`**: The Babashka-ready task. Accepts `args` and optional `opts`.
 
   ```clojure
+  ; wf.clj
   (defn tofu*
     [step-fns opts]
     (let [opts (prepare {::name ::tofu
@@ -69,6 +71,18 @@
     (let [opts (merge (parse-tool-args args)
                       opts)]
       (tofu* [] opts)))
+  ```
+  ```clojure
+  ; bb.edn
+  {:deps {group/artifact {:local/root \".\"}}
+   :tasks
+   {:requires ([group.artifact.wf :as wf])
+    tofu {:doc \"bb tofu render tofu:init tofu:apply:-auto-approve\"
+          :task (wf/tofu *command-line-args* {:big-config/env :shell})}
+    ansible {:doc \"bb ansible render -- ansible-playbook main.yml\"
+             :task (wf/ansible *command-line-args* {:big-config/env :shell})}
+    resource {:doc \"bb resource create and delete a resource\"
+              :task (wf/resource *command-line-args* {:big-config/env :shell})}}}
   ```
 
   ### Decoupled Data Sharing
@@ -97,8 +111,49 @@
    [big-config.render :as render]
    [big-config.run :as run]
    [big-config.unlock :as unlock]
+   [big-config.utils :refer [assert-args-present]]
+   [bling.core :refer [bling]]
    [clojure.string :as str]
-   [com.rpl.specter :as s]))
+   [com.rpl.specter :as s]
+   [selmer.parser :as parser]
+   [selmer.util :as util]))
+
+(def ^{:doc "Print all steps of the workflow."
+       :arglists '([step opts])}
+  print-step-fn
+  (core/->step-fn {:before-f (fn [step {:keys [::bc/exit] :as opts}]
+                               (binding [util/*escape-variables* false]
+                                 (let [[lock-start-step] (lock/lock)
+                                       [unlock-start-step] (unlock/unlock-any)
+                                       [check-start-step] (git/check)
+                                       [render-start-step] (render/templates)
+                                       [prefix color] (if (and exit
+                                                               (not= exit 0))
+                                                        ["\uf05c" :red.bold]
+                                                        ["\ueabc" :green.bold])
+                                       msg (cond
+                                             (= step lock-start-step) (parser/render "Lock (owner {{ big-config..lock/owner }})" opts)
+                                             (= step unlock-start-step) "Unlock any"
+                                             (= step check-start-step) "Checking if the working directory is clean"
+                                             (= step render-start-step) "Rendering template:"
+                                             (= step ::run/run-cmd) (parser/render "Running:\n> {{ big-config..run/cmds | first}}" opts)
+                                             :else nil)]
+                                   (when msg
+                                     (binding [*out* *err*]
+                                       (println (bling [color (parser/render (str "{{ prefix }} " msg) {:prefix prefix})])))))))
+                   :after-f (fn [step {:keys [::bc/exit] :as opts}]
+                              (let [[_ check-end-step] (git/check)
+                                    prefix "\uf05c"
+                                    msg (cond
+                                          (= step check-end-step) "Working directory is NOT clean"
+                                          (= step ::run/run-cmd) (parser/render "Failed running:\n> {{ big-config..run/cmds | first }}" opts)
+                                          :else nil)]
+                                (when (and msg
+                                           (> exit 0))
+                                  (binding [*out* *err*]
+                                    (println (bling [:red.bold (parser/render (str "{{ prefix }} " msg) {:prefix prefix})]))))))}))
+
+(comment (print-step-fn))
 
 (defn ^:no-doc run-steps*
   ([step-fns {:keys [::steps] :as opts}]
@@ -151,7 +206,11 @@
 
       (= "--" token)
       (if (seq xs)
-        (recur '() nil steps (conj cmds (str/join " " xs)))
+        (let [steps (if (some #{"exec"} steps)
+                      steps
+                      (into steps ["exec"]))
+              cmds (conj cmds (str/join " " xs))]
+          (recur '() nil steps cmds))
         (throw (ex-info "-- cannot be without a command" {})))
 
       token
@@ -198,7 +257,10 @@
         (str/replace "." "/"))))
 
 (defn prepare
+  "Prepare `opts`. See the namespace `big-config.workflow`."
+  {:arglists '([opts overrides])}
   [{:keys [::name] :as opts} {:keys [::path-fn ::params] :as overrides}]
+  (assert-args-present opts overrides name)
   (let [path-fn (or path-fn #(format ".dist/%s" (-> % ::name keyword->path)))
         opts (merge opts overrides)
         dir (path-fn opts)
@@ -208,3 +270,7 @@
                   (s/setval [::run/shell-opts :dir] dir)
                   (s/transform [::dirs] #(assoc % name dir)))]
     opts))
+
+(comment
+  (prepare {::name ::tofu
+            ::render/templates [{}]} {}))
