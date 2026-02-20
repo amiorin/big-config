@@ -22,22 +22,20 @@
   (p/render "{{\"big_config/core.clj\"|quickdoc}}" {})
   (q/quickdoc {:source-paths ["src/clj/big_config/core.clj"]
                :github/repo "https://github.com/amiorin/big-config"
+               :outfile false
                :toc false})
-
   (quickdoc "big_config/core.clj"))
 
+(defn prepare [opts]
+  (merge opts (ok) {::render/templates [{:template "quickdoc"
+                                         :target-dir "../../albertomiorin.com/big-config/src/content/docs/api"
+                                         :overwrite true
+                                         :transform [["."]]}]}))
 (comment
-  (do
-    (defn prepare [opts]
-      (merge opts (ok) {::render/templates [{:template "quickdoc"
-                                             :target-dir "../../albertomiorin.com/big-config/src/content/docs/api"
-                                             :overwrite true
-                                             :transform [["."]]}]}))
-
-    (let [wf (->workflow {:first-step ::start
-                          :wire-fn (fn [step _]
-                                     (case step
-                                       ::start [prepare ::render]
-                                       ::render [render/render ::end]
-                                       ::end [identity]))})]
-      (wf {}))))
+  (let [wf (->workflow {:first-step ::start
+                        :wire-fn (fn [step _]
+                                   (case step
+                                     ::start [prepare ::render]
+                                     ::render [render/render ::end]
+                                     ::end [identity]))})]
+    (wf {})))

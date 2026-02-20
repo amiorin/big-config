@@ -34,6 +34,22 @@
   Development and debugging happen within the individual tool workflows, while
   the composite workflow manages the sequence.
 
+  ### Available Steps
+  #### `tool-workflow`
+  | Step       | Description                                                     |
+  | :----      | :----                                                           |
+  | **render**     | Generate the configuration files.                               |
+  | **git-check**  | Verifies the working directory is clean and synced with origin. |
+  | **git-push**   | Pushes local commits to the remote repository.                  |
+  | **lock**       | Acquires an execution lock.                                     |
+  | **unlock-any** | Force-releases the lock, regardless of the current owner.       |
+  | **exec**       | Executes commands provided in the global-args.                  |
+  #### `comp-workflow`
+  | Step       | Description                                                     |
+  | :----      | :----                                                           |
+  | **create**     | Invokes one or more `tool-workflows` to create a resource.        |
+  | **delete**     | Invokes one or more `tool-workflows` to delete a resource.        |
+
   ### Core Logic & Functions
   * **`run-steps`**: The engine for dynamic workflow execution.
   * **`prepare`**: Shared logic for rendering templates and initializing
@@ -155,6 +171,13 @@
 
 (comment (print-step-fn))
 
+(defn- resolve-fn [kw opts]
+  (let [f (-> opts kw)]
+    (cond
+      (nil? f) (fn [_ opts] opts)
+      (ifn? f) f
+      (symbol? f) (requiring-resolve f))))
+
 (defn ^:no-doc run-steps*
   ([step-fns {:keys [::steps] :as opts}]
    (loop [steps (map keyword steps)
@@ -163,6 +186,8 @@
                                           :lock (lock/lock step-fns opts)
                                           :git-check (git/check step-fns opts)
                                           :render (render/templates step-fns opts)
+                                          :create ((resolve-fn ::create-fn opts) step-fns opts)
+                                          :delete ((resolve-fn ::delete-fn opts) step-fns opts)
                                           :exec (run/run-cmds step-fns opts)
                                           :git-push (git/git-push opts)
                                           :unlock-any (unlock/unlock-any step-fns opts))]
