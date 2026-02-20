@@ -1,6 +1,7 @@
 (ns big-config.utils
   (:require
-   [babashka.fs :as fs]))
+   [babashka.fs :as fs]
+   [clojure.string :as str]))
 
 (defn deep-merge
   "Recursively merges maps."
@@ -40,3 +41,10 @@
   `(doseq [pair# ~(zipmap (map keyword symbols) symbols)]
      (when (nil? (val pair#))
        (throw (IllegalArgumentException. (format "Argument %s is nil" (key pair#)))))))
+
+(defn keyword->path [kw]
+  (let [full-str (if-let [ns (namespace kw)]
+                   (str ns "/" (name kw))
+                   (name kw))]
+    (-> full-str
+        (str/replace "." "/"))))

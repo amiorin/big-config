@@ -54,8 +54,8 @@
   * **`run-steps`**: The engine for dynamic workflow execution.
   * **`prepare`**: Shared logic for rendering templates and initializing
   execution environments.
-  * **`parse-tool-args` / `parse-comp-args`**: Utility functions to normalize
-  string or vector-based arguments.
+  * **`parse-args`**: Utility functions to normalize string or vector-based
+  arguments.
 
   ### Options for `opts`
   * `::name` (required): The unique identifier for the workflow instance.
@@ -64,15 +64,22 @@
   * `::path-fn` (optional): Logic for resolving file paths.
   * `::params` (optional): The input data for the workflow.
 
+  ### Options for `prepare-opts`
+  * `::name` (required): The unique identifier for the workflow instance.
+
+  ### Options for `prepare-overrides`
+  * `::path-fn` (optional): Logic for resolving file paths.
+  * `::params` (optional): The input data for the workflow.
+
   ### Naming Conventions
   To distinguish between the library core and the Babashka CLI implementation:
 
-  * **`[workflow name]*`**: The library-level function. Requires `step-fns` and `opts`.
-  * **`[workflow name]`**: The Babashka-ready task. Accepts `args` and optional `opts`.
+  * **`[workflow name]`**: The library-level function. Requires `step-fns` and `opts`.
+  * **`[workflow name]*`**: The Babashka-ready task. Accepts `args` and optional `opts`.
 
   ```clojure
   ; wf.clj
-  (defn tofu*
+  (defn tofu
     [step-fns opts]
     (let [opts (prepare {::name ::tofu
                          ::render/templates [{:template \"tofu\"
@@ -82,11 +89,11 @@
                         opts)]
       (run-steps step-fns opts)))
 
-  (defn tofu
+  (defn tofu*
     [args & [opts]]
-    (let [opts (merge (parse-tool-args args)
+    (let [opts (merge (parse-args args)
                       opts)]
-      (tofu* [] opts)))
+      (tofu [] opts)))
   ```
   ```clojure
   ; bb.edn
@@ -94,11 +101,11 @@
    :tasks
    {:requires ([group.artifact.wf :as wf])
     tofu {:doc \"bb tofu render tofu:init tofu:apply:-auto-approve\"
-          :task (wf/tofu *command-line-args* {:big-config/env :shell})}
+          :task (wf/tofu* *command-line-args* {:big-config/env :shell})}
     ansible {:doc \"bb ansible render -- ansible-playbook main.yml\"
-             :task (wf/ansible *command-line-args* {:big-config/env :shell})}
+             :task (wf/ansible* *command-line-args* {:big-config/env :shell})}
     resource {:doc \"bb resource create and delete a resource\"
-              :task (wf/resource *command-line-args* {:big-config/env :shell})}}}
+              :task (wf/resource* *command-line-args* {:big-config/env :shell})}}}
   ```
 
   ### Decoupled Data Sharing
@@ -127,14 +134,15 @@
    [big-config.render :as render]
    [big-config.run :as run]
    [big-config.unlock :as unlock]
-   [big-config.utils :refer [assert-args-present]]
+   [big-config.utils :refer [assert-args-present keyword->path]]
    [bling.core :refer [bling]]
    [clojure.string :as str]
    [com.rpl.specter :as s]
    [selmer.parser :as parser]
    [selmer.util :as util]))
 
-(def ^{:doc "Print all steps of the workflow."
+(def ^{:doc "Print all steps of the workflow. See the namespace
+  `big-config.workflow`."
        :arglists '([step opts])}
   print-step-fn
   (core/->step-fn {:before-f (fn [step {:keys [::bc/exit] :as opts}]
@@ -151,7 +159,7 @@
                                              (= step lock-start-step) (parser/render "Lock (owner {{ big-config..lock/owner }})" opts)
                                              (= step unlock-start-step) "Unlock any"
                                              (= step check-start-step) "Checking if the working directory is clean"
-                                             (= step render-start-step) "Rendering template:"
+                                             (= step render-start-step) (parser/render "Rendering workflow: {{ big-config..workflow/name }}" opts)
                                              (= step ::run/run-cmd) (parser/render "Running:\n> {{ big-config..run/cmds | first}}" opts)
                                              :else nil)]
                                    (when msg
@@ -172,11 +180,12 @@
 (comment (print-step-fn))
 
 (defn- resolve-fn [kw opts]
-  (let [f (-> opts kw)]
+  (let [f (get opts kw)]
     (cond
-      (nil? f) (fn [_ opts] opts)
-      (ifn? f) f
-      (symbol? f) (requiring-resolve f))))
+      (nil? f) (throw (ex-info (format "`%s` not defined" kw) opts))
+      (fn? f) f
+      (symbol? f) (requiring-resolve f)
+      :else (throw (ex-info (format "Value for `%s` is neither a function nor a symbol" kw) opts)))))
 
 (defn ^:no-doc run-steps*
   ([step-fns {:keys [::steps] :as opts}]
@@ -197,7 +206,8 @@
                   (nil? exit))) (recur (rest steps) opts)
          :else opts)))))
 
-(def ^{:doc "Run the steps of a tool workflow."
+(def ^{:doc "Run the tool or compisition workflow steps. See the namespace
+`big-config.workflow`."
        :arglists '([]
                    [opts]
                    [step-fns opts])}
@@ -208,7 +218,17 @@
                                  ::start [(partial run-steps* step-fns) ::end]
                                  ::end [identity]))}))
 
-(defn parse-tool-args
+(comment
+  (run-steps {::steps [:exec :create]
+              #_#_::create-fn (fn [_ opts]
+                                (merge opts {::bc/exit 1
+                                             ::bc/err "create-fn found"}))
+              ::run/cmds ["pwd"]
+              ::bc/env :repl}))
+
+(defn parse-args
+  "Utility functions to normalize string or vector-based arguments. See the
+  namespace `big-config.workflow`."
   [str-or-args]
   (loop [xs str-or-args
          token nil
@@ -225,7 +245,7 @@
            (nil? token))
       (recur (rest xs) (first xs) steps cmds)
 
-      (#{"lock" "git-check" "build" "render" "exec" "git-push" "unlock-any"} token)
+      (#{"lock" "git-check" "render" "create" "delete" "exec" "git-push" "unlock-any"} token)
       (let [steps (into steps [token])]
         (recur (rest xs) (first xs) steps cmds))
 
@@ -248,38 +268,6 @@
       :else
       {::steps steps
        ::run/cmds cmds})))
-
-(defn parse-comp-args
-  [str-or-args]
-  (loop [xs str-or-args
-         token nil
-         cmds []]
-    (cond
-      (string? xs)
-      (let [xs (-> (str/trim xs)
-                   (str/split #"\s+"))]
-        (recur (rest xs) (first xs) cmds))
-
-      (and (sequential? xs)
-           (seq xs)
-           (nil? token))
-      (recur (rest xs) (first xs) cmds)
-
-      (#{"create" "delete"} token)
-      (let [cmds (into cmds [(keyword token)])]
-        (recur (rest xs) (first xs) cmds))
-
-      :else
-      (if (nil? token)
-        {::cmds cmds}
-        (throw (ex-info (format "Unknown cmd %s" token) {}))))))
-
-(defn keyword->path [kw]
-  (let [full-str (if-let [ns (namespace kw)]
-                   (str ns "/" (name kw))
-                   (name kw))]
-    (-> full-str
-        (str/replace "." "/"))))
 
 (defn prepare
   "Prepare `opts`. See the namespace `big-config.workflow`."
