@@ -2,6 +2,9 @@
 /.clj-kondo/*
 !/.clj-kondo
 !/.clj-kondo/config.edn
+/.lsp/*
+!/.lsp
+!/.lsp/config.edn
 /justfile
 /pc-dev.yaml
 /pc-test.yaml

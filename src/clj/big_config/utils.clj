@@ -1,7 +1,8 @@
 (ns big-config.utils
   (:require
    [babashka.fs :as fs]
-   [clojure.string :as str]))
+   [clojure.string :as str]
+   [com.rpl.specter :as s]))
 
 (defn deep-merge
   "Recursively merges maps."
@@ -48,3 +49,58 @@
                    (name kw))]
     (-> full-str
         (str/replace "." "/"))))
+
+(def MAP-WALKER
+  (s/recursive-path [] p
+                    (s/if-path map?
+                               (s/continue-then-stay s/MAP-VALS p)
+                               (s/if-path vector?
+                                          [s/ALL p]))))
+
+(defn deep-sort-maps [data]
+  (s/transform MAP-WALKER
+               (fn [m] (into (sorted-map) m))
+               data))
+
+(defmacro debug
+  "Executes `body`, capturing all `tap>` values emitted during execution.
+
+  1. Returns the result of `body`. If the result is a map, the captured
+     taps are `assoc`'d under the keyword `:(name sym)`.
+  2. Binds the captured taps to the Var `sym` in the current namespace
+     via `def` (essential for inspection if an exception occurs).
+
+  Ensures the tap listener is removed even if `body` throws."
+  [sym & body]
+  (let [kw (keyword sym)]
+    `(let [tap-values# (atom [])
+           done# (promise)
+           f# (fn [v#]
+                (if (= v# :done)
+                  (deliver done# true)
+                  (swap! tap-values# conj v#)))]
+       (add-tap f#)
+       (try
+         (let [res# (do ~@body)]
+           (tap> :done)
+           @done#
+           (if (map? res#)
+             (-> res#
+                 deep-sort-maps
+                 (assoc ~kw @tap-values#))
+             res#))
+         (finally
+           (tap> :done)
+           @done#
+           (def ~sym @tap-values#)
+           (remove-tap f#))))))
+
+(comment
+  (debug tap-values
+    (defn fn-wip
+      []
+      (tap> [:fn-wip "pass"])
+      #_(throw (Exception. "There is a bug"))
+      {::b {::d 4 ::c 3} ::a 1 ::e [{::g 6 ::f 5}]})
+    (fn-wip))
+  (-> tap-values))
