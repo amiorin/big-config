@@ -81,7 +81,7 @@
                             (binding [*out* *err*
                                       util/*escape-variables* false]
                               (println (bling [color (p/render "{{ prefix }} {{ msg }}" {:prefix prefix
-                                                                                         :msg (name step)})])))))
+                                                                                         :msg (str step)})])))))
               :after-f (fn [step {:keys [::bc/exit
                                          ::bc/err]}]
                          (let [prefix "\uf05c"
@@ -90,7 +90,7 @@
                              (binding [*out* *err*
                                        util/*escape-variables* false]
                                (println (bling [color (p/render "{{ prefix }} {{ msg }}: {{ err }}" {:prefix prefix
-                                                                                                     :msg (name step)
+                                                                                                     :msg (str step)
                                                                                                      :err err})]))))))}))
 
 (comment
