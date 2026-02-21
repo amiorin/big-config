@@ -87,19 +87,19 @@
            (if (map? res#)
              (-> res#
                  deep-sort-maps
-                 (assoc ~kw @tap-values#))
+                 (assoc ~kw (deep-sort-maps @tap-values#)))
              res#))
          (finally
            (tap> :done)
            @done#
-           (def ~sym @tap-values#)
+           (def ~sym (deep-sort-maps @tap-values#))
            (remove-tap f#))))))
 
 (comment
   (debug tap-values
     (defn fn-wip
       []
-      (tap> [:fn-wip "pass"])
+      (tap> [:fn-wip {::b {::d 4 ::c 3} ::a 1 ::e [{::g 6 ::f 5}]}])
       #_(throw (Exception. "There is a bug"))
       {::b {::d 4 ::c 3} ::a 1 ::e [{::g 6 ::f 5}]})
     (fn-wip))
