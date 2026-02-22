@@ -187,10 +187,13 @@
       (symbol? f) (requiring-resolve f)
       :else (throw (ex-info (format "Value for `%s` is neither a function nor a symbol" kw) opts)))))
 
+(defn select-globals [{:keys [globals] :as opts}]
+  (->> (or globals [::bc/env ::run/shell-opts ::globals])
+       (select-keys opts)))
+
 (defn run-steps
   [step-fns {:keys [::globals ::steps ::create-opts ::delete-opts] :as opts}]
-  (let [globals-opts (->> (or globals [::bc/env ::run/shell-opts ::globals])
-                          (select-keys opts))
+  (let [globals-opts (select-globals opts)
         create-opts (merge (or create-opts {}) globals-opts)
         delete-opts (merge (or delete-opts {}) globals-opts)
         opts* (atom opts)

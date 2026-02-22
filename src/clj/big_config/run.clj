@@ -41,12 +41,12 @@
 
 (defn run-cmd [{:keys [::bc/env ::shell-opts ::cmds] :as opts}]
   (let [shell-opts (assoc shell-opts :continue true)
-        shell-opts (case env
+        shell-opts (case env ; :lib :repl :shell
                      :lib (merge {:out :string
                                   :err :string}
                                  shell-opts)
-                     (merge {:out *out* ;(:repl :shell)
-                             :err *err*}
+                     (merge {:out :inherit
+                             :err :inherit}
                             shell-opts))
         cmd (first cmds)
         proc (process/shell shell-opts cmd)]
