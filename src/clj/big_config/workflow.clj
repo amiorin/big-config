@@ -11,6 +11,8 @@
   `tool-workflows` to create a unified lifecycle (e.g., `create`, `delete`).
 
   ### Usage Syntax
+  BigConfig Workflow can be used as a library or as a CLI using Babashka.
+
   ```shell
   # Execute a tool workflow directly
   bb <tool-workflow> <step|cmd>+ [-- <raw-command>]
@@ -42,7 +44,7 @@
   | **git-push**   | Pushes local commits to the remote repository.                  |
   | **lock**       | Acquires an execution lock.                                     |
   | **unlock-any** | Force-releases the lock, regardless of the current owner.       |
-  | **exec**       | Executes commands provided in the global-args.                  |
+  | **exec**       | Executes commands provided.                                     |
   #### `comp-workflow`
   | Step       | Description                                                     |
   | :----      | :----                                                           |
@@ -58,19 +60,23 @@
   * **`select-globals`**: Utility function to copy the global options across
   workflows.
 
-  ### Options for `opts`
+  ### Options for `opts` and step `render`
   * `::name` (required): The unique identifier for the workflow instance.
   * `::dirs` (generated): Directory context for execution and output discovery.
   It is generated automatically by `prepare`.
   * `::path-fn` (optional): Logic for resolving file paths.
   * `::params` (optional): The input data for the workflow.
 
-  ### Options for `prepare-opts`
+  ### Options for `prepare-opts` and step `render`
   * `::name` (required): The unique identifier for the workflow instance.
 
-  ### Options for `prepare-overrides`
+  ### Options for `prepare-overrides` and step `render`
   * `::path-fn` (optional): Logic for resolving file paths.
   * `::params` (optional): The input data for the workflow.
+
+  ### Options for `opts` and step `create` or `delete`
+  * `::create-fn` (required): The workflow to create the resource.
+  * `::delete-fn` (required): The workflow to delete the resource.
 
   ### Naming Conventions
   To distinguish between the library core and the Babashka CLI implementation:
@@ -126,6 +132,89 @@
   `comp-workflow` needs to be updated.
 
   > **Note:** Resource naming and state booking are outside the scope of BigConfig Workflow.
+
+  ### Composite workflow
+  This is an example of composite workflow that contains two tool workflows.
+  Tool workflows must be isolated by using distinct opts maps.
+
+  * **`extract-params`**: The function to extract outputs from a tool workflow
+  and use them as parameters for another tool workflow.
+  * **`resource-create`**: The composite workflow to create the resource.
+  * **`resource-delete`**: The composite workflow to delete the resource.
+  * **`resource`**: The composite workflow to expose the steps interface.
+
+  ```clojure
+  (defn extract-params
+    [{:keys [::workflow/dirs]}]
+    (let [ip (-> (p/shell {:dir (::tofu dirs)
+                           :out :string} \"tofu show --json\")
+                 :out
+                 (json/parse-string keyword)
+                 (->> (s/select-one [:values :root_module :resources s/FIRST :values :ipv4_address])))]
+      {::workflow/params {:ip ip}}))
+  ```
+
+  ```clojure
+  (defn resource-create
+    [step-fns {:keys [::tofu-opts ::ansible-opts] :as opts}]
+    (let [globals-opts (workflow/select-globals opts)
+          tofu-opts (merge (workflow/parse-args \"render tofu:init tofu:apply:-auto-approve\")
+                           globals-opts
+                           tofu-opts)
+          ansible-opts (merge (workflow/parse-args \"render ansible-playbook:main.yml\")
+                              globals-opts
+                              ansible-opts)
+          opts* (atom opts)
+          wf (core/->workflow {:first-step ::start
+                               :wire-fn (fn [step step-fns]
+                                          (case step
+                                            ::start [core/ok ::tofu]
+                                            ::tofu [(partial tofu step-fns) ::ansible]
+                                            ::ansible [(partial ansible step-fns) ::end]
+                                            ::end [identity]))
+                               :next-fn (fn [step next-step {:keys [::bc/exit ::workflow/dirs] :as opts}]
+                                          (if (#{::tofu ::ansible} step)
+                                            (do
+                                              (swap! opts* merge (select-keys opts [::bc/exit ::bc/err]))
+                                              (swap! opts* update ::workflow/dirs merge dirs)
+                                              (swap! opts* assoc step opts))
+                                            (reset! opts* opts))
+                                          (cond
+                                            (= step ::end)
+                                            [nil @opts*]
+
+                                            (> exit 0)
+                                            [::end @opts*]
+
+                                            :else
+                                            [next-step (case next-step
+                                                         ::tofu tofu-opts
+                                                         ::ansible (merge-with merge ansible-opts (extract-params @opts*))
+                                                         @opts*)]))})]
+      (wf step-fns opts)))
+  ```
+
+  ```clojure
+  (defn resource-delete
+    [step-fns opts]
+    (let [opts (merge (workflow/parse-args \"render tofu:destroy:-auto-approve\")
+                      opts)]
+      (tofu step-fns opts)))
+  ```
+
+  ```clojure
+  (defn resource
+    [step-fns opts]
+    (let [opts (merge {::workflow/create-fn resource-create
+                       ::workflow/delete-fn resource-delete}
+                      opts)
+          wf (core/->workflow {:first-step ::start
+                               :wire-fn (fn [step step-fns]
+                                          (case step
+                                            ::start [(partial workflow/run-steps step-fns) ::end]
+                                            ::end [identity]))})]
+      (wf step-fns opts)))
+  ```
 "
   (:require
    [big-config :as bc]
@@ -193,6 +282,9 @@
        (select-keys opts)))
 
 (defn run-steps
+  "A dynamic workflow that takes a list of steps, a create function, and a
+  delete function. See the namespace `big-config.workflow`"
+  {:arglists '([step-fns opts])}
   [step-fns {:keys [::steps ::create-opts ::delete-opts] :as opts}]
   (let [globals-opts (select-globals opts)
         create-opts (merge (or create-opts {}) globals-opts)
@@ -294,8 +386,7 @@
        ::run/cmds cmds})))
 
 (comment
-  (parse-args "render")
-  )
+  (parse-args "render"))
 
 (defn prepare
   "Prepare `opts`. See the namespace `big-config.workflow`."
