@@ -6,8 +6,7 @@
 
   ### Workflow Types
   * **`tool-workflow`**: The fundamental unit. It renders templates and
-  executes CLI tools (e.g., Terraform/OpenTofu, Ansible). It is driven by
-  `::params`.
+  executes CLI tools (e.g., Terraform/OpenTofu, Ansible).
   * **`comp-workflow`**: A high-level orchestrator that sequences multiple
   `tool-workflows` to create a unified lifecycle (e.g., `create`, `delete`).
 
@@ -54,8 +53,10 @@
   * **`run-steps`**: The engine for dynamic workflow execution.
   * **`prepare`**: Shared logic for rendering templates and initializing
   execution environments.
-  * **`parse-args`**: Utility functions to normalize string or vector-based
+  * **`parse-args`**: Utility function to normalize string or vector-based
   arguments.
+  * **`select-globals`**: Utility function to copy the global options across
+  workflows.
 
   ### Options for `opts`
   * `::name` (required): The unique identifier for the workflow instance.
@@ -192,7 +193,7 @@
        (select-keys opts)))
 
 (defn run-steps
-  [step-fns {:keys [::globals ::steps ::create-opts ::delete-opts] :as opts}]
+  [step-fns {:keys [::steps ::create-opts ::delete-opts] :as opts}]
   (let [globals-opts (select-globals opts)
         create-opts (merge (or create-opts {}) globals-opts)
         delete-opts (merge (or delete-opts {}) globals-opts)
@@ -201,17 +202,17 @@
         wf (core/->workflow {:first-step ::start
                              :wire-fn (fn [step step-fns]
                                         (case step
-                                          ::start [core/ok ::unknown]
-                                          ::lock [(partial lock/lock step-fns) ::unknown]
-                                          ::git-check [(partial git/check step-fns) ::unknown]
-                                          ::render [(partial render/templates step-fns) ::unknown]
-                                          ::create [(fn [create-opts] ((resolve-fn ::create-fn opts) step-fns create-opts)) ::unknown]
-                                          ::delete [(fn [delete-opts] ((resolve-fn ::delete-fn opts) step-fns delete-opts)) ::unknown]
-                                          ::exec [(partial run/run-cmds step-fns) ::unknown]
-                                          ::git-push [(partial git/git-push) ::unknown]
-                                          ::unlock-any [(partial unlock/unlock-any step-fns) ::unknown]
+                                          ::start [core/ok]
+                                          ::lock [(partial lock/lock step-fns)]
+                                          ::git-check [(partial git/check step-fns)]
+                                          ::render [(partial render/templates step-fns)]
+                                          ::create [(fn [create-opts] ((resolve-fn ::create-fn opts) step-fns create-opts))]
+                                          ::delete [(fn [delete-opts] ((resolve-fn ::delete-fn opts) step-fns delete-opts))]
+                                          ::exec [(partial run/run-cmds step-fns)]
+                                          ::git-push [(partial git/git-push)]
+                                          ::unlock-any [(partial unlock/unlock-any step-fns)]
                                           ::end [identity]))
-                             :next-fn (fn [step next-step {:keys [::bc/exit] :as opts}]
+                             :next-fn (fn [step _ {:keys [::bc/exit] :as opts}]
                                         (if (#{::create ::delete} step)
                                           (do
                                             (swap! opts* merge (select-keys opts [::bc/exit ::bc/err]))
@@ -241,8 +242,8 @@
                   (tap> [step opts])
                   (f step opts))]
                {::steps [:create :delete :create :delete]
-                ::create-fn (fn [step-fns opts] (core/ok opts))
-                ::delete-fn (fn [step-fns opts] (core/ok opts))
+                ::create-fn (fn [_ opts] (core/ok opts))
+                ::delete-fn (fn [_ opts] (core/ok opts))
                 ::create-opts {:a 1}
                 ::delete-opts {:a 2}
                 ::bc/env :repl
@@ -291,6 +292,10 @@
       :else
       {::steps steps
        ::run/cmds cmds})))
+
+(comment
+  (parse-args "render")
+  )
 
 (defn prepare
   "Prepare `opts`. See the namespace `big-config.workflow`."
