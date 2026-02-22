@@ -134,7 +134,7 @@
    [big-config.render :as render]
    [big-config.run :as run]
    [big-config.unlock :as unlock]
-   [big-config.utils :refer [assert-args-present keyword->path]]
+   [big-config.utils :refer [assert-args-present debug keyword->path]]
    [bling.core :refer [bling]]
    [clojure.string :as str]
    [com.rpl.specter :as s]
@@ -187,44 +187,63 @@
       (symbol? f) (requiring-resolve f)
       :else (throw (ex-info (format "Value for `%s` is neither a function nor a symbol" kw) opts)))))
 
-(defn ^:no-doc run-steps*
-  ([step-fns {:keys [::steps] :as opts}]
-   (loop [steps (map keyword steps)
-          opts opts]
-     (let [{:keys [::bc/exit] :as opts} (case (first steps)
-                                          :lock (lock/lock step-fns opts)
-                                          :git-check (git/check step-fns opts)
-                                          :render (render/templates step-fns opts)
-                                          :create ((resolve-fn ::create-fn opts) step-fns opts)
-                                          :delete ((resolve-fn ::delete-fn opts) step-fns opts)
-                                          :exec (run/run-cmds step-fns opts)
-                                          :git-push (git/git-push opts)
-                                          :unlock-any (unlock/unlock-any step-fns opts))]
-       (cond
-         (and (seq (rest steps))
-              (or (= exit 0)
-                  (nil? exit))) (recur (rest steps) opts)
-         :else opts)))))
+(defn run-steps
+  [step-fns {:keys [::steps ::create-opts ::delete-opts] :as opts}]
+  (let [create-opts (or create-opts {})
+        delete-opts (or delete-opts {})
+        opts* (atom (-> opts
+                        (assoc ::create [])
+                        (assoc ::delete [])))
+        steps* (atom (map (fn [step] (keyword "big-config.workflow" (name step))) steps))
+        wf (core/->workflow {:first-step ::start
+                             :wire-fn (fn [step step-fns]
+                                        (case step
+                                          ::start [core/ok ::unknown]
+                                          ::lock [(partial lock/lock step-fns) ::unknown]
+                                          ::git-check [(partial git/check step-fns) ::unknown]
+                                          ::render [(partial render/templates step-fns) ::unknown]
+                                          ::create [(fn [create-opts] ((resolve-fn ::create-fn opts) step-fns create-opts)) ::unknown]
+                                          ::delete [(fn [delete-opts] ((resolve-fn ::delete-fn opts) step-fns delete-opts)) ::unknown]
+                                          ::exec [(partial run/run-cmds step-fns) ::unknown]
+                                          ::git-push [(partial git/git-push) ::unknown]
+                                          ::unlock-any [(partial unlock/unlock-any step-fns) ::unknown]
+                                          ::end [identity]))
+                             :next-fn (fn [step next-step {:keys [::bc/exit] :as opts}]
+                                        (if (#{::create ::delete} step)
+                                          (do
+                                            (swap! opts* merge (select-keys opts [::bc/exit ::bc/err]))
+                                            (swap! opts* update step conj opts))
+                                          (reset! opts* opts))
+                                        (cond
+                                          (= step ::end)
+                                          [nil @opts*]
 
-(def ^{:doc "Run the tool or compisition workflow steps. See the namespace
-`big-config.workflow`."
-       :arglists '([]
-                   [opts]
-                   [step-fns opts])}
-  run-steps
-  (core/->workflow {:first-step ::start
-                    :wire-fn (fn [step step-fns]
-                               (case step
-                                 ::start [(partial run-steps* step-fns) ::end]
-                                 ::end [identity]))}))
+                                          (> exit 0)
+                                          [::end @opts*]
+
+                                          :else
+                                          (let [next-step (first @steps*)
+                                                _ (swap! steps* rest)]
+                                            (if next-step
+                                              [next-step (case next-step
+                                                           ::create create-opts
+                                                           ::delete delete-opts
+                                                           @opts*)]
+                                              [::end @opts*]))))})]
+    (wf step-fns @opts*)))
 
 (comment
-  (run-steps {::steps [:exec :create]
-              #_#_::create-fn (fn [_ opts]
-                                (merge opts {::bc/exit 1
-                                             ::bc/err "create-fn found"}))
-              ::run/cmds ["pwd"]
-              ::bc/env :repl}))
+  (debug tap-values
+    (run-steps [(fn [f step opts]
+                  (tap> [step opts])
+                  (f step opts))]
+               {::steps [:create :delete :create :delete]
+                ::create-fn (fn [step-fns opts] (core/ok opts))
+                ::delete-fn (fn [step-fns opts] (core/ok opts))
+                ::create-opts {:a 1}
+                ::delete-opts {:a 2}
+                ::lock/owner "alberto"}))
+  (-> tap-values))
 
 (defn parse-args
   "Utility functions to normalize string or vector-based arguments. See the
