@@ -193,9 +193,7 @@
                           (select-keys opts))
         create-opts (merge (or create-opts {}) globals-opts)
         delete-opts (merge (or delete-opts {}) globals-opts)
-        opts* (atom (-> opts
-                        (assoc ::create [])
-                        (assoc ::delete [])))
+        opts* (atom opts)
         steps* (atom (map (fn [step] (keyword "big-config.workflow" (name step))) steps))
         wf (core/->workflow {:first-step ::start
                              :wire-fn (fn [step step-fns]
@@ -214,7 +212,7 @@
                                         (if (#{::create ::delete} step)
                                           (do
                                             (swap! opts* merge (select-keys opts [::bc/exit ::bc/err]))
-                                            (swap! opts* update step conj opts))
+                                            (swap! opts* update step (fnil conj []) opts))
                                           (reset! opts* opts))
                                         (cond
                                           (= step ::end)
