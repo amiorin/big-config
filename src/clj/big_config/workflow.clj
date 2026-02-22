@@ -188,9 +188,11 @@
       :else (throw (ex-info (format "Value for `%s` is neither a function nor a symbol" kw) opts)))))
 
 (defn run-steps
-  [step-fns {:keys [::steps ::create-opts ::delete-opts] :as opts}]
-  (let [create-opts (or create-opts {})
-        delete-opts (or delete-opts {})
+  [step-fns {:keys [::globals ::steps ::create-opts ::delete-opts] :as opts}]
+  (let [globals-opts (->> (or globals [::bc/env ::run/shell-opts ::globals])
+                          (select-keys opts))
+        create-opts (merge (or create-opts {}) globals-opts)
+        delete-opts (merge (or delete-opts {}) globals-opts)
         opts* (atom (-> opts
                         (assoc ::create [])
                         (assoc ::delete [])))
@@ -242,6 +244,7 @@
                 ::delete-fn (fn [step-fns opts] (core/ok opts))
                 ::create-opts {:a 1}
                 ::delete-opts {:a 2}
+                ::bc/env :repl
                 ::lock/owner "alberto"}))
   (-> tap-values))
 
