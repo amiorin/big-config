@@ -9,6 +9,7 @@
            selmer/selmer                 {:mvn/version "1.12.63"}
            cheshire/cheshire             {:mvn/version "6.1.0"}
            org.babashka/cli              {:mvn/version "0.8.66"}
+           com.rpl/specter               {:mvn/version "1.1.4"}
            com.taoensso/carmine          {:mvn/version "3.4.1"}
            io.github.babashka/neil       {:git/sha "0b7373dd1b5a0dc7f8aff83b8e65d75d7d5e23bc"}}
 
