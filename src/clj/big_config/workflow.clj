@@ -62,8 +62,6 @@
 
   ### Options for `opts` and step `render`
   * `::name` (required): The unique identifier for the workflow instance.
-  * `::dirs` (generated): Directory context for execution and output discovery.
-  It is generated automatically by `prepare`.
   * `::path-fn` (optional): Logic for resolving file paths.
   * `::params` (optional): The input data for the workflow.
 
@@ -85,7 +83,8 @@
   * **`[workflow name]*`**: The Babashka-ready task. Accepts `args` and optional `opts`.
 
   ```clojure
-  ; wf.clj
+  (ns wf)
+
   (defn tofu
     [step-fns opts]
     (let [opts (prepare {::name ::tofu
@@ -95,6 +94,10 @@
                                                            :raw]]}]}
                         opts)]
       (run-steps step-fns opts)))
+  ```
+
+  ```clojure
+  (ns wf)
 
   (defn tofu*
     [args & [opts]]
@@ -102,11 +105,12 @@
                       opts)]
       (tofu [] opts)))
   ```
+
   ```clojure
   ; bb.edn
   {:deps {group/artifact {:local/root \".\"}}
    :tasks
-   {:requires ([group.artifact.wf :as wf])
+   {:requires ([wf :as wf])
     tofu {:doc \"bb tofu render tofu:init tofu:apply:-auto-approve\"
           :task (wf/tofu* *command-line-args* {:big-config/env :shell})}
     ansible {:doc \"bb ansible render -- ansible-playbook main.yml\"
@@ -124,8 +128,8 @@
 
   1. **Isolation**: `tool-wf-b` (Ansible) never talks directly to `tool-wf-a`
   (Tofu).
-  2. **Orchestration**: The `comp-workflow` acts as a glue layer. It uses
-  `::dirs` to discover outputs from the first workflow (via `tofu output
+  2. **Orchestration**: The `comp-workflow` acts as a glue layer. It uses `path`
+  to discover outputs from the previous workflows (e.g., via `tofu output
   --json`) and maps them to the `::params` required by the next.
   3. **Interchangeability**: You can swap a Hetzner workflow for an AWS workflow
   without modifying the downstream Ansible code. Only the mapping logic in the
@@ -145,8 +149,8 @@
 
   ```clojure
   (defn extract-params
-    [{:keys [::workflow/dirs]}]
-    (let [ip (-> (p/shell {:dir (::tofu dirs)
+    [opts]
+    (let [ip (-> (p/shell {:dir (workflow/path opts ::tofu)
                            :out :string} \"tofu show --json\")
                  :out
                  (json/parse-string keyword)
@@ -172,11 +176,10 @@
                                             ::tofu [(partial tofu step-fns) ::ansible]
                                             ::ansible [(partial ansible step-fns) ::end]
                                             ::end [identity]))
-                               :next-fn (fn [step next-step {:keys [::bc/exit ::workflow/dirs] :as opts}]
+                               :next-fn (fn [step next-step {:keys [::bc/exit] :as opts}]
                                           (if (#{::tofu ::ansible} step)
                                             (do
                                               (swap! opts* merge (select-keys opts [::bc/exit ::bc/err]))
-                                              (swap! opts* update ::workflow/dirs merge dirs)
                                               (swap! opts* assoc step opts))
                                             (reset! opts* opts))
                                           (cond
@@ -278,7 +281,7 @@
       :else (throw (ex-info (format "Value for `%s` is neither a function nor a symbol" kw) opts)))))
 
 (defn select-globals [{:keys [globals] :as opts}]
-  (->> (or globals [::bc/env ::run/shell-opts ::globals])
+  (->> (or globals [::bc/env ::run/shell-opts ::render/module ::render/profile ::prefix ::globals])
        (select-keys opts)))
 
 (defn run-steps
@@ -388,19 +391,26 @@
 (comment
   (parse-args "render"))
 
+(defn path
+  "Find the path of a previous workflow to extract the outputs."
+  [{:keys [::prefix]} name]
+  (format "%s/%s" (or prefix ".dist") (keyword->path name)))
+
+(comment
+  (path {::prefix ".dist/inst-a"} ::tofu))
+
 (defn prepare
   "Prepare `opts`. See the namespace `big-config.workflow`."
   {:arglists '([opts overrides])}
-  [{:keys [::name] :as opts} {:keys [::path-fn ::params] :as overrides}]
+  [{:keys [::name] :as opts} {:keys [::path-fn ::prefix ::params] :as overrides}]
   (assert-args-present opts overrides name)
-  (let [path-fn (or path-fn #(format ".dist/%s" (-> % ::name keyword->path)))
+  (let [path-fn (or path-fn #(format "%s/%s" (or prefix ".dist") (-> % ::name keyword->path)))
         opts (merge opts overrides)
         dir (path-fn opts)
         opts (->> opts
                   (s/transform [::render/templates s/ALL] #(merge % params
                                                                   {:target-dir dir}))
-                  (s/setval [::run/shell-opts :dir] dir)
-                  (s/transform [::dirs] #(assoc % name dir)))]
+                  (s/setval [::run/shell-opts :dir] dir))]
     opts))
 
 (comment

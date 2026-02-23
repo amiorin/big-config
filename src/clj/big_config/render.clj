@@ -282,12 +282,14 @@
   "This is the functional version of the template engine. See the
   `big-config.render` namespace for more information."
   {:arglists '([opts])}
-  [{:keys [::templates :big-config.step/module :big-config.step/profile] :as opts}]
+  [{:keys [::templates ::module ::profile] :as opts}]
   (when (nil? templates)
     (throw (IllegalArgumentException. ":big-config.render/templates should never be nil")))
   (loop [xs templates]
     (when-not (empty? xs)
-      (let [{:keys [data-fn template-fn] :as edn} (first xs)
+      (let [step-module (:big-config.step/module opts)
+            step-profile (:big-config.step/profile opts)
+            {:keys [data-fn template-fn] :as edn} (first xs)
             data-fn (cond
                       (nil? data-fn) (fn [data _] data)
                       (fn? data-fn) data-fn
@@ -297,8 +299,8 @@
                           (fn? template-fn) template-fn
                           (symbol? template-fn) (requiring-resolve template-fn))
             data (-> (apply dissoc edn template-keys)
-                     (merge {:module module
-                             :profile profile})
+                     (merge {:module (or step-module module)
+                             :profile (or step-profile profile)})
                      (data-fn opts))
             {:keys [template
                     target-dir
