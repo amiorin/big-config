@@ -1,17 +1,17 @@
 {:paths   ["src/clj" "resources"]
 
- :deps    {org.clojure/clojure           {:mvn/version "1.12.3"}
-           io.github.clojure/tools.build {:git/tag "v0.10.10", :git/sha "deedd62" :git/url "https://github.com/clojure/tools.build"}
-           babashka/process              {:mvn/version "0.6.23"}
-           babashka/fs                   {:mvn/version "0.5.27"}
+ :deps    {org.clojure/clojure           {:mvn/version "1.12.4"}
+           io.github.clojure/tools.build {:mvn/version "0.10.12"}
+           babashka/process              {:mvn/version "0.6.25"}
+           babashka/fs                   {:mvn/version "0.5.31"}
            aero/aero                     {:mvn/version "1.1.6"}
-           io.github.paintparty/bling    {:mvn/version "0.8.8"}
-           selmer/selmer                 {:mvn/version "1.12.63"}
+           io.github.paintparty/bling    {:mvn/version "0.9.2"}
+           selmer/selmer                 {:mvn/version "1.13.1"}
            cheshire/cheshire             {:mvn/version "6.1.0"}
-           org.babashka/cli              {:mvn/version "0.8.66"}
-           com.rpl/specter               {:mvn/version "1.1.4"}
-           com.taoensso/carmine          {:mvn/version "3.4.1"}
-           io.github.babashka/neil       {:git/sha "0b7373dd1b5a0dc7f8aff83b8e65d75d7d5e23bc"}}
+           org.babashka/cli              {:mvn/version "0.8.67"}
+           com.rpl/specter               {:mvn/version "1.1.6"}
+           com.taoensso/carmine          {:mvn/version "3.5.0"}
+           io.github.babashka/neil       {:git/sha "74cc79e4b936487635f964b4619a60fba46714d9"}}
 
  :tools/usage {:ns-default big-config.tools}
 
@@ -33,7 +33,7 @@
                                 pjstadig/humane-test-output          {:mvn/version "0.11.0"}
                                 org.clojure/tools.namespace          {:mvn/version "1.5.0"}
                                 com.lambdaisland/classpath           {:mvn/version "0.6.58"}
-                                babashka/babashka                    {:mvn/version "1.12.209"}
+                                babashka/babashka                    {:mvn/version "1.12.215"}
                                 aero/aero                            {:mvn/version "1.1.6"}
                                 integrant/repl                       {:mvn/version "0.5.0"}
                                 integrant/integrant                  {:mvn/version "1.0.1"}}
