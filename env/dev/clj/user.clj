@@ -7,22 +7,14 @@
    [integrant.core :as ig]
    [integrant.repl :refer [go halt reset]]
    [integrant.repl.state :as state]
-   [lambdaisland.classpath.watch-deps :as watch-deps]))
+   [lambdaisland.classpath.watch-deps :as watch-deps]
+   [user.quickdoc :as q]))
 
 (watch-deps/start! {:aliases [:dev :test]})
 
 (alter-var-root #'s/*explain-out* (constantly expound/printer))
 
 (repl/set-refresh-dirs "src/clj" "test/clj")
-
-(defonce debug-atom (atom []))
-(defn add-to-debug [x]
-  (swap! debug-atom conj x))
-(add-tap add-to-debug)
-
-(comment
-  (reset! debug-atom [])
-  (-> @debug-atom))
 
 (defn prep-with-profile! [profile]
   (integrant.repl/set-prep! #(-> {:profile profile}
@@ -42,3 +34,6 @@
   (halt)
   (reset)
   [state/config state/preparer state/system])
+
+(comment
+  (q/gen-doc))

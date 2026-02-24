@@ -1,4 +1,4 @@
-(ns big-config.quickdoc
+(ns user.quickdoc
   (:require
    [big-config.core :refer [->workflow ok]]
    [big-config.render :as render]
@@ -31,7 +31,8 @@
                                          :target-dir "../../albertomiorin.com/big-config/src/content/docs/api"
                                          :overwrite true
                                          :transform [["."]]}]}))
-(comment
+(defn gen-doc
+  []
   (let [wf (->workflow {:first-step ::start
                         :wire-fn (fn [step _]
                                    (case step
