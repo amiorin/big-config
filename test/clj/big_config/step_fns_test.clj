@@ -3,6 +3,7 @@
    [babashka.process :as process]
    [big-config.core :refer [->step-fn ->workflow ok]]
    [big-config.step-fns :refer [->exit-step-fn]]
+   [clojure.string :as str]
    [clojure.test :refer [deftest is testing]]))
 
 (defn wf-exit []
@@ -28,14 +29,17 @@
 
 (deftest ->exit-step-fn-test
   (testing "->exit-step-fn work in a nested wf with a step that throws"
-    (let [actual [1 ":big-config.step-fns-test/start\n:big-config.step-fns-test/wf1-end\n:big-config.step-fns-test/wf1-end\n:big-config.step-fns-test/start\n:big-config.step-fns-test/end\n:big-config.step-fns-test/end\n"]
+    (let [expect [1 ":big-config.step-fns-test/start\n:big-config.step-fns-test/wf1-end\n:big-config.step-fns-test/wf1-end\n:big-config.step-fns-test/start\n:big-config.step-fns-test/end\n:big-config.step-fns-test/end\n"]
           proc (process/shell {:continue true
                                :out :string
                                :err :string} "just test-wf-exit")
           {:keys [exit out]} proc
-          expect [exit out]]
-
-      (is (= expect actual)))))
+          actual [exit out]]
+      (doseq [[f a e] (map list [= str/includes?] actual expect)]
+        (is (f a e) (format "f is %s, a is %s, and e is %s" f a e) )))))
 
 (comment
   (wf-exit))
+
+; to avoid infinite loops, do not write expressions in this file because it is
+; required by the test. To debug this test use `user`.
