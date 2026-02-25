@@ -50,15 +50,27 @@
   | :----      | :----                                                           |
   | **create**     | Invokes one or more `tool-workflows` to create a resource.        |
   | **delete**     | Invokes one or more `tool-workflows` to delete a resource.        |
+  | **git-check**  | Verifies the working directory is clean and synced with origin. |
+  | **git-push**   | Pushes local commits to the remote repository.                  |
+  | **lock**       | Acquires an execution lock.                                     |
+  | **unlock-any** | Force-releases the lock, regardless of the current owner.       |
 
   ### Core Logic & Functions
   * **`run-steps`**: The engine for dynamic workflow execution.
+  * **`->workflow*`**: Creates a workflow of workflows.
   * **`prepare`**: Shared logic for rendering templates and initializing
   execution environments.
   * **`parse-args`**: Utility function to normalize string or vector-based
   arguments.
   * **`select-globals`**: Utility function to copy the global options across
   workflows.
+
+  ### Options for `wf*-opts`.
+  * `:first-step` (required): First step of the workflow.
+  * `:last-step` (optional): Optional last step.
+  * `:wire-map` (required): An entry is the qualified keyword of the tool
+  workflow, the args for the tool workflow, and an optional function to select
+  the outputs from previous tool workflows.
 
   ### Options for `opts` and step `render`
   * `::name` (required): The unique identifier for the workflow instance.
@@ -75,6 +87,8 @@
   ### Options for `opts` and step `create` or `delete`
   * `::create-fn` (required): The workflow to create the resource.
   * `::delete-fn` (required): The workflow to delete the resource.
+  * `::create-opts` (optional): The override opts for `create`.
+  * `::delete-opts` (optional): The override opts for `delete`.
 
   ### Naming Conventions
   To distinguish between the library core and the Babashka CLI implementation:
@@ -112,11 +126,11 @@
    :tasks
    {:requires ([wf :as wf])
     tofu {:doc \"bb tofu render tofu:init tofu:apply:-auto-approve\"
-          :task (wf/tofu* *command-line-args* {:big-config/env :shell})}
+          :task (wf/tofu* *command-line-args*)}
     ansible {:doc \"bb ansible render -- ansible-playbook main.yml\"
-             :task (wf/ansible* *command-line-args* {:big-config/env :shell})}
-    resource {:doc \"bb resource create and delete a resource\"
-              :task (wf/resource* *command-line-args* {:big-config/env :shell})}}}
+             :task (wf/ansible* *command-line-args*)}
+    resource {:doc \"bb resource create\"
+              :task (wf/resource* *command-line-args*)}}}
   ```
 
   ### Decoupled Data Sharing
@@ -150,7 +164,7 @@
   ```clojure
   (defn extract-params
     [opts]
-    (let [ip (-> (p/shell {:dir (workflow/path opts ::tofu)
+    (let [ip (-> (p/shell {:dir (workflow/path opts ::tool/tofu)
                            :out :string} \"tofu show --json\")
                  :out
                  (json/parse-string keyword)
@@ -159,50 +173,19 @@
   ```
 
   ```clojure
-  (defn resource-create
-    [step-fns {:keys [::tofu-opts ::ansible-opts] :as opts}]
-    (let [globals-opts (workflow/select-globals opts)
-          tofu-opts (merge (workflow/parse-args \"render tofu:init tofu:apply:-auto-approve\")
-                           globals-opts
-                           tofu-opts)
-          ansible-opts (merge (workflow/parse-args \"render ansible-playbook:main.yml\")
-                              globals-opts
-                              ansible-opts)
-          opts* (atom opts)
-          wf (core/->workflow {:first-step ::start
-                               :wire-fn (fn [step step-fns]
-                                          (case step
-                                            ::start [core/ok ::tofu]
-                                            ::tofu [(partial tofu step-fns) ::ansible]
-                                            ::ansible [(partial ansible step-fns) ::end]
-                                            ::end [identity]))
-                               :next-fn (fn [step next-step {:keys [::bc/exit] :as opts}]
-                                          (if (#{::tofu ::ansible} step)
-                                            (do
-                                              (swap! opts* merge (select-keys opts [::bc/exit ::bc/err]))
-                                              (swap! opts* assoc step opts))
-                                            (reset! opts* opts))
-                                          (cond
-                                            (= step ::end)
-                                            [nil @opts*]
-
-                                            (> exit 0)
-                                            [::end @opts*]
-
-                                            :else
-                                            [next-step (case next-step
-                                                         ::tofu tofu-opts
-                                                         ::ansible (merge-with merge ansible-opts (extract-params @opts*))
-                                                         @opts*)]))})]
-      (wf step-fns opts)))
+  (def resource-create
+    (workflow/->workflow* {:first-step ::start-create
+                           :last-step :end-create
+                           :wire-map {::tool/tofu [\"render tofu:init tofu:apply:-auto-approve\"]
+                                      ::tool/ansible [\"render ansible-playbook:main.yml\" extract-params]
+                                      ::tool/ansible-local [\"render ansible-playbook:main.yml\" extract-params]}}))
   ```
 
   ```clojure
-  (defn resource-delete
-    [step-fns opts]
-    (let [opts (merge (workflow/parse-args \"render tofu:destroy:-auto-approve\")
-                      opts)]
-      (tofu step-fns opts)))
+  (def resource-delete
+    (workflow/->workflow* {:first-step ::start-delete
+                           :last-step ::end-delete
+                           :wire-map {::tool/tofu [\"render tofu:destroy:-auto-approve\"]}}))
   ```
 
   ```clojure
@@ -218,7 +201,7 @@
                                             ::end [identity]))})]
       (wf step-fns opts)))
   ```
-"
+  "
   (:require
    [big-config :as bc]
    [big-config.core :as core]
@@ -391,10 +374,12 @@
 (comment
   (parse-args "render"))
 
-(defn add-suffix [kw suffix]
+(defn- add-suffix [kw suffix]
   (keyword (namespace kw) (str (name kw) suffix)))
 
 (defn ->workflow*
+  "Creates a workflow of workflows. See the namespace `big-config.workflow`."
+  {:arglists '([wf*-opts])}
   [{:keys [first-step last-step wire-map]}]
   (fn [step-fns opts]
     (let [last-step (or last-step
