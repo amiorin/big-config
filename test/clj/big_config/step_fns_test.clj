@@ -36,7 +36,7 @@
           {:keys [exit out]} proc
           actual [exit out]]
       (doseq [[f a e] (map list [= str/includes?] actual expect)]
-        (is (f a e) (format "f is %s, a is %s, and e is %s" f a e) )))))
+        (is (f a e) (format "f is %s, a is %s, and e is %s" f a e))))))
 
 (comment
   (wf-exit))

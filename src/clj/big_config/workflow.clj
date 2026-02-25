@@ -391,6 +391,67 @@
 (comment
   (parse-args "render"))
 
+(defn add-suffix [kw suffix]
+  (keyword (namespace kw) (str (name kw) suffix)))
+
+(defn ->workflow*
+  [{:keys [first-step last-step wire-map]}]
+  (fn [step-fns opts]
+    (let [last-step (or last-step
+                        (keyword (namespace first-step) "end"))
+          globals-opts (select-globals opts)
+          step->opts-and-glue-fn (reduce-kv (fn [a step [args glue-fn]]
+                                              (let [glue-fn (or glue-fn (constantly {}))
+                                                    step-opts (-> step (add-suffix "-opts") opts)
+                                                    step-args (parse-args args)
+                                                    step-opts (merge step-opts step-args globals-opts)]
+                                                (assoc a step [step-opts glue-fn]))) {} wire-map)
+          step->var (fn [step]
+                      (cond
+                        (= step first-step) core/ok
+                        (= step last-step) identity
+                        :else (let [sym (symbol (namespace step) (name step))]
+                                (partial (requiring-resolve sym) step-fns))))
+          step->f-and-next-step (-> wire-map
+                                    keys
+                                    (->> (cons first-step))
+                                    (concat [last-step nil])
+                                    (->> (partition 2 1))
+                                    (->> (reduce (fn [a [step next-step]]
+                                                   (let [f (step->var step)]
+                                                     (assoc a step [f next-step]))) {})))
+          opts* (atom opts)
+          wire-fn (fn [step _] (step->f-and-next-step step))
+          steps-set (-> wire-map keys set)
+          next-fn (fn [step next-step {:keys [::bc/exit] :as opts}]
+                    (if (steps-set step)
+                      (do
+                        (swap! opts* merge (select-keys opts [::bc/exit ::bc/err]))
+                        (swap! opts* assoc step opts))
+                      (reset! opts* opts))
+                    (cond
+                      (= step ::end)
+                      [nil @opts*]
+
+                      (> exit 0)
+                      [::end @opts*]
+
+                      :else
+                      [next-step (let [[new-opts opts-fn] (get step->opts-and-glue-fn next-step [@opts* (constantly {})])]
+                                   (merge-with merge new-opts (opts-fn @opts*)))]))
+          wf (core/->workflow {:first-step first-step
+                               :last-step last-step
+                               :wire-fn wire-fn
+                               :next-fn next-fn})]
+      (wf step-fns opts))))
+
+(comment
+  (debug tap-values
+    (let [wf (->workflow* {:first-step ::start
+                           :wire-map {}})]
+      (wf [] {::bc/env :repl})))
+  (-> tap-values))
+
 (defn path
   "Find the path of a previous workflow to extract the outputs."
   [{:keys [::prefix]} name]
