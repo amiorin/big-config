@@ -404,7 +404,7 @@
                                               (let [glue-fn (or glue-fn (constantly {}))
                                                     step-opts (-> step (add-suffix "-opts") opts)
                                                     step-args (parse-args args)
-                                                    step-opts (merge step-opts step-args globals-opts)]
+                                                    step-opts (merge step-args globals-opts step-opts)]
                                                 (assoc a step [step-opts glue-fn]))) {} wire-map)
           step->var (fn [step]
                       (cond
