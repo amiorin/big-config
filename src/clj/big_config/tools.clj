@@ -1,4 +1,8 @@
 (ns big-config.tools
+  "
+  This is the list of templates available in BigConfig out of the box.
+  See [Clojure Tools](/guides/clojure-tools/) guide.
+  "
   (:require
    [babashka.fs :as fs]
    [babashka.neil :as neil]
@@ -17,9 +21,9 @@
 (comment
   (help))
 
-(def non-blank-string? (s/and string? (complement str/blank?)))
+(def ^:no-doc non-blank-string? (s/and string? (complement str/blank?)))
 (s/def ::target-dir non-blank-string?)
-(def boolean-or-keyword? (s/or :keyword keyword? :boolean boolean?))
+(def ^:no-doc boolean-or-keyword? (s/or :keyword keyword? :boolean boolean?))
 (s/def ::overwrite boolean-or-keyword?)
 (s/def ::aws-profile non-blank-string?)
 (s/def ::region non-blank-string?)
@@ -68,6 +72,20 @@
     (merge {::render/templates [template]} opts)))
 
 (defn- run-template
+  [spec {:keys [step-fns] :as args} defaults]
+  (let [template-name (name spec)
+        s (format "render -- big-config %s" template-name)
+        common {:template (format "big-config/%s" template-name)
+                :target-dir template-name
+                :overwrite true
+                :opts {::bc/env :shell}}
+        args (merge common defaults (prepare args))
+        opts (args->opts args spec)]
+    (if step-fns
+      (step/run-steps s opts step-fns)
+      (step/run-steps s opts))))
+
+(defn- run-template-v2
   [spec {:keys [step-fns] :as args} defaults]
   (let [template-name (name spec)
         s (format "render -- big-config %s" template-name)
