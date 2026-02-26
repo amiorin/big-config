@@ -381,7 +381,8 @@
   "Creates a workflow of workflows. See the namespace `big-config.workflow`."
   {:arglists '([wf*-opts])}
   [{:keys [first-step last-step pipeline]}]
-  (assert (sequential? pipeline) ":pipeline must be like [::tool/tofu ...\n::tool/ansible ...")
+  (when-not (sequential? pipeline)
+    (throw (IllegalArgumentException. ":pipeline must be like [::tool/tofu ...\n::tool/ansible ...")))
   (fn [step-fns opts]
     (let [last-step (or last-step
                         (keyword (namespace first-step) "end"))
