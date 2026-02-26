@@ -153,7 +153,7 @@
 (s/def ::short-comment-second char?)
 (s/def ::delimiters (s/keys :opt-un [::tag-open ::tag-close ::filter-open ::filter-close ::tag-second ::short-comment-second]))
 (s/def ::opts #{:only :raw})
-(s/def ::dir-spec (s/cat :src (s/or :sym symbol? :str string?)
+(s/def ::dir-spec (s/cat :src (s/or :sym symbol? :str string? :fn fn?)
                          :target (s/? string?)
                          :files (s/? ::files)
                          :delimiters (s/? ::delimiters)
@@ -204,16 +204,18 @@
         raw (:raw opts)
         only (:only opts)]
     (case (first src)
-      :sym (let [f (requiring-resolve (second src))]
-             (if (seq files)
-               (run! (fn [[kw to]]
-                       (let [content (cond-> (f kw data)
-                                       (not raw) (selmer data delimiters))
-                             target-file (str target-dir (selmer target data) "/" (selmer to data))]
-                         (fs/create-dirs (fs/parent target-file))
-                         (spit target-file content)))
-                     files)
-               (throw (ex-info "Files is required when src is a symbol" {}))))
+      (:fn :sym) (let [f (case (first src)
+                           :fn (second src)
+                           :sym (requiring-resolve (second src)))]
+                   (if (seq files)
+                     (run! (fn [[kw to]]
+                             (let [content (cond-> (f kw data)
+                                             (not raw) (selmer data delimiters))
+                                   target-file (str target-dir (selmer target data) "/" (selmer to data))]
+                               (fs/create-dirs (fs/parent target-file))
+                               (spit target-file content)))
+                           files)
+                     (throw (ex-info "Files is required when src is a symbol" {}))))
       :str (let [src (selmer (second src) data)]
              (if (seq files)
                (let [intermediate (-> (Files/createTempDirectory
