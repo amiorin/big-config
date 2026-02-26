@@ -68,7 +68,7 @@
   ### Options for `wf*-opts`.
   * `:first-step` (required): First step of the workflow.
   * `:last-step` (optional): Optional last step.
-  * `:wire-map` (required): An entry is the qualified keyword of the tool
+  * `:pipeline` (required): An entry is the qualified keyword of the tool
   workflow, the args for the tool workflow, and an optional function to select
   the outputs from previous tool workflows.
 
@@ -176,16 +176,16 @@
   (def resource-create
     (workflow/->workflow* {:first-step ::start-create
                            :last-step :end-create
-                           :wire-map {::tool/tofu [\"render tofu:init tofu:apply:-auto-approve\"]
+                           :pipeline [::tool/tofu [\"render tofu:init tofu:apply:-auto-approve\"]
                                       ::tool/ansible [\"render ansible-playbook:main.yml\" extract-params]
-                                      ::tool/ansible-local [\"render ansible-playbook:main.yml\" extract-params]}}))
+                                      ::tool/ansible-local [\"render ansible-playbook:main.yml\" extract-params]]}))
   ```
 
   ```clojure
   (def resource-delete
     (workflow/->workflow* {:first-step ::start-delete
                            :last-step ::end-delete
-                           :wire-map {::tool/tofu [\"render tofu:destroy:-auto-approve\"]}}))
+                           :pipeline [::tool/tofu [\"render tofu:destroy:-auto-approve\"]]}))
   ```
 
   ```clojure
@@ -380,25 +380,28 @@
 (defn ->workflow*
   "Creates a workflow of workflows. See the namespace `big-config.workflow`."
   {:arglists '([wf*-opts])}
-  [{:keys [first-step last-step wire-map]}]
+  [{:keys [first-step last-step pipeline]}]
+  (assert (sequential? pipeline) ":pipeline must be like [::tool/tofu ...\n::tool/ansible ...")
   (fn [step-fns opts]
     (let [last-step (or last-step
                         (keyword (namespace first-step) "end"))
           globals-opts (select-globals opts)
-          step->opts-and-glue-fn (reduce-kv (fn [a step [args glue-fn]]
-                                              (let [glue-fn (or glue-fn (constantly {}))
-                                                    step-opts (-> step (add-suffix "-opts") opts)
-                                                    step-args (parse-args args)
-                                                    step-opts (merge step-args globals-opts step-opts)]
-                                                (assoc a step [step-opts glue-fn]))) {} wire-map)
+          step->opts-and-glue-fn (->> pipeline
+                                      (apply hash-map)
+                                      (reduce-kv (fn [a step [args glue-fn]]
+                                                   (let [glue-fn (or glue-fn (constantly {}))
+                                                         step-opts (-> step (add-suffix "-opts") opts)
+                                                         step-args (parse-args args)
+                                                         step-opts (merge step-args globals-opts step-opts)]
+                                                     (assoc a step [step-opts glue-fn]))) {}))
           step->var (fn [step]
                       (cond
                         (= step first-step) core/ok
                         (= step last-step) identity
                         :else (let [sym (symbol (namespace step) (name step))]
                                 (partial (requiring-resolve sym) step-fns))))
-          step->f-and-next-step (-> wire-map
-                                    keys
+          step->f-and-next-step (-> pipeline
+                                    (->> (take-nth 2))
                                     (->> (cons first-step))
                                     (concat [last-step nil])
                                     (->> (partition 2 1))
@@ -407,7 +410,7 @@
                                                      (assoc a step [f next-step]))) {})))
           opts* (atom opts)
           wire-fn (fn [step _] (step->f-and-next-step step))
-          steps-set (-> wire-map keys set)
+          steps-set (-> pipeline (->> (take-nth 2)) set)
           next-fn (fn [step next-step {:keys [::bc/exit] :as opts}]
                     (if (steps-set step)
                       (do
@@ -432,8 +435,17 @@
 
 (comment
   (debug tap-values
+    #_{:clj-kondo/ignore [:inline-def]}
+    (defn s1
+      [_step-fns opts]
+      (core/ok opts))
+    #_{:clj-kondo/ignore [:inline-def]}
+    (defn s2
+      [_step-fns opts]
+      (core/ok opts))
     (let [wf (->workflow* {:first-step ::start
-                           :wire-map {}})]
+                           :pipeline [::s1 ["pwd"]
+                                      ::s2 ["pwd"]]})]
       (wf [] {::bc/env :repl})))
   (-> tap-values))
 
