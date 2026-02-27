@@ -22,6 +22,7 @@ The patch number is calculated with `git rev-list --count HEAD`
 
 - rename `show-help` to `help`
 - -tidy -smoke-test -test and -test:bb are now private tasks
+- remove step-fns argument from ->workflow map
 
 ## [0.3.264] - 2025-10-09
 

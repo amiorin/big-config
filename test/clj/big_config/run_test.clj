@@ -8,13 +8,13 @@
 (deftest run-cmds-test
   (testing "with 3 commands"
     (let [expect {:big-config/env :repl, :big-config.run/shell-opts {:continue true :err :string :out :string}, :big-config.run/cmds '("echo three"), :big-config/procs [{:exit 0, :out "one\n", :err "", :cmd ["echo" "one"]} {:exit 0, :out "two\n", :err "", :cmd ["echo" "two"]} {:exit 0, :out "three\n", :err "", :cmd ["echo" "three"]}], :big-config/exit 0, :big-config/err ""}
-          actual (run-cmds {::bc/env :repl
-                            ::run/shell-opts {:continue true
-                                              :err :string
-                                              :out :string}
-                            ::run/cmds ["echo one"
-                                        "echo two"
-                                        "echo three"]})]
+          actual (run-cmds [] {::bc/env :repl
+                               ::run/shell-opts {:continue true
+                                                 :err :string
+                                                 :out :string}
+                               ::run/cmds ["echo one"
+                                           "echo two"
+                                           "echo three"]})]
       (is (= expect actual)))))
 
 (deftest mktemp-test
@@ -31,7 +31,7 @@
                                             ::pwd [pwd ::clean]
                                             ::clean [run/mktemp-remove-dir ::end]
                                             ::end [identity]))})
-          opts (wf {})
+          opts (wf [] {})
           _ (is (= (::run/dir opts) (::pwd opts)))
           _ (is (= [0 0 0] (->> opts
                                 ::bc/procs

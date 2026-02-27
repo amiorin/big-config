@@ -40,15 +40,16 @@
 (deftest step-fns-test
   (testing "step-fns by name and by symbol"
     (let [expect {:big-config/err nil, :big-config/exit 0, :big-config/steps [[:big-config.utils-test/start :start-a] [:big-config.utils-test/start :start-b] [:big-config.utils-test/start :end-b] [:big-config.utils-test/start :end-a] [:big-config.utils-test/end :start-a] [:big-config.utils-test/end :start-b] [:big-config.utils-test/end :end-b] [:big-config.utils-test/end :end-a]], :big-config.utils-test/bar :baz}
-          actual (->> ((->workflow {:first-step ::start
-                                    :step-fns ["big-config.utils-test/a-step-fn"
-                                               b-step-fn]
-                                    :wire-fn (fn [step _]
-                                               (case step
-                                                 ::start [#(merge % {::bc/exit 0
-                                                                     ::bc/err nil}) ::end]
-                                                 ::end [identity]))}) {::bar :baz})
-                      (into (sorted-map)))]
+          actual (let [step-fns ["big-config.utils-test/a-step-fn"
+                                 b-step-fn]
+                       wf (->workflow {:first-step ::start
+                                       :wire-fn (fn [step _]
+                                                  (case step
+                                                    ::start [#(merge % {::bc/exit 0
+                                                                        ::bc/err nil}) ::end]
+                                                    ::end [identity]))})]
+                   (->> (wf step-fns {::bar :baz})
+                        (into (sorted-map))))]
       (is (= expect actual)))))
 
 (comment

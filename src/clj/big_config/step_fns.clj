@@ -8,38 +8,16 @@
    [selmer.parser :as p]
    [selmer.util :as util]))
 
-(defn exit-with-code [n & _]
+(defn exit-with-code [n]
   (shutdown-agents)
   (flush)
   (System/exit n))
 
-(defn ->exit-step-fn
-  "if the workflow is invoked with a seq of opts, we need to exit with the last ::end or as soon as ::exit is greater than 0"
-  [end & [opts-seq exit-fn]]
-  (let [n (atom (count opts-seq))
-        f (or exit-fn exit-with-code)]
-    (->step-fn {:after-f (fn [step {:keys [::bc/env ::bc/exit] :as opts}]
-                           (when (and (= step end)
-                                      ((complement #{:repl}) env))
-                             (if (or (> exit 0) (< @n 2))
-                               (f exit opts)
-                               (swap! n dec))))})))
-
-(comment
-  (let [xs [{::bc/env :shell
-             ::bc/exit 0
-             ::bc/err nil
-             ::bc/pos 0}
-            {::bc/env :shell
-             ::bc/exit 0
-             ::bc/err nil
-             ::bc/pos 1}
-            {::bc/env :shell
-             ::bc/exit 0
-             ::bc/err nil
-             ::bc/pos 2}]
-        f (->exit-step-fn ::end xs println)]
-    (mapv #(f (fn [step opts] opts) ::end %1) xs)))
+(defn ->exit-step-fn [end]
+  (->step-fn {:after-f (fn [step {:keys [::bc/env ::bc/exit]}]
+                         (when (and (= step end)
+                                    ((complement #{:repl}) env))
+                           (exit-with-code exit)))}))
 
 (defn ->print-error-step-fn [end]
   (->step-fn {:before-f (fn [step {:keys [::bc/err

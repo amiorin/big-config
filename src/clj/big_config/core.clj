@@ -71,9 +71,6 @@
      initial step in the workflow. Defaults typically to `::start`.
    * **`:last-step`** (Optional): The qualified keyword for the final step. If
      omitted, it defaults to `::end`, sharing the same namespace as `:first-step`.
-   * **`:step-fns`** (Optional): An array of functions to be executed before and
-     after every step. Useful for cross-cutting concerns like logging, telemetry,
-     or tracing.
    * **`:wire-fn`** (Required): A function that accepts two arguments—the
      current step and the `step-fns`. `step-fns` is used to invoke subworkflow
      using `partial`. It must return a `seq` of function and next step.
@@ -123,7 +120,6 @@
   {:arglists '([wf-opts])}
   [{:keys [first-step
            last-step
-           step-fns
            wire-fn
            next-fn]}]
   (let [last-step (or last-step
@@ -131,40 +127,24 @@
     (fn workflow
       ([]
        [first-step last-step])
-      ([opts]
-       (workflow (or step-fns []) opts))
       ([step-fns opts]
        (when (nil? opts)
          (throw (IllegalArgumentException. "ops should never be nil")))
-       (let [step-fns (resolve-step-fns step-fns)
-             run-workflow (fn [step opts]
-                            (let [[f next-step] (wire-fn step step-fns)
-                                  f (compose step-fns f)
-                                  {:keys [::bc/exit] :as opts} (try-f f step opts)
-                                  _ (when (nil? opts)
-                                      (throw (ex-info "opts must never be nil" {:step step})))
-                                  _ (when-not (nat-int? exit)
-                                      (throw (ex-info ":big-config/exit must be a natural number" opts)))
-                                  next-fn (resolve-next-fn next-fn last-step)
-                                  [next-step next-opts] (next-fn step next-step opts)]
-                              (if next-step
-                                (recur next-step next-opts)
-                                next-opts)))]
-         (if (map? opts)
-           (run-workflow first-step opts)
-           (loop [in opts
-                  out []
-                  exit 0]
-             (let [opts (first in)
-                   [opts new-exit] (if (= exit 0)
-                                     (let [{:keys [::bc/exit] :as opts} (run-workflow first-step opts)]
-                                       [opts exit])
-                                     [opts exit])
-                   xs (rest in)
-                   new-out (conj out opts)]
-               (if (seq xs)
-                 (recur xs new-out new-exit)
-                 new-out)))))))))
+       (let [step-fns (resolve-step-fns step-fns)]
+         (loop [step first-step
+                opts opts]
+           (let [[f next-step] (wire-fn step step-fns)
+                 f (compose step-fns f)
+                 {:keys [::bc/exit] :as opts} (try-f f step opts)
+                 _ (when (nil? opts)
+                     (throw (ex-info "ops must never be nil" {:step step})))
+                 _ (when-not (nat-int? exit)
+                     (throw (ex-info ":big-config/exit must be a natural number" opts)))
+                 next-fn (resolve-next-fn next-fn last-step)
+                 [next-step next-opts] (next-fn step next-step opts)]
+             (if next-step
+               (recur next-step next-opts)
+               next-opts))))))))
 
 (comment
   (let [wf (->workflow {:first-step ::start
@@ -176,7 +156,7 @@
                                                 (merge opts {::bc/exit 1
                                                              ::bc/err "Failure"})) ::end]
                                      ::end [identity]))})]
-    [(wf {}) (wf [{} {}])]))
+    (wf {})))
 
 (defn ->step-fn
   "A step function is a function that accepts three arguments: the step, the
