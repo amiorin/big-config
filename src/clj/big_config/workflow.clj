@@ -68,9 +68,11 @@
   ### Options for `wf*-opts`.
   * `:first-step` (required): First step of the workflow.
   * `:last-step` (optional): Optional last step.
-  * `:pipeline` (required): An entry is the qualified keyword of the tool
-  workflow, the args for the tool workflow, and an optional function to select
-  the outputs from previous tool workflows.
+  * `:pipeline` (required): A vector containing the repetition of:
+    * The qualified keyword of the tool workflow (e.g., `::tools/tofu`).
+    * A vector containing:
+      * Arguments for the tool workflow (e.g., `[\"render ...\"]`).
+      * An optional `opts-fn` to adapt/merge outputs from previous steps into the current params.
 
   ### Options for `opts` and step `render`
   * `::name` (required): The unique identifier for the workflow instance.
@@ -152,11 +154,12 @@
   > **Note:** Resource naming and state booking are outside the scope of BigConfig Workflow.
 
   ### Composite workflow
-  This is an example of composite workflow that contains two tool workflows.
-  Tool workflows must be isolated by using distinct opts maps.
+  This example demonstrates a **composite workflow** orchestrating one or more
+  **tool workflows**. To maintain modularity, tool workflows must be isolated
+  using distinct `opts` maps. They may operate within the same directory—for
+  instance, when pairing `tofu apply` and `tofu destroy`—or function in separate
+  environments.
 
-  * **`extract-params`**: The function to extract outputs from a tool workflow
-  and use them as parameters for another tool workflow.
   * **`resource-create`**: The composite workflow to create the resource.
   * **`resource-delete`**: The composite workflow to delete the resource.
   * **`resource`**: The composite workflow to expose the steps interface.
@@ -166,14 +169,14 @@
   local state.
 
   ```clojure
-  (defn extract-params
+  (defn opts-fn
     [opts]
     (let [ip (-> (p/shell {:dir (workflow/path opts ::tool/tofu)
                            :out :string} \"tofu show --json\")
                  :out
                  (json/parse-string keyword)
                  (->> (s/select-one [:values :root_module :resources s/FIRST :values :ipv4_address])))]
-      {::workflow/params {:ip ip}}))
+      (merge-with merge opts {::workflow/params {:ip ip}})))
   ```
 
   ```clojure
@@ -181,8 +184,8 @@
     (workflow/->workflow* {:first-step ::start-create-or-delete
                            :last-step :end-create-or-delete
                            :pipeline [::tool/tofu [\"render tofu:init tofu:apply:-auto-approve\"]
-                                      ::tool/ansible [\"render ansible-playbook:main.yml\" extract-params]
-                                      ::tool/ansible-local [\"render ansible-playbook:main.yml\" extract-params]]}))
+                                      ::tool/ansible [\"render ansible-playbook:main.yml\" opts-fn]
+                                      ::tool/ansible-local [\"render ansible-playbook:main.yml\" opts-fn]]}))
   ```
 
   ```clojure
@@ -413,14 +416,14 @@
           globals-opts (-> opts
                            select-globals
                            (new-prefix first-step))
-          step->opts-and-glue-fn (->> pipeline
+          step->opts-and-opts-fn (->> pipeline
                                       (apply hash-map)
-                                      (reduce-kv (fn [a step [args glue-fn]]
-                                                   (let [glue-fn (or glue-fn (constantly {}))
+                                      (reduce-kv (fn [a step [args opts-fn]]
+                                                   (let [opts-fn (or opts-fn identity)
                                                          step-opts (-> step (add-suffix "-opts") opts)
                                                          step-args (parse-args args)
                                                          step-opts (merge step-args globals-opts step-opts)]
-                                                     (assoc a step [step-opts glue-fn]))) {}))
+                                                     (assoc a step [step-opts opts-fn]))) {}))
           step->var (fn [step]
                       (cond
                         (= step first-step) core/ok
@@ -452,9 +455,9 @@
                       [::end @opts*]
 
                       :else
-                      [next-step (let [[new-opts opts-fn] (get step->opts-and-glue-fn next-step [@opts* (constantly {})])
-                                       glue-opts (opts-fn new-opts)]
-                                   (merge-with merge new-opts glue-opts))]))
+                      [next-step (let [[new-opts opts-fn]
+                                       (get step->opts-and-opts-fn next-step [@opts* identity])]
+                                   (opts-fn new-opts))]))
           wf (core/->workflow {:first-step first-step
                                :last-step last-step
                                :wire-fn wire-fn
