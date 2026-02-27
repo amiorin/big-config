@@ -161,6 +161,10 @@
   * **`resource-delete`**: The composite workflow to delete the resource.
   * **`resource`**: The composite workflow to expose the steps interface.
 
+  > **Note:** `resource-create` and `resource-delete` share the same
+  `:first-step` to ensure they utilize the same directory when Tofu is using
+  local state.
+
   ```clojure
   (defn extract-params
     [opts]
@@ -174,8 +178,8 @@
 
   ```clojure
   (def resource-create
-    (workflow/->workflow* {:first-step ::start-create
-                           :last-step :end-create
+    (workflow/->workflow* {:first-step ::start-create-or-delete
+                           :last-step :end-create-or-delete
                            :pipeline [::tool/tofu [\"render tofu:init tofu:apply:-auto-approve\"]
                                       ::tool/ansible [\"render ansible-playbook:main.yml\" extract-params]
                                       ::tool/ansible-local [\"render ansible-playbook:main.yml\" extract-params]]}))
@@ -183,8 +187,8 @@
 
   ```clojure
   (def resource-delete
-    (workflow/->workflow* {:first-step ::start-delete
-                           :last-step ::end-delete
+    (workflow/->workflow* {:first-step ::start-delete-or-delete
+                           :last-step ::end-delete-or-delete
                            :pipeline [::tool/tofu [\"render tofu:destroy:-auto-approve\"]]}))
   ```
 
