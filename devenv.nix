@@ -7,6 +7,7 @@
     pkgs.process-compose
     pkgs.just
     pkgs.redis
+    pkgs.clj-kondo
   ];
   languages.clojure.enable = true;
 }

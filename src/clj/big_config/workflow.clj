@@ -377,6 +377,26 @@
 (defn- add-suffix [kw suffix]
   (keyword (namespace kw) (str (name kw) suffix)))
 
+(defn- new-prefix
+  [{:keys [::prefix ::render/profile] :as opts} first-step]
+  (let [prefix (or prefix ".dist")
+        profile (or profile "default")
+        dirs (str/split prefix #"/")
+        magic-prefix-found (str/starts-with? (last dirs) profile)
+        previous-hash (when magic-prefix-found
+                        (-> (last dirs)
+                            (str/split #"-")
+                            last))
+        dirs (if magic-prefix-found
+               (butlast dirs)
+               dirs)
+        suffix (-> first-step
+                   (str previous-hash)
+                   hash
+                   Integer/toHexString)
+        dirs (conj (vec dirs) (format "%s-%s" profile suffix))]
+    (assoc opts ::prefix (str/join "/" dirs))))
+
 (defn ->workflow*
   "Creates a workflow of workflows. See the namespace `big-config.workflow`."
   {:arglists '([wf*-opts])}
@@ -386,7 +406,9 @@
   (fn [step-fns opts]
     (let [last-step (or last-step
                         (keyword (namespace first-step) "end"))
-          globals-opts (select-globals opts)
+          globals-opts (-> opts
+                           select-globals
+                           (new-prefix first-step))
           step->opts-and-glue-fn (->> pipeline
                                       (apply hash-map)
                                       (reduce-kv (fn [a step [args glue-fn]]
@@ -426,8 +448,9 @@
                       [::end @opts*]
 
                       :else
-                      [next-step (let [[new-opts opts-fn] (get step->opts-and-glue-fn next-step [@opts* (constantly {})])]
-                                   (merge-with merge new-opts (opts-fn @opts*)))]))
+                      [next-step (let [[new-opts opts-fn] (get step->opts-and-glue-fn next-step [@opts* (constantly {})])
+                                       glue-opts (opts-fn new-opts)]
+                                   (merge-with merge new-opts glue-opts))]))
           wf (core/->workflow {:first-step first-step
                                :last-step last-step
                                :wire-fn wire-fn
