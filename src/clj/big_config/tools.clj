@@ -10,7 +10,9 @@
    [big-config :as bc]
    [big-config.render :as render]
    [big-config.selmer-filters]
-   [big-config.step :as step]
+   [big-config.step-fns :as step-fns]
+   [big-config.utils :refer [deep-merge]]
+   [big-config.workflow :as workflow]
    [clojure.spec.alpha :as s]
    [clojure.string :as str]))
 
@@ -57,7 +59,6 @@
   [args]
   (reduce-kv (fn [a k v]
                (cond
-                 (#{:step-fns} k) a
                  (#{:overwrite :opts :post-process-fn :data-fn :template-fn} k) (assoc a k v)
                  :else (assoc a k (str v)))) {} args))
 
@@ -71,33 +72,22 @@
         template (dissoc args :opts)]
     (merge {::render/templates [template]} opts)))
 
-(defn- run-template
-  [spec {:keys [step-fns] :as args} defaults]
-  (let [template-name (name spec)
-        s (format "render -- big-config %s" template-name)
-        common {:template (format "big-config/%s" template-name)
-                :target-dir template-name
-                :overwrite true
-                :opts {::bc/env :shell}}
-        args (merge common defaults (prepare args))
-        opts (args->opts args spec)]
-    (if step-fns
-      (step/run-steps s opts step-fns)
-      (step/run-steps s opts))))
+(def step-fns [
+               (step-fns/->exit-step-fn ::workflow/end)
+               (step-fns/->print-error-step-fn ::workflow/end)])
 
-(defn- run-template-v2
-  [spec {:keys [step-fns] :as args} defaults]
+(defn- run-template
+  [spec args defaults]
   (let [template-name (name spec)
-        s (format "render -- big-config %s" template-name)
         common {:template (format "big-config/%s" template-name)
                 :target-dir template-name
                 :overwrite true
-                :opts {::bc/env :shell}}
-        args (merge common defaults (prepare args))
+                :opts (merge (workflow/parse-args "render")
+                             {::bc/env :shell
+                              ::workflow/name spec})}
+        args (deep-merge common defaults (prepare args))
         opts (args->opts args spec)]
-    (if step-fns
-      (step/run-steps s opts step-fns)
-      (step/run-steps s opts))))
+    (workflow/run-steps step-fns opts)))
 
 (s/def ::terraform (s/keys :req-un [::target-dir ::overwrite ::aws-profile ::region ::dev ::prod]))
 
