@@ -1,0 +1,131 @@
+(ns {{ namespace }}.tools
+  (:require
+   [big-config :as bc]
+   [big-config.render :as render]
+   [big-config.run :as run]
+   [big-config.step-fns :as step-fns]
+   [big-config.utils :refer [debug keyword->path]]
+   [big-config.workflow :as workflow]
+   [cheshire.core :as json]))
+
+(def step-fns [workflow/print-step-fn
+               (step-fns/->exit-step-fn ::workflow/end)
+               (step-fns/->print-error-step-fn ::workflow/end)])
+
+(defn tofu
+  [step-fns opts]
+  (let [opts (workflow/prepare {::workflow/name ::tofu
+                                ::render/templates [{:template (keyword->path ::tofu)
+                                                     :overwrite true
+                                                     :transform [["."]]}]}
+                               opts)]
+    (workflow/run-steps step-fns opts)))
+
+(defn tofu*
+  [args & [opts]]
+  (let [opts (merge (workflow/parse-args args)
+                    {::bc/env :shell}
+                    opts)]
+    (tofu step-fns opts)))
+
+(comment
+  (debug tap-values
+    (tofu* "render tofu:init tofu:apply:-auto-approve" {::bc/env :repl
+                                                        ::run/shell-opts {:err *err*
+                                                                          :out *err*}}))
+  (debug tap-values
+    (tofu* "render tofu:destroy:-auto-approve" {::bc/env :repl
+                                                ::run/shell-opts {:err *err*
+                                                                  :out *err*}}))
+  (-> tap-values))
+
+(defn data-fn [{:keys [ip] :as data} _]
+  (let [sudoer "root"
+        hosts [(or ip "64.227.72.100")]]
+    (merge data {:sudoer sudoer
+                 :hosts hosts
+                 :users []})))
+
+(defn inventory
+  [{:keys [sudoer hosts users]}]
+  (let [users (-> (filter (complement :remove) users)
+                  (->> (map #(for [host hosts]
+                               (assoc % :host host))))
+                  flatten)
+        admins (-> [{:ansible_user sudoer}]
+                   (->> (map #(for [host hosts]
+                                (-> %
+                                    (merge {:host host
+                                            :name sudoer})))))
+                   flatten)
+        users-hosts (reduce #(let [{:keys [name uid host]} %2]
+                               (assoc %1 (format "%s@%s" name host) {:ansible_host host
+                                                                     :ansible_user name
+                                                                     :uid uid})) {} users)
+        admins-hosts (reduce #(let [{:keys [name host]} %2]
+                                (assoc %1 (format "root@%s" host) {:ansible_host host
+                                                                   :ansible_user name})) {} admins)
+        inventory {:all {:children {:admin {:hosts admins-hosts}
+                                    :users {:hosts users-hosts}}}}]
+    (json/generate-string inventory {:pretty true})))
+
+(defn render
+  [target data]
+  (case target
+    :inventory (inventory data)))
+
+(comment
+  (render :inventory (data-fn {} {})))
+
+(defn ansible
+  [step-fns opts]
+  (let [opts (workflow/prepare {::workflow/name ::ansible
+                                ::render/templates [{:template (keyword->path ::ansible)
+                                                     :overwrite true
+                                                     :data-fn data-fn
+                                                     :transform [["."
+                                                                  :raw]
+                                                                 [render
+                                                                  {:inventory "inventory.json"}
+                                                                  :raw]]}]}
+                               opts)]
+    (workflow/run-steps step-fns opts)))
+
+(defn ansible*
+  [args & [opts]]
+  (let [opts (merge (workflow/parse-args args)
+                    {::bc/env :shell}
+                    opts)]
+    (ansible step-fns opts)))
+
+(comment
+  (debug tap-values
+    (ansible* "render ansible-playbook:main.yml" {::bc/env :repl
+                                                  ::run/shell-opts {:err *err*
+                                                                    :out *err*}}))
+  (-> tap-values))
+
+(defn ansible-local
+  [step-fns opts]
+  (let [opts (workflow/prepare {::workflow/name ::ansible-local
+                                ::render/templates [{:template (keyword->path ::ansible-local)
+                                                     :overwrite true
+                                                     :transform [["."]]}]}
+                               opts)]
+    (workflow/run-steps step-fns opts)))
+
+(defn ansible-local*
+  [args & [opts]]
+  (let [opts (merge (workflow/parse-args args)
+                    {::bc/env :shell}
+                    opts)]
+    (ansible-local step-fns opts)))
+
+(comment
+  (debug tap-values
+    (ansible-local* "render ansible-playbook:main.yml" {::bc/env :repl
+                                                        ::workflow/params {:ip "159.223.11.241"}
+                                                        ::run/shell-opts {:err *err*
+                                                                          :out *out*}}))
+  (-> tap-values))
+

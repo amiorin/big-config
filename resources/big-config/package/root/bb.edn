@@ -1,0 +1,20 @@
+{:deps {<< deps >> {:local/root "."}}
+ :tasks
+ {:requires ([<< namespace >>.package :as package]
+             [<< namespace >>.tools :as tools])
+  help {:doc "the workflow help"
+        :override-builtin true
+        :task (println "Usage: bb <step|cmd>+ -- [raw-command]
+
+See:
+* https://bigconfig.it/packages/intro/
+* https://bigconfig.it/api/workflow/")}
+  tidy {:doc "tidy clojure files"
+        :task (do (shell "clojure-lsp clean-ns")
+                  (shell "clojure-lsp format"))}
+  tofu {:doc "bb tofu render tofu:init lock tofu:apply:-auto-approve"
+        :task (tools/tofu* *command-line-args*)}
+  ansible {:doc "bb ansible render -- ansible-playbook main.yml"
+           :task (tools/ansible* *command-line-args*)}
+  << repository >> {:doc "bb << repository >> create"
+         :task (package/<< repository >>* *command-line-args*)}}}

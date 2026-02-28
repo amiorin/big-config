@@ -1,0 +1,12 @@
+{:paths   ["src/clj" "src/resources"]
+ :deps    {org.clojure/clojure          {:mvn/version "1.12.4"}
+           io.github.amiorin/big-config {:git/sha "e067cdb1713e7418c87f45bbe1e25418dfb7d928"}
+cheshire/cheshire            {:mvn/version "6.1.0"}
+           babashka/process             {:mvn/version "0.6.25"}
+           com.rpl/specter              {:mvn/version "1.1.6"}
+           }
+ :aliases {:dev  {:extra-paths ["env/dev/clj" "test/clj"]}
+           :test {:extra-paths ["test/clj"]
+                  :extra-deps {io.github.cognitect-labs/test-runner {:git/tag "v0.5.1" :git/sha "dfb30dd"}}
+                  :main-opts ["-m" "cognitect.test-runner"]
+                  :exec-fn cognitect.test-runner.api/test}}}

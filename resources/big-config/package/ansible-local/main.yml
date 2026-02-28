@@ -1,0 +1,16 @@
+---
+- name: Managed Local Configuration
+  hosts: local
+  tasks:
+    - name: Configure SSH access for micro
+      ansible.builtin.blockinfile:
+        path: ~/.ssh/config
+        create: yes
+        mode: "0600"
+        block: |
+          Host << repository >>
+              HostName {{ ip }}
+              User root
+              IdentityFile ~/.ssh/id_ed25519
+              IdentitiesOnly yes
+              Port 22

@@ -11,10 +11,11 @@
    [big-config.render :as render]
    [big-config.selmer-filters]
    [big-config.step-fns :as step-fns]
-   [big-config.utils :refer [deep-merge]]
+   [big-config.utils :refer [debug deep-merge]]
    [big-config.workflow :as workflow]
    [clojure.spec.alpha :as s]
-   [clojure.string :as str]))
+   [clojure.string :as str]
+   [selmer.filters :refer [add-filter!]]))
 
 (defn- help
   [& _]
@@ -72,8 +73,7 @@
         template (dissoc args :opts)]
     (merge {::render/templates [template]} opts)))
 
-(def step-fns [
-               (step-fns/->exit-step-fn ::workflow/end)
+(def step-fns [(step-fns/->exit-step-fn ::workflow/end)
                (step-fns/->print-error-step-fn ::workflow/end)])
 
 (defn- run-template
@@ -293,3 +293,62 @@
 
 (comment
   (generic :opts {::bc/env :repl}))
+
+(s/def ::owner non-blank-string?)
+(s/def ::repository non-blank-string?)
+(s/def ::package (s/keys :req-un [::target-dir ::overwrite ::owner ::repository ::ssh-key]))
+
+(defn data-fn [{:keys [service owner repository] :as data} _ops]
+  (let [namespace (format "io.github.%s.%s" owner repository)
+        path (str/replace namespace #"\." "/")]
+    (-> data
+        (assoc :deps (format "io.github.%s/%s" owner repository))
+        (assoc :namespace namespace)
+        (assoc :path path))))
+
+(defn package
+  "Create a BigConfig package.
+
+  Options:
+  - :owner       GitHub owner
+  - :repository  GitHub repository
+  - :ssh-key     Digitalocean ssh-key
+  - :target-dir  target directory for the template (`package` is the default)
+  - :overwrite   true or :delete (the target directory)
+
+  Example:
+    clojure -Tbig-config package"
+  [& {:as args}]
+  (tap> args)
+  (run-template ::package args {:post-process-fn [rename #_upgrade]
+                                :data-fn data-fn
+                                :transform [["root"
+                                             {"envrc" ".envrc"
+                                              "envrc.private" ".envrc.private"
+                                              "gitignore" ".gitignore"
+                                              "projectile" ".projectile"}
+                                             {:tag-open \<
+                                              :tag-close \>
+                                              :filter-open \<
+                                              :filter-close \>}]
+                                            ["clj-kondo" ".clj-kondo"]
+                                            ["lsp" ".lsp"]
+                                            ["env" "env/dev/clj"]
+                                            ["src" "src/clj/{{ path }}"]
+                                            ["test" "test/clj/{{ path }}"]
+                                            ["tofu" "src/resources/{{ path }}/tools/tofu"]
+                                            ["ansible" "src/resources/{{ path }}/tools/ansible"]
+                                            ["ansible-local" "src/resources/{{ path }}/tools/ansible-local"
+                                             {:tag-open \<
+                                              :tag-close \>
+                                              :filter-open \<
+                                              :filter-close \>}]]}))
+
+(comment
+  (debug tap-values
+    (package :opts {::bc/env :repl}
+             :target-dir "../../joe"
+             :owner 'amiorin
+             :repository 'joe
+             :ssh-key '812184))
+  (-> tap-values))

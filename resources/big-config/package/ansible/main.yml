@@ -1,0 +1,10 @@
+---
+- name: Managed Server Configuration
+  hosts: all
+  tasks:
+    - name: Install redis
+      ansible.builtin.apt:
+        name:
+          - redis
+        state: present
+        update_cache: yes
