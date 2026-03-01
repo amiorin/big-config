@@ -320,7 +320,7 @@
     clojure -Tbig-config package"
   [& {:as args}]
   (tap> args)
-  (run-template ::package args {:post-process-fn [rename #_upgrade]
+  (run-template ::package args {:post-process-fn [rename upgrade]
                                 :data-fn data-fn
                                 :transform [["root"
                                              {"envrc" ".envrc"
