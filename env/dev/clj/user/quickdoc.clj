@@ -39,4 +39,4 @@
                                      ::start [prepare ::render]
                                      ::render [render/render ::end]
                                      ::end [identity]))})]
-    (wf {})))
+    (wf [] {})))
