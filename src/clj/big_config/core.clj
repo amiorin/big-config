@@ -129,7 +129,7 @@
        [first-step last-step])
       ([step-fns opts]
        (when (nil? opts)
-         (throw (IllegalArgumentException. "ops should never be nil")))
+         (throw (IllegalArgumentException. "opts should never be nil")))
        (let [step-fns (resolve-step-fns step-fns)]
          (loop [step first-step
                 opts opts]
@@ -137,7 +137,7 @@
                  f (compose step-fns f)
                  {:keys [::bc/exit] :as opts} (try-f f step opts)
                  _ (when (nil? opts)
-                     (throw (ex-info "ops must never be nil" {:step step})))
+                     (throw (ex-info "opts must never be nil" {:step step})))
                  _ (when-not (nat-int? exit)
                      (throw (ex-info ":big-config/exit must be a natural number" opts)))
                  next-fn (resolve-next-fn next-fn last-step)

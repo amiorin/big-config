@@ -9,7 +9,7 @@
 (defn ->handler
   [f]
   (fn [[offset user-state] event timestamp next-offset]
-    (assert (= (inc offset) next-offset) "Offsets should be a continuos sequence of natural number starting from 0")
+    (assert (= (inc offset) next-offset) "Offsets should be a continuous sequence of natural numbers starting from 0")
     [next-offset (f user-state event timestamp)]))
 
 ; Success
@@ -57,8 +57,8 @@
 
 (defn- restore! [handler state-atom store-key wcar-opts]
   (let [[offset _] @state-atom
-        neg-offste-str (str (- offset))
-        states (wcar wcar-opts (car/zrange store-key "-inf" neg-offste-str "BYSCORE" "LIMIT" "0" "1"))]
+        neg-offset-str (str (- offset))
+        states (wcar wcar-opts (car/zrange store-key "-inf" neg-offset-str "BYSCORE" "LIMIT" "0" "1"))]
     (when (seq states)
       (let [[[neg-offset previous-state]] states]
         (reset! state-atom [(abs neg-offset) previous-state])))
