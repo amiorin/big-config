@@ -43,7 +43,11 @@
      (when (nil? (val pair#))
        (throw (IllegalArgumentException. (format "Argument %s is nil" (key pair#)))))))
 
-(defn keyword->path [kw]
+(defn keyword->path
+  "Converts a keyword into a file path string. Namespaces are treated as
+  directories and dots are converted into slashes.
+  Example: `:big-config.core/foo` -> `\"big-config/core/foo\"`"
+  [kw]
   (let [full-str (if-let [ns (namespace kw)]
                    (str ns "/" (name kw))
                    (name kw))]

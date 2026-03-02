@@ -1,7 +1,9 @@
 (ns user
   (:require
+   [babashka.fs :as fs]
    [big-config.integrant :refer [system-config]]
    [clojure.spec.alpha :as s]
+   [clojure.string :as str]
    [clojure.tools.namespace.repl :as repl]
    [expound.alpha :as expound]
    [integrant.core :as ig]
@@ -34,6 +36,20 @@
   (halt)
   (reset)
   [state/config state/preparer state/system])
+
+(comment
+  (def markdown (atom {}))
+  (fs/walk-file-tree "../../albertomiorin.com/big-config"
+                     {:visit-file
+                      (fn
+                        [path _]
+                        (let [path (str path)]
+                          (when (str/ends-with? path ".mdx")
+                            (swap! markdown assoc (keyword path) (slurp path))))
+                        :continue)})
+  (let [content (apply str (vals @markdown))]
+    (spit ".all-content.md" content))
+  (-> @markdown))
 
 (comment
   (q/gen-doc))

@@ -1,4 +1,12 @@
 (ns big-config.step-fns
+  "
+  BigConfig Step Functions are middleware-like components that wrap workflow steps.
+  They are primarily used for cross-cutting concerns such as logging, error reporting, 
+  and process termination.
+
+  These functions are executed immediately before and after a workflow step and 
+  receive the current execution context (the `opts` map).
+  "
   (:require
    [big-config :as bc]
    [big-config.core :refer [->step-fn]]

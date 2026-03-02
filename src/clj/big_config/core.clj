@@ -78,7 +78,7 @@
      branching logic when the default transitions provided by the `wire-fn` are
      insufficient.
 
-  Example with of workflow subworkflow:
+  Example of a workflow subworkflow:
 
   ```clojure
   (let [wf (->workflow {:first-step ::start
@@ -91,7 +91,7 @@
     (wf [my-step-fn] [{::my :value} {::his :value}]))
   ```
 
-  Example with of workflow with `next-fn`:
+  Example of a workflow with `next-fn`:
 
   ```clojure
   (def lock (->workflow {:first-step ::generate-lock-id

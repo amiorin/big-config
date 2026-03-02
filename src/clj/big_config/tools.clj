@@ -1,6 +1,18 @@
 (ns big-config.tools
   "
   This is the list of templates available in BigConfig out of the box.
+
+  Available templates:
+  * **`terraform`**: Scaffold a project to manage Terraform/Tofu with BigConfig.
+  * **`devenv`**: Generate devenv files for Clojure and Babashka development.
+  * **`dotfiles`**: Manage user configuration (dotfiles) with templates.
+  * **`ansible`**: Scaffold an Ansible-based infrastructure project.
+  * **`multi`**: A hybrid template for projects using both Ansible and Terraform.
+  * **`action`**: Create GitHub Actions workflows for Clojure projects.
+  * **`package`**: Scaffold a BigConfig package for deep automation.
+  * **`generic`**: A base template for generic infrastructure projects.
+  * **`tools`**: Create a `tools.clj` for programmatic workflow control.
+
   See [Clojure Tools](/guides/clojure-tools/) guide.
   "
   (:require
