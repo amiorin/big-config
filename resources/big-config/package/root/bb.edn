@@ -17,4 +17,4 @@ See:
   ansible {:doc "bb ansible render -- ansible-playbook main.yml"
            :task (tools/ansible* *command-line-args*)}
   << repository >> {:doc "bb << repository >> create"
-         :task (package/<< repository >>* *command-line-args*)}}}
+                    :task (package/<< repository >>* *command-line-args*)}}}

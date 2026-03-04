@@ -26,8 +26,7 @@
    [big-config.utils :refer [debug deep-merge]]
    [big-config.workflow :as workflow]
    [clojure.spec.alpha :as s]
-   [clojure.string :as str]
-   [selmer.filters :refer [add-filter!]]))
+   [clojure.string :as str]))
 
 (defn- help
   [& _]
