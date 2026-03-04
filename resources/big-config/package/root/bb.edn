@@ -13,8 +13,15 @@ See:
         :task (do (shell "clojure-lsp clean-ns")
                   (shell "clojure-lsp format"))}
   tofu {:doc "bb tofu render tofu:init lock tofu:apply:-auto-approve"
-        :task (tools/tofu* *command-line-args*)}
+        :task (tools/tofu* *command-line-args*
+                           {:big-config.workflow/prefix "<< prefix >>"})}
   ansible {:doc "bb ansible render -- ansible-playbook main.yml"
-           :task (tools/ansible* *command-line-args*)}
+           :task (do
+                   (println "Error: this tool requires the param `ip` that is only known after running the tool `tofu`.
+Replace `1.1.1.1.` with the IP address of the server in the `bb.edn` file and remove this.")
+                   (System/exit 1)
+                   (tools/ansible* *command-line-args*
+                                   {:big-config.workflow/prefix "<< prefix >>"
+                                    :big-config.workflow/params {:ip "1.1.1.1"}}))}
   << repository >> {:doc "bb << repository >> create"
                     :task (package/<< repository >>* *command-line-args*)}}}

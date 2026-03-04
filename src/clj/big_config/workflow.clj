@@ -384,7 +384,7 @@
 (defn- add-suffix [kw suffix]
   (keyword (namespace kw) (str (name kw) suffix)))
 
-(defn- new-prefix
+(defn ^:no-doc new-prefix
   [{:keys [::prefix ::render/profile] :as opts} first-step]
   (let [prefix (or prefix ".dist")
         profile (or profile "default")
@@ -403,6 +403,9 @@
                    Integer/toHexString)
         dirs (conj (vec dirs) (format "%s-%s" profile suffix))]
     (assoc opts ::prefix (str/join "/" dirs))))
+
+(comment
+  (new-prefix {} :io.github.amiorin.rama.package/start-create-or-delete))
 
 (defn ->workflow*
   "Creates a workflow of workflows. See the namespace `big-config.workflow`."

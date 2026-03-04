@@ -309,13 +309,16 @@
 (s/def ::repository non-blank-string?)
 (s/def ::package (s/keys :req-un [::target-dir ::overwrite ::owner ::repository ::ssh-key]))
 
-(defn data-fn [{:keys [service owner repository] :as data} _ops]
+(defn data-fn [{:keys [owner repository] :as data} _ops]
   (let [namespace (format "io.github.%s.%s" owner repository)
-        path (str/replace namespace #"\." "/")]
+        path (str/replace namespace #"\." "/")
+        prefix (-> (workflow/new-prefix {} :io.github.amiorin.rama.package/start-create-or-delete)
+                   ::workflow/prefix)]
     (-> data
         (assoc :deps (format "io.github.%s/%s" owner repository))
         (assoc :namespace namespace)
-        (assoc :path path))))
+        (assoc :path path)
+        (assoc :prefix prefix))))
 
 (defn package
   "Create a BigConfig package.
