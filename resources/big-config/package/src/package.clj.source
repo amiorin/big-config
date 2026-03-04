@@ -25,6 +25,15 @@
                (->> (s/select-one [:values :root_module :resources s/FIRST :values :ipv4_address])))]
     (merge-with merge opts {::workflow/params {:ip ip}})))
 
+(defn {{ repository }}-opts
+  [opts]
+  (-> opts
+      (workflow/new-prefix ::start-create-or-delete)
+      opts-fn))
+
+(comment
+  (<< repository >>-opts {}))
+
 (def create
   (workflow/->workflow* {:first-step ::start-create-or-delete
                          :last-step :end-create-or-delete
