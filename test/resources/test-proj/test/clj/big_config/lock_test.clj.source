@@ -1,0 +1,59 @@
+(ns big-config.lock-test
+  (:require
+   [babashka.fs :as fs]
+   [big-config :as bc]
+   [big-config.core :as core]
+   [big-config.lock :as lock :refer [lock]]
+   [big-config.run :as run]
+   [big-config.unlock :as unlock :refer [unlock-any]]
+   [big-config.utils :refer [debug]]
+   [big-config.utils-test :refer [default-opts test-step-fn]]
+   [clojure.test :refer [deftest is testing]]))
+
+; create dir
+; git init --bare bare
+; git clone bare repo
+; cd repo
+; touch README.md
+; git add .
+; git commit -m Message
+; git push
+; render
+; run/cmds
+; clean-up
+
+(comment
+  (debug tap-values
+    (do
+      (defn prepare-create-repos [opts]
+        (let [bare "bare"
+              repo "repo"
+              dir (str (fs/create-temp-dir {:prefix "lock-"}))
+              new-opts (merge-with merge opts {::run/shell-opts {:dir dir}})]
+          (-> new-opts
+              (assoc ::run/cmds [(format "git init --bare %s" bare)
+                                 (format "git clone bare %s" repo)]
+                     ::bare (str dir "/bare")
+                     ::repo (str dir "/repo"))
+
+              core/ok)))
+      (defn prepare-commit [{:keys [::run/shell-opts ::repo] :as opts}]
+        (let [new-opts {::run/shell-opts shell-opts
+                        ::prepare-opts opts
+                        ::run/cmds ["touch README.md"
+                                    "git add ."
+                                    "git commit -m Message"
+                                    "git push"]}]
+          (merge-with merge new-opts (core/ok) {::run/shell-opts {:dir repo}})))
+      (let [wf (core/->workflow {:first-step ::start
+                                 :wire-fn (fn [step step-fns]
+                                            (case step
+                                              ::start [prepare-create-repos ::create-repos]
+                                              ::create-repos [(partial run/run-cmds step-fns) ::prepare-commit]
+                                              ::prepare-commit [prepare-commit ::create-commit]
+                                              ::create-commit [(partial run/run-cmds step-fns) ::end]
+                                              ::end [identity]))})
+            opts (wf [] {::run/shell-opts {:err :string
+                                           :out :string}})]
+        opts)))
+  (-> tap-values))

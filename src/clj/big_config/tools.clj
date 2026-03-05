@@ -51,7 +51,7 @@
     (shell {:dir target-dir} "git add -A")
     (shell {:dir target-dir} "git commit -m 'initial import'")))
 
-(defn- rename
+(defn ^:no-doc rename
   [{:keys [target-dir]} _]
   (fs/walk-file-tree target-dir
                      {:visit-file

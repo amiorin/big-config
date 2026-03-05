@@ -24,7 +24,7 @@
                                 pjstadig/humane-test-output         {:mvn/version "0.11.0"}
                                 io.github.borkdude/quickdoc         {:git/sha "026b4fab8570853e38c3097fe1f8619abc95b2e0"}
                                 org.clojure/tools.namespace         {:mvn/version "1.5.0"}}
-                  :extra-paths ["env/dev/clj" "env/test/resources" "test/clj"]}
+                  :extra-paths ["env/dev/clj" "env/test/resources" "test/clj" "test/resources"]}
 
            :test {:extra-deps  {expound/expound                      {:mvn/version "0.9.0"}
                                 io.github.cognitect-labs/test-runner {:git/url "https://github.com/cognitect-labs/test-runner.git"
@@ -38,6 +38,6 @@
                                 integrant/repl                       {:mvn/version "0.5.0"}
                                 integrant/integrant                  {:mvn/version "1.0.1"}}
                   :exec-fn      cognitect.test-runner.api/test
-                  :extra-paths ["env/test/resources" "test/clj"]
+                  :extra-paths ["env/test/resources" "test/clj" "test/resources"]
                   :main-opts   ["-e" "(require 'pjstadig.humane-test-output) (pjstadig.humane-test-output/activate!)"
                                 "-m" "cognitect.test-runner" "--dir" "test/clj"]}}}
