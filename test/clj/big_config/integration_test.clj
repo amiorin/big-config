@@ -1,4 +1,4 @@
-(ns big-config.proj-test
+(ns big-config.integration-test
   (:require
    [babashka.fs :as fs]
    [big-config :as bc]
@@ -61,9 +61,9 @@
                                             ::prepare-tests [prepare-tests ::run-tests]
                                             ::run-tests [(partial run/run-cmds step-fns) ::end]
                                             ::end [identity]))})]
-      (wf step-fns {::bc/env :repl
-                    ::run/shell-opts {:err :string
-                                      :out :string}})
+      (tap> (wf step-fns {::bc/env :repl
+                          ::run/shell-opts {:err :string
+                                            :out :string}}))
       (as-> @xs $
         (map ::bc/exit $)
         (is (= [0] $))))))

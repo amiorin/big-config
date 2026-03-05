@@ -1,0 +1,4 @@
+{:deps {amiorin/big-config {:local/root "."}}
+ :tasks
+ {test {:requires ([big-config.step-fns-test :refer [wf-exit]])
+        :task (wf-exit)}}}

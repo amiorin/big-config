@@ -32,7 +32,7 @@
     (let [expect [1 ":big-config.step-fns-test/start\n:big-config.step-fns-test/wf1-end\n:big-config.step-fns-test/wf1-end\n:big-config.step-fns-test/start\n:big-config.step-fns-test/end\n:big-config.step-fns-test/end\n"]
           proc (process/shell {:continue true
                                :out :string
-                               :err :string} "just test-wf-exit")
+                               :err :string} "bb test")
           {:keys [exit out]} proc
           actual [exit out]]
       (doseq [[f a e] (map list [= str/includes?] actual expect)]
@@ -40,6 +40,3 @@
 
 (comment
   (wf-exit))
-
-; to avoid infinite loops, do not write expressions in this file because it is
-; required by the test. To debug this test use `user`.

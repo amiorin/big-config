@@ -36,14 +36,3 @@ redis-test:
 [positional-arguments]
 @pc-test *args='-f pc-test.yaml up':
     direnv exec . process-compose -p <{ pc-port-test }> $@
-
-# invoked by recipe test
-[group('private')]
-test-wf-exit:
-    #!/usr/bin/env -S bb --config bb.edn
-    (require '[babashka.classpath :refer [add-classpath get-classpath]]
-             '[clojure.string :as str])
-    (add-classpath (str (System/getProperty "user.dir") "/test/clj"))
-    (require '[big-config.step-fns-test :refer [wf-exit]])
-    (wf-exit)
-
