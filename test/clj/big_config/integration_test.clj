@@ -38,7 +38,9 @@
 (defn prepare-tests [{:keys [::run/shell-opts ::repo] :as opts}]
   (let [new-opts {::run/shell-opts shell-opts
                   ::prepare-opts opts
-                  ::run/cmds ["git add ."
+                  ::run/cmds ["git config user.email ci@bigconfig.it"
+                              "git config user.name CI"
+                              "git add ."
                               "git commit -m First"
                               "touch README.md"
                               "git add ."
@@ -47,7 +49,7 @@
                               "clojure -M:test"]}]
     (merge-with merge new-opts (core/ok) {::run/shell-opts {:dir repo}})))
 
-(deftest proj-test
+(deftest integration-test
   (testing "Lock and Git workflow tests are tested in an isolated local environment"
     (let [xs (atom [])
           step-fns [(partial test-step-fn #{::end} xs)]
