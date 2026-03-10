@@ -1,3 +1,1 @@
-(ns {{ namespace }}.tools-test
-  (:require [{{ namespace }}.tools :as sut]
-            [clojure.test :as t]))
+(ns {{ namespace }}.tools-test)
