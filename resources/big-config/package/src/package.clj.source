@@ -32,7 +32,7 @@
       opts-fn))
 
 (comment
-  (<< repository >>-opts {}))
+  ({{ repository }}-opts {}))
 
 (def create
   (workflow/->workflow* {:first-step ::start-create-or-delete
