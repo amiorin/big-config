@@ -1,4 +1,4 @@
-(ns {{ namespace }}.tools
+(ns <{ namespace }>.tools
   (:require
    [big-config :as bc]
    [big-config.render :as render]

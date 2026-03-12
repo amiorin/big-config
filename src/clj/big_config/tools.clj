@@ -311,14 +311,11 @@
 
 (defn data-fn [{:keys [owner repository] :as data} _ops]
   (let [namespace (format "io.github.%s.%s" owner repository)
-        path (str/replace namespace #"\." "/")
-        prefix (-> (workflow/new-prefix {} :io.github.amiorin.rama.package/start-create-or-delete)
-                   ::workflow/prefix)]
+        path (str/replace namespace #"\." "/")]
     (-> data
         (assoc :deps (format "io.github.%s/%s" owner repository))
         (assoc :namespace namespace)
-        (assoc :path path)
-        (assoc :prefix prefix))))
+        (assoc :path path))))
 
 (defn package
   "Create a BigConfig package.
@@ -333,30 +330,26 @@
   Example:
     clojure -Tbig-config package"
   [& {:as args}]
-  (tap> args)
-  (run-template ::package args {:post-process-fn [rename upgrade]
-                                :data-fn data-fn
-                                :transform [["root"
-                                             {"envrc" ".envrc"
-                                              "envrc.private" ".envrc.private"
-                                              "gitignore" ".gitignore"
-                                              "projectile" ".projectile"}
-                                             {:tag-open \<
-                                              :tag-close \>
-                                              :filter-open \<
-                                              :filter-close \>}]
-                                            ["clj-kondo" ".clj-kondo"]
-                                            ["lsp" ".lsp"]
-                                            ["env" "env/dev/clj"]
-                                            ["src" "src/clj/{{ path }}"]
-                                            ["test" "test/clj/{{ path }}"]
-                                            ["tofu" "src/resources/{{ path }}/tools/tofu"]
-                                            ["ansible" "src/resources/{{ path }}/tools/ansible"]
-                                            ["ansible-local" "src/resources/{{ path }}/tools/ansible-local"
-                                             {:tag-open \<
-                                              :tag-close \>
-                                              :filter-open \<
-                                              :filter-close \>}]]}))
+  (let [delimiters {:tag-open \<
+                    :tag-close \>
+                    :filter-open \{
+                    :filter-close \}}]
+    (run-template ::package args {:post-process-fn [rename upgrade]
+                                  :data-fn data-fn
+                                  :transform [["ansible" "src/resources/{{ path }}/tools/ansible" :raw]
+                                              ["ansible-local" "src/resources/{{ path }}/tools/ansible-local" :raw]
+                                              ["clj-kondo" ".clj-kondo" :raw]
+                                              ["env" "env/dev/clj" :raw]
+                                              ["lsp" ".lsp" :raw]
+                                              ["root"
+                                               {"envrc" ".envrc"
+                                                "envrc.private" ".envrc.private"
+                                                "gitignore" ".gitignore"
+                                                "projectile" ".projectile"}
+                                               delimiters]
+                                              ["src" "src/clj/{{ path }}" delimiters]
+                                              ["test" "test/clj/{{ path }}" delimiters]
+                                              ["tofu" "src/resources/{{ path }}/tools/tofu" delimiters]]})))
 
 (comment
   (debug tap-values

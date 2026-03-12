@@ -1,7 +1,7 @@
-{:deps {<< deps >> {:local/root "."}}
+{:deps {<{ deps }> {:local/root "."}}
  :tasks
- {:requires ([<< namespace >>.package :as package]
-             [<< namespace >>.tools :as tools])
+ {:requires ([<{ namespace }>.package :as package]
+             [<{ namespace }>.tools :as tools])
   help {:doc "the workflow help"
         :override-builtin true
         :task (println "Usage: bb <step|cmd>+ -- [raw-command]
@@ -13,8 +13,8 @@ See:
         :task (do (shell "clojure-lsp clean-ns")
                   (shell "clojure-lsp format"))}
   tofu {:doc "bb tofu render tofu:init lock tofu:apply:-auto-approve"
-        :task (tools/tofu* *command-line-args* (package/<< repository >>-opts {}))}
+        :task (tools/tofu* *command-line-args* (package/<{ repository }>-opts {}))}
   ansible {:doc "bb ansible render -- ansible-playbook main.yml"
-           :task (tools/ansible* *command-line-args* (package/<< repository >>-opts {}))}
-  << repository >> {:doc "bb << repository >> create"
-                    :task (package/<< repository >>* *command-line-args*)}}}
+           :task (tools/ansible* *command-line-args* (package/<{ repository }>-opts {}))}
+  <{ repository }> {:doc "bb <{ repository }> create"
+                    :task (package/<{ repository }>* *command-line-args*)}}}

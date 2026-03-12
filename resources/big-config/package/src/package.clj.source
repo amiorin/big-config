@@ -1,4 +1,4 @@
-(ns {{ namespace }}.package
+(ns <{ namespace }>.package
   (:require
    [babashka.fs :as fs]
    [babashka.process :as p]
@@ -10,7 +10,7 @@
    [big-config.workflow :as workflow]
    [cheshire.core :as json]
    [com.rpl.specter :as s]
-   [{{ namespace }}.tools :as tools]))
+   [<{ namespace }>.tools :as tools]))
 
 (def step-fns [workflow/print-step-fn
                (step-fns/->exit-step-fn ::end)
@@ -27,14 +27,14 @@
                                                     (->> (s/select-one [:params :value])))
                                                 {:ip "192.168.0.1"})})))
 
-(defn {{ repository }}-opts
+(defn <{ repository }>-opts
   [opts]
   (-> opts
       (workflow/new-prefix ::start-create-or-delete)
       opts-fn))
 
 (comment
-  ({{ repository }}-opts {}))
+  (<{ repository }>-opts {}))
 
 (def create
   (workflow/->workflow* {:first-step ::start-create-or-delete
@@ -60,7 +60,7 @@
                          :last-step ::end-create-or-delete
                          :pipeline [::tools/tofu ["render tofu:init tofu:destroy:-auto-approve"]]}))
 
-(defn {{ repository }}
+(defn <{ repository }>
   [step-fns opts]
   (let [opts (merge {::workflow/create-fn create
                      ::workflow/delete-fn delete}
@@ -74,7 +74,7 @@
 
 (comment
   (debug tap-values
-    ({{ repository }} [(fn [f step opts]
+    (<{ repository }> [(fn [f step opts]
               (tap> [step opts])
               (f step opts))]
            {::bc/env :repl
@@ -83,16 +83,16 @@
             ::workflow/steps [:create]}))
   (-> tap-values))
 
-(defn {{ repository }}*
+(defn <{ repository }>*
   [args & [opts]]
   (let [opts (merge (workflow/parse-args args)
                     {::bc/env :shell}
                     opts)]
-    ({{ repository }} step-fns opts)))
+    (<{ repository }> step-fns opts)))
 
 (comment
   (debug tap-values
-    ({{ repository }}* "delete create delete" {::bc/env :repl
+    (<{ repository }>* "delete create delete" {::bc/env :repl
                                     ::run/shell-opts {:err *err*
                                                       :out *out*}
                                     ::workflow/create-opts {::tools/tofu-opts {::workflow/steps [:render]}

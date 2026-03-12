@@ -1,1 +1,1 @@
-(ns {{ namespace }}.tools-test)
+(ns <{ namespace }>.tools-test)
