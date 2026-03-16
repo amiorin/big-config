@@ -1,12 +1,18 @@
-(ns dot-big-config
+(ns render
   (:require
    [big-config :as bc]
    [big-config.render :as render]
    [big-config.run :as run]
-   [big-config.step :as step]
-   [big-config.utils :refer [port-assigner]]))
+   [big-config.step-fns :as step-fns]
+   [big-config.utils :refer [debug port-assigner]]
+   [big-config.workflow :as workflow]))
 
-(defn run-steps [s opts & step-fns]
+(def step-fns [workflow/print-step-fn
+               (step-fns/->exit-step-fn ::workflow/end)
+               (step-fns/->print-error-step-fn ::workflow/end)])
+
+(defn build
+  [step-fns opts]
   (let [dir ".."
         template {:template "big-config"
                   :target-dir dir
@@ -21,11 +27,18 @@
                                {:tag-open \<
                                 :tag-close \>}]]}
         opts (merge opts
-                    {::run/shell-opts {:dir dir}
+                    {::workflow/name ::build
+                     ::run/shell-opts {:dir dir}
                      ::render/templates [template]})]
-    (if step-fns
-      (apply step/run-steps s opts step-fns)
-      (step/run-steps s opts))))
+    (workflow/run-steps step-fns opts)))
+
+(defn build*
+  [args & [opts]]
+  (let [opts (merge (workflow/parse-args args)
+                    {::bc/env :shell}
+                    opts)]
+    (build step-fns opts)))
 
 (comment
-  (run-steps "render -- generic prod" {::bc/env :repl}))
+  (debug tap-values
+    (build* "render" {::bc/env :repl})))

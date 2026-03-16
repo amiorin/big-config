@@ -1,4 +1,5 @@
 .*
+!/.big-config
 /.clj-kondo/*
 !/.clj-kondo
 !/.clj-kondo/config.edn

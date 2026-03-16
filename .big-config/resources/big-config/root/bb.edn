@@ -3,9 +3,9 @@
  :tasks
  {:requires ([clojure.string :as str])
   build {:doc "setup the dev environment"
-         :task (shell {:dir ".big-config"} "bb render devenv:build -- module profile")}
+         :task (shell {:dir ".big-config"} "bb render devenv:build")}
   test-bb-task {:requires ([big-config.system :refer [test-bb]])
-           :task (test-bb)}
+                :task (test-bb)}
   just {:doc "setup the dev environment and run a recipe"
         :task (do (run 'build)
                   (shell (str/join " " (into ["just"] *command-line-args*))))}}}
