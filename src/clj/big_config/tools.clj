@@ -62,6 +62,9 @@
                             (fs/move path (str/replace path #".source$"  "") {:replace-existing true})))
                         :continue)}))
 
+(comment
+  (rename {:target-dir "test/fixtures/target/tools-8"} nil))
+
 (defn- upgrade
   [{:keys [target-dir]} _]
   (binding [*out* (java.io.StringWriter.)]

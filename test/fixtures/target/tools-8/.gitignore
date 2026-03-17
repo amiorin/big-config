@@ -1,0 +1,12 @@
+.*
+!.gitignore
+!.envrc
+!.dir-locals.el
+
+/.clj-kondo/*
+!/.clj-kondo
+!/.clj-kondo/config.edn
+
+/.lsp/*
+!/.lsp
+!/.lsp/config.edn

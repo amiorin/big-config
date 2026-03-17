@@ -1,0 +1,2 @@
+{:ignore-directories-on-client ["resources"]
+ :cljfmt {:indents {debug [[:inner 0]]}}}

@@ -31,6 +31,11 @@
                              :ns "big-config"
                              :name "tools-v2"]]
                  [sut/generic [:opts {::bc/env :repl}
+                               :post-process-fn nil]]
+                 [sut/package [:opts {::bc/env :repl}
+                               :owner "amiorin"
+                               :repository "redis"
+                               :ssh-key "1234"
                                :post-process-fn nil]]]]
         (when-not (empty? xs)
           (let [[f args] (first xs)
