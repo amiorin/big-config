@@ -2,6 +2,7 @@
 !.gitignore
 !.envrc
 !.dir-locals.el
+!.projectile
 
 /.clj-kondo/*
 !/.clj-kondo
