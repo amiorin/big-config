@@ -4,5 +4,5 @@
   -tidy {:doc "tidy clojure files"
          :task (do (shell "clojure-lsp clean-ns")
                    (shell "clojure-lsp format"))}
-  render {:doc "bb render"
-          :task (render/build* *command-line-args*)}}}
+  build {:doc "bb build render devenv:build"
+         :task (render/build* *command-line-args*)}}}
