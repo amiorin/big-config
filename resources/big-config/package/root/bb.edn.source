@@ -16,5 +16,7 @@ See:
         :task (tools/tofu* *command-line-args* (package/<{ repository }>-opts {}))}
   ansible {:doc "bb ansible render -- ansible-playbook main.yml"
            :task (tools/ansible* *command-line-args* (package/<{ repository }>-opts {}))}
+  ansible-local {:doc "bb ansible render -- ansible-playbook main.yml"
+                 :task (tools/ansible-local* *command-line-args* (package/<{ repository }>-opts {}))}
   <{ repository }> {:doc "bb <{ repository }> create"
                     :task (package/<{ repository }>* *command-line-args*)}}}

@@ -39,8 +39,8 @@
                                                                   :out *err*}}))
   (-> tap-values))
 
-(defn data-fn [{:keys [ip] :as data} _]
-  (let [sudoer "root"
+(defn data-fn [{:keys [ip sudoer] :as data} _]
+  (let [sudoer (or sudoer "root")
         hosts [(or ip "64.227.72.100")]]
     (merge data {:sudoer sudoer
                  :hosts hosts

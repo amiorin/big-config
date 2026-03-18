@@ -11,7 +11,7 @@
         block: |
           Host {{ name }}
               HostName {{ ip }}
-              User root
+              User {{ user }}
               IdentityFile ~/.ssh/id_ed25519
               IdentitiesOnly yes
               Port 22
