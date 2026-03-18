@@ -349,7 +349,8 @@
                                                {"envrc" ".envrc"
                                                 "envrc.private" ".envrc.private"
                                                 "gitignore" ".gitignore"
-                                                "projectile" ".projectile"}
+                                                "projectile" ".projectile"
+                                                "dir-locals.el" ".dir-locals.el"}
                                                delimiters]
                                               ["src" "src/clj/{{ path }}" delimiters]
                                               ["test" "test/clj/{{ path }}" delimiters]
