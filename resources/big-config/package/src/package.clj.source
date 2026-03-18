@@ -61,10 +61,15 @@
                          :pipeline [::tools/tofu ["render tofu:init tofu:destroy:-auto-approve"]]}))
 
 (defn <{ repository }>
-  [step-fns opts]
-  (let [opts (merge {::workflow/create-fn create
-                     ::workflow/delete-fn delete}
-                    opts)
+  [step-fns {:keys [::workflow/params] :as opts}]
+  (let [hyperscaler "hcloud"
+        opts (->> opts
+                  (merge {::workflow/create-fn create
+                          ::workflow/delete-fn delete})
+                  (s/setval [::workflow/create-opts ::tools/tofu-opts ::workflow/params] {:hyperscaler hyperscaler})
+                  (s/setval [::workflow/delete-opts ::tools/tofu-opts ::workflow/params] {:hyperscaler hyperscaler})
+                  (s/transform [::workflow/create-opts ::tools/tofu-opts ::workflow/params] #(merge % params))
+                  (s/transform [::workflow/delete-opts ::tools/tofu-opts ::workflow/params] #(merge % params)))
         wf (core/->workflow {:first-step ::start
                              :wire-fn (fn [step step-fns]
                                         (case step
