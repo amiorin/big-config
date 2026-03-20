@@ -1,17 +1,24 @@
 (ns big-config.tools
-  "
-  This is the list of templates available in BigConfig out of the box.
+  "These are the templates available in BigConfig out of the box.
 
-  Available templates:
-  * **`terraform`**: Scaffold a project to manage Terraform/Tofu with BigConfig.
-  * **`devenv`**: Generate devenv files for Clojure and Babashka development.
-  * **`dotfiles`**: Manage user configuration (dotfiles) with templates.
-  * **`ansible`**: Scaffold an Ansible-based infrastructure project.
-  * **`multi`**: A hybrid template for projects using both Ansible and Terraform.
-  * **`action`**: Create GitHub Actions workflows for Clojure projects.
-  * **`package`**: Scaffold a BigConfig package for deep automation.
-  * **`generic`**: A base template for generic infrastructure projects.
-  * **`tools`**: Create a `tools.clj` for programmatic workflow control.
+  ### Available Templates
+
+    * `package`: Scaffold a BigConfig package for deep automation.
+    * `devenv`: Generate `devenv` files for Clojure and Babashka development.
+    * `action`: Create GitHub Actions workflows for Clojure projects.
+
+  -----
+
+  ### DEPRECATED Templates
+
+  > **Note:** These templates must be migrated from `step` to `workflow`.
+
+    * `terraform`: Scaffold a project to manage Terraform/OpenTofu with BigConfig.
+    * `dotfiles`: Manage user configuration (dotfiles) with templates.
+    * `ansible`: Scaffold an Ansible-based infrastructure project.
+    * `multi`: A hybrid template for projects using both Ansible and Terraform.
+    * `tools`: Create a `tools.clj` for programmatic workflow control.
+    * `generic`: A base template for generic infrastructure projects.
 
   See [Clojure Tools](/guides/clojure-tools/) guide.
   "
@@ -104,10 +111,68 @@
         opts (args->opts args spec)]
     (workflow/run-steps step-fns opts)))
 
+(s/def ::owner non-blank-string?)
+(s/def ::repository non-blank-string?)
+(s/def ::package (s/keys :req-un [::target-dir ::overwrite ::owner ::repository ::ssh-key]))
+
+(defn data-fn [{:keys [owner repository] :as data} _ops]
+  (let [namespace (format "io.github.%s.%s" owner repository)
+        path (str/replace namespace #"\." "/")]
+    (-> data
+        (assoc :deps (format "io.github.%s/%s" owner repository))
+        (assoc :namespace namespace)
+        (assoc :path path))))
+
+(defn package
+  "Create a BigConfig package.
+
+  Options:
+  - :owner       GitHub owner
+  - :repository  GitHub repository
+  - :ssh-key     Digitalocean ssh-key
+  - :target-dir  target directory for the template (`package` is the default)
+  - :overwrite   true or :delete (the target directory)
+
+  Example:
+    clojure -Tbig-config package"
+  [& {:as args}]
+  (let [delimiters {:tag-open \<
+                    :tag-close \>
+                    :filter-open \{
+                    :filter-close \}}]
+    (run-template ::package args {:post-process-fn [rename upgrade]
+                                  :data-fn data-fn
+                                  :transform [["ansible" "src/resources/{{ path }}/tools/ansible" :raw]
+                                              ["ansible-local" "src/resources/{{ path }}/tools/ansible-local" :raw]
+                                              ["clj-kondo" ".clj-kondo" :raw]
+                                              ["env" "env/dev/clj" :raw]
+                                              ["lsp" ".lsp" :raw]
+                                              ["root"
+                                               {"envrc" ".envrc"
+                                                "envrc.private" ".envrc.private"
+                                                "gitignore" ".gitignore"
+                                                "projectile" ".projectile"
+                                                "dir-locals.el" ".dir-locals.el"}
+                                               delimiters]
+                                              ["src" "src/clj/{{ path }}" delimiters]
+                                              ["test" "test/clj/{{ path }}" delimiters]
+                                              ["tofu" "src/resources/{{ path }}/tools/tofu" delimiters]]})))
+
+(comment
+  (debug tap-values
+    (package :opts {::bc/env :repl}
+             :target-dir "../../joe"
+             :owner 'amiorin
+             :repository 'joe
+             :ssh-key '812184))
+  (-> tap-values))
+
 (s/def ::terraform (s/keys :req-un [::target-dir ::overwrite ::aws-profile ::region ::dev ::prod]))
 
 (defn terraform
-  "Create a repo to manage Terraform/Tofu projects with BigConfig.
+  "DEPRECATED, use the `package` template
+
+  Create a repo to manage Terraform/Tofu projects with BigConfig.
 
   Options:
   - :target-dir  target directory for the template (`terrafom` is the default)
@@ -164,7 +229,9 @@
 (s/def ::dotfiles (s/keys :req-un [::target-dir ::overwrite]))
 
 (defn dotfiles
-  "Create a repo to manage dotfiles with BigConfig.
+  "DEPRECATED: clone https://github.com/amiorin/dotfiles-v3
+
+  Create a repo to manage dotfiles with BigConfig.
 
   Options:
   - :target-dir  target directory for the template (`dotfiles` is the default)
@@ -186,7 +253,9 @@
 (s/def ::ansible (s/keys :req-un [::target-dir ::overwrite]))
 
 (defn ansible
-  "Create a repo to manage Ansible projects with BigConfig.
+  "DEPRECATED, use the `package` template
+
+  Create a repo to manage Ansible projects with BigConfig.
 
   Options:
   - :target-dir  target directory for the template (`ansible` is the default)
@@ -209,7 +278,9 @@
 (s/def ::multi (s/keys :req-un [::target-dir ::overwrite]))
 
 (defn multi
-  "Create a repo to manage both Ansible and Terraform projects with BigConfig.
+  "DEPRECATED, use the `package` template
+
+  Create a repo to manage both Ansible and Terraform projects with BigConfig.
 
   Options:
   - :target-dir  target directory for the template (`multi` is the default)
@@ -258,7 +329,9 @@
 (s/def ::tools (s/keys :req-un [::target-dir ::overwrite ::path ::ns ::name]))
 
 (defn tools
-  "Create a tools.clj for a Clojure project.
+  "DEPRECATED, use https://github.com/amiorin/big-config/blob/main/src/clj/big_config/tools.clj
+
+  Create a tools.clj for a Clojure project.
 
   Options:
   - :target-dir  target directory for the template (current directory is the default)
@@ -288,7 +361,9 @@
 (s/def ::generic (s/keys :req-un [::target-dir ::overwrite]))
 
 (defn generic
-  "Create a repo to manage a generic projects with BigConfig.
+  "DEPRECATED, use the `package` template
+
+  Create a repo to manage a generic projects with BigConfig.
 
   Options:
   - :target-dir  target directory for the template (`generic` is the default)
@@ -308,59 +383,3 @@
 
 (comment
   (generic :opts {::bc/env :repl}))
-
-(s/def ::owner non-blank-string?)
-(s/def ::repository non-blank-string?)
-(s/def ::package (s/keys :req-un [::target-dir ::overwrite ::owner ::repository ::ssh-key]))
-
-(defn data-fn [{:keys [owner repository] :as data} _ops]
-  (let [namespace (format "io.github.%s.%s" owner repository)
-        path (str/replace namespace #"\." "/")]
-    (-> data
-        (assoc :deps (format "io.github.%s/%s" owner repository))
-        (assoc :namespace namespace)
-        (assoc :path path))))
-
-(defn package
-  "Create a BigConfig package.
-
-  Options:
-  - :owner       GitHub owner
-  - :repository  GitHub repository
-  - :ssh-key     Digitalocean ssh-key
-  - :target-dir  target directory for the template (`package` is the default)
-  - :overwrite   true or :delete (the target directory)
-
-  Example:
-    clojure -Tbig-config package"
-  [& {:as args}]
-  (let [delimiters {:tag-open \<
-                    :tag-close \>
-                    :filter-open \{
-                    :filter-close \}}]
-    (run-template ::package args {:post-process-fn [rename upgrade]
-                                  :data-fn data-fn
-                                  :transform [["ansible" "src/resources/{{ path }}/tools/ansible" :raw]
-                                              ["ansible-local" "src/resources/{{ path }}/tools/ansible-local" :raw]
-                                              ["clj-kondo" ".clj-kondo" :raw]
-                                              ["env" "env/dev/clj" :raw]
-                                              ["lsp" ".lsp" :raw]
-                                              ["root"
-                                               {"envrc" ".envrc"
-                                                "envrc.private" ".envrc.private"
-                                                "gitignore" ".gitignore"
-                                                "projectile" ".projectile"
-                                                "dir-locals.el" ".dir-locals.el"}
-                                               delimiters]
-                                              ["src" "src/clj/{{ path }}" delimiters]
-                                              ["test" "test/clj/{{ path }}" delimiters]
-                                              ["tofu" "src/resources/{{ path }}/tools/tofu" delimiters]]})))
-
-(comment
-  (debug tap-values
-    (package :opts {::bc/env :repl}
-             :target-dir "../../joe"
-             :owner 'amiorin
-             :repository 'joe
-             :ssh-key '812184))
-  (-> tap-values))
