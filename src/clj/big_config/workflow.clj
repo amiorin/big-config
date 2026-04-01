@@ -64,6 +64,8 @@
   arguments.
   * **`select-globals`**: Utility function to copy the global options across
   workflows.
+  * **`merge-params`**: Utility function to merge the package params with the
+  tool params. `tools` is a sequence of qualified keywords.
 
   ### Options for `wf*-opts`.
   * `:first-step` (required): First step of the workflow.
@@ -484,7 +486,7 @@
   (-> tap-values))
 
 (defn path
-  "Find the path of a previous workflow to extract the outputs."
+  "Find the path of a previous workflow to extract the outputs. See the namespace `big-config.workflow`."
   [{:keys [::prefix]} name]
   (format "%s/%s" (or prefix ".dist") (keyword->path name)))
 
@@ -508,3 +510,19 @@
 (comment
   (prepare {::name ::tofu
             ::render/templates [{}]} {}))
+
+(defn merge-params
+  "Merge the package params with the tool params. See the namespace `big-config.workflow`."
+  [tools params opts]
+  (let [tool (first tools)]
+    (if tool
+      (->> opts
+           (s/transform [::create-opts tool ::params] #(merge params %))
+           (s/transform [::delete-opts tool ::params] #(merge params %))
+           (recur (rest tools) params))
+      opts)))
+
+(comment
+  (debug tap-values
+    (merge-params [:tools/tofu-opts :tools/tofu-dns-opts] {:zone-id "zone-id"} {::create-opts {:tools/tofu-opts {::params {:zone-id "my-zone-id"}}}}))
+  (-> tap-values))
