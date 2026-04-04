@@ -66,6 +66,8 @@
   workflows.
   * **`merge-params`**: Utility function to merge the package params with the
   tool params. `tools` is a sequence of qualified keywords.
+  * **`read-bc-pars`**: Utility function to override the package params with
+  environment variable.
 
   ### Options for `wf*-opts`.
   * `:first-step` (required): First step of the workflow.
@@ -79,7 +81,9 @@
   ### Options for `opts` and step `render`
   * `::name` (required): The unique identifier for the workflow instance.
   * `::path-fn` (optional): Logic for resolving file paths.
-  * `::params` (optional): The input data for the workflow.
+  * `::params` (optional): The input data for the workflow. The conventions is
+  to use unqualified keywords with prefixes like: `:oci-config-file-profile` or
+  `:hcloud-server-type`.
 
   ### Options for `prepare-opts` and step `render`
   * `::name` (required): The unique identifier for the workflow instance.
@@ -512,7 +516,8 @@
             ::render/templates [{}]} {}))
 
 (defn merge-params
-  "Merge the package params with the tool params. See the namespace `big-config.workflow`."
+  "Merge the package params with the tool params. Tools is a seq of qualified
+  keywords. See the namespace `big-config.workflow`."
   [tools params opts]
   (let [tool (first tools)]
     (if tool
@@ -526,3 +531,25 @@
   (debug tap-values
     (merge-params [:tools/tofu-opts :tools/tofu-dns-opts] {:zone-id "zone-id"} {::create-opts {:tools/tofu-opts {::params {:zone-id "my-zone-id"}}}}))
   (-> tap-values))
+
+(def ^:private prefix "BC_PAR_")
+
+(defn read-bc-pars
+  "Function to override any `params` with an environment variable. If the
+  `param` is `cloudflare-zone-id` then the environment variable is `export
+  BC_PAR_CLOUDFLARE_ZONE_ID=\"your-zone-id\"` See the namespace `big-config.workflow`.
+  "
+  [opts]
+  (let [params-from-env (->> (System/getenv)
+                             (filter #(str/starts-with? % prefix))
+                             (map (fn [[k v]] [(-> k
+                                                   (subs (count prefix))
+                                                   str/lower-case
+                                                   (str/replace "_" "-")
+                                                   (str/replace "." "-")
+                                                   keyword) v]))
+                             (into {}))]
+    (merge-with merge opts {::params params-from-env})))
+
+(comment
+  (read-bc-pars {::params {:foo :bar}}))
