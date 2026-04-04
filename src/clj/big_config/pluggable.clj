@@ -1,0 +1,42 @@
+(ns big-config.pluggable
+  "A pluggable workflow allows extending or overriding step behavior using a multimethod."
+  (:require
+   [big-config.core :as core]
+   [big-config.utils :refer [debug]]))
+
+(defmulti handle-step
+  "A multimethod that dispatches on the `step`. It is used by `->workflow*` to
+  allow pluggable step handling.
+
+  The `:default` implementation calls the original function provided by the
+  `:wire-fn` in `->workflow*`."
+  (fn [step _step-fns _opts] step))
+
+(defn ->workflow*
+  "Similar to `core/->workflow`, but wraps each step execution in the `handle-step`
+  multimethod, allowing for external extension or overriding of specific steps."
+  [{:keys [first-step last-step wire-fn next-fn]}]
+  (fn [step-fns opts]
+    (let [new-wire-fn (fn [step step-fns]
+                        (let [[_ next-step] (wire-fn step step-fns)]
+                          [(partial handle-step step step-fns) next-step]))
+          wf (core/->workflow {:first-step first-step
+                               :last-step last-step
+                               :wire-fn new-wire-fn
+                               :next-fn next-fn})]
+      (.addMethod ^clojure.lang.MultiFn handle-step :default (fn [step step-fns opts]
+                                                               (let [[f _] (wire-fn step step-fns)]
+                                                                 (f opts))))
+      (wf step-fns opts))))
+
+(comment
+  (debug tap-values
+    (let [wf (->workflow* {:first-step ::start
+                           :last-step ::end
+                           :wire-fn (fn [step _]
+                                      (case step
+                                        ::start [#(merge % (core/ok) {step :default}) ::second]
+                                        ::second [#(merge % (core/ok) {step :default}) ::end]
+                                        ::end [identity]))})]
+      (wf [] {})))
+  (-> tap-values))

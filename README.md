@@ -17,9 +17,18 @@ Modern infrastructure automation often suffers from "scripting fatigue"—fragil
 
 ## Core Pillars
 
-- **[Workflow](./src/clj/big_config/workflow.clj)**: A state-driven engine for composing automation units into complex pipelines.
+- **[Workflow](./src/clj/big_config/workflow.clj)**: A state-driven engine for composing automation units into complex pipelines. It supports **[pluggable steps](./src/clj/big_config/pluggable.clj)** via Clojure multimethods, allowing you to override or extend any standard behavior.
 - **[Render](./src/clj/big_config/render.clj)**: A powerful template engine based on Selmer for generating tool configurations from project-agnostic templates.
 - **[Lock](./src/clj/big_config/lock.clj)**: A "client-side Atlantis" that ensures safety in collaborative environments using Git as the backend.
+
+## Configuration Overrides
+
+BigConfig supports overriding project parameters through environment variables using the `BC_PAR_` prefix. This is particularly useful for CI/CD pipelines:
+
+```shell
+# This overrides the :cloudflare-zone-id parameter
+export BC_PAR_CLOUDFLARE_ZONE_ID="your-zone-id"
+```
 
 ## Installation
 

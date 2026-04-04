@@ -56,7 +56,7 @@
   | **unlock-any** | Force-releases the lock, regardless of the current owner.       |
 
   ### Core Logic & Functions
-  * **`run-steps`**: The engine for dynamic workflow execution.
+  * **`run-steps`**: The engine for dynamic workflow execution. It's a pluggable workflow.
   * **`->workflow*`**: Creates a workflow of workflows.
   * **`prepare`**: Shared logic for rendering templates and initializing
   execution environments.
@@ -220,6 +220,7 @@
    [big-config.core :as core]
    [big-config.git :as git]
    [big-config.lock :as lock]
+   [big-config.pluggable :as pluggable]
    [big-config.render :as render]
    [big-config.run :as run]
    [big-config.unlock :as unlock]
@@ -290,41 +291,42 @@
         delete-opts (merge (or delete-opts {}) globals-opts)
         opts* (atom opts)
         steps* (atom (map (fn [step] (keyword "big-config.workflow" (name step))) steps))
-        wf (core/->workflow {:first-step ::start
-                             :wire-fn (fn [step step-fns]
-                                        (case step
-                                          ::start [core/ok]
-                                          ::lock [(partial lock/lock step-fns)]
-                                          ::git-check [(partial git/check step-fns)]
-                                          ::render [(partial render/templates step-fns)]
-                                          ::create [(fn [create-opts] ((resolve-fn ::create-fn opts) step-fns create-opts))]
-                                          ::delete [(fn [delete-opts] ((resolve-fn ::delete-fn opts) step-fns delete-opts))]
-                                          ::exec [(partial run/run-cmds step-fns)]
-                                          ::git-push [(partial git/git-push)]
-                                          ::unlock-any [(partial unlock/unlock-any step-fns)]
-                                          ::end [identity]))
-                             :next-fn (fn [step _ {:keys [::bc/exit] :as opts}]
-                                        (if (#{::create ::delete} step)
-                                          (do
-                                            (swap! opts* merge (select-keys opts [::bc/exit ::bc/err]))
-                                            (swap! opts* update step (fnil conj []) opts))
-                                          (reset! opts* opts))
-                                        (cond
-                                          (= step ::end)
-                                          [nil @opts*]
+        wf (pluggable/->workflow* {:first-step ::start
+                                   :last-step ::end
+                                   :wire-fn (fn [step step-fns]
+                                              (case step
+                                                ::start [core/ok]
+                                                ::lock [(partial lock/lock step-fns)]
+                                                ::git-check [(partial git/check step-fns)]
+                                                ::render [(partial render/templates step-fns)]
+                                                ::create [(fn [create-opts] ((resolve-fn ::create-fn opts) step-fns create-opts))]
+                                                ::delete [(fn [delete-opts] ((resolve-fn ::delete-fn opts) step-fns delete-opts))]
+                                                ::exec [(partial run/run-cmds step-fns)]
+                                                ::git-push [(partial git/git-push)]
+                                                ::unlock-any [(partial unlock/unlock-any step-fns)]
+                                                ::end [identity]))
+                                   :next-fn (fn [step _ {:keys [::bc/exit] :as opts}]
+                                              (if (#{::create ::delete} step)
+                                                (do
+                                                  (swap! opts* merge (select-keys opts [::bc/exit ::bc/err]))
+                                                  (swap! opts* update step (fnil conj []) opts))
+                                                (reset! opts* opts))
+                                              (cond
+                                                (= step ::end)
+                                                [nil @opts*]
 
-                                          (> exit 0)
-                                          [::end @opts*]
+                                                (> exit 0)
+                                                [::end @opts*]
 
-                                          :else
-                                          (let [next-step (first @steps*)
-                                                _ (swap! steps* rest)]
-                                            (if next-step
-                                              [next-step (case next-step
-                                                           ::create create-opts
-                                                           ::delete delete-opts
-                                                           @opts*)]
-                                              [::end @opts*]))))})]
+                                                :else
+                                                (let [next-step (first @steps*)
+                                                      _ (swap! steps* rest)]
+                                                  (if next-step
+                                                    [next-step (case next-step
+                                                                 ::create create-opts
+                                                                 ::delete delete-opts
+                                                                 @opts*)]
+                                                    [::end @opts*]))))})]
     (wf step-fns @opts*)))
 
 (comment
@@ -337,6 +339,18 @@
                 ::delete-fn (fn [_ opts] (core/ok opts))
                 ::create-opts {:a 1}
                 ::delete-opts {:a 2}
+                ::bc/env :repl
+                ::lock/owner "alberto"}))
+  (-> tap-values))
+
+(comment
+  (debug tap-values
+    (defmethod pluggable/handle-step ::lock [step step-fns opts]
+      (tap> [step step-fns opts])
+      (merge opts (core/ok) {step "custom"}))
+    (remove-method pluggable/handle-step ::lock)
+    (run-steps []
+               {::steps [:lock :unlock-any]
                 ::bc/env :repl
                 ::lock/owner "alberto"}))
   (-> tap-values))
@@ -537,7 +551,8 @@
 (defn read-bc-pars
   "Function to override any `params` with an environment variable. If the
   `param` is `cloudflare-zone-id` then the environment variable is `export
-  BC_PAR_CLOUDFLARE_ZONE_ID=\"your-zone-id\"` See the namespace `big-config.workflow`.
+  BC_PAR_CLOUDFLARE_ZONE_ID=\"your-zone-id\"` See the namespace
+  `big-config.workflow`.
   "
   [opts]
   (let [params-from-env (->> (System/getenv)
