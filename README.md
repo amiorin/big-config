@@ -23,6 +23,33 @@ Modern infrastructure automation often suffers from "scripting fatigue"—fragil
 - **[Store](./src/clj/big_config/store.clj)**: A Redis-backed journaling store for managing state with ACID-like properties. It enables event-sourcing and reliable state transitions in long-running workflows.
 - **[System](./src/clj/big_config/system.clj)**: A lifecycle management alternative to Integrant that uses workflows to coordinate the start and stop of system components, with built-in support for background processes.
 
+## Extending the Workflow
+
+BigConfig is designed for extensibility. You can define custom steps and integrate them into the DSL.
+
+### Custom Steps (multimethods)
+
+Override or add new behavior using the `handle-step` multimethod:
+
+```clojure
+(require '[big-config.pluggable :as pluggable])
+(require '[big-config.core :as core])
+
+(defmethod pluggable/handle-step ::my-step
+  [step step-fns opts]
+  (println "Hello from my custom step!")
+  (core/ok opts))
+```
+
+### Registering Steps in the DSL
+
+To ensure your custom step is recognized by the `bb` command (rather than being treated as a raw shell command), register it using the `*parse-args-steps*` dynamic var:
+
+```clojure
+(binding [workflow/*parse-args-steps* (conj workflow/*parse-args-steps* "my-step")]
+  (workflow/parse-args ["my-step" "render"]))
+```
+
 ## Configuration Overrides
 
 BigConfig supports overriding project parameters through environment variables using the `BC_PAR_` prefix. This is particularly useful for CI/CD pipelines:

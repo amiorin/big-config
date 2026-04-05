@@ -14,7 +14,7 @@
 
   ### Usage Syntax
   BigConfig Workflow can be used as a library or as a CLI using Babashka.
-  The engine is powered by **[pluggable steps](./pluggable.clj)**, allowing for
+  The engine is powered by **[pluggable steps](../pluggable)**, allowing for
   seamless extension via multimethods.
 
   ```shell
@@ -58,6 +58,36 @@
   | **git-push**   | Pushes local commits to the remote repository.                  |
   | **lock**       | Acquires an execution lock.                                     |
   | **unlock-any** | Force-releases the lock, regardless of the current owner.       |
+
+  ### Extending Workflows with Custom Steps
+
+  The workflow engine is powered by **[pluggable steps](../pluggable)**.
+  You can extend or override any step by defining a method for the
+  `big-config.pluggable/handle-step` multimethod. This allows you to add custom
+  logic or completely change the behavior of built-in steps like `render` or `lock`.
+
+  ```clojure
+  (require '[big-config.pluggable :as pluggable])
+  (require '[big-config.core :as core])
+
+  (defmethod pluggable/handle-step ::my-custom-step
+    [step step-fns opts]
+    ;; Your custom logic here
+    (println \"Executing custom step!\")
+    (core/ok opts))
+
+  ;; Usage in a workflow
+  (run-steps step-fns {::workflow/steps [:my-custom-step]})
+  ```
+
+  When using `parse-args` (e.g., in Babashka tasks), you might need to register
+  new step names so they are recognized as steps rather than shell commands.
+  This is done by rebinding the dynamic var `*parse-args-steps*`.
+
+  ```clojure
+  (binding [workflow/*parse-args-steps* (conj workflow/*parse-args-steps* \"my-custom-step\")]
+    (workflow/parse-args [\"my-custom-step\" \"render\"]))
+  ```
 
   ### Core Logic & Functions
   * **`run-steps`**: The engine for dynamic workflow execution. It's a pluggable workflow.
@@ -308,7 +338,7 @@
                                                 ::exec [(partial run/run-cmds step-fns)]
                                                 ::git-push [(partial git/git-push)]
                                                 ::unlock-any [(partial unlock/unlock-any step-fns)]
-                                                ::end [identity]))
+                                                [identity]))
                                    :next-fn (fn [step _ {:keys [::bc/exit] :as opts}]
                                               (if (#{::create ::delete} step)
                                                 (do
@@ -349,15 +379,17 @@
 
 (comment
   (debug tap-values
-    (defmethod pluggable/handle-step ::lock [step step-fns opts]
+    (defmethod pluggable/handle-step ::foo [step step-fns opts]
       (tap> [step step-fns opts])
       (merge opts (core/ok) {step "custom"}))
     (remove-method pluggable/handle-step ::lock)
     (run-steps []
-               {::steps [:lock :unlock-any]
+               {::steps [:bar :baz]
                 ::bc/env :repl
                 ::lock/owner "alberto"}))
   (-> tap-values))
+
+(def ^:dynamic *parse-args-steps* #{"lock" "git-check" "render" "create" "delete" "exec" "git-push" "unlock-any"})
 
 (defn parse-args
   "Utility functions to normalize string or vector-based arguments. See the
@@ -378,7 +410,7 @@
            (nil? token))
       (recur (rest xs) (first xs) steps cmds)
 
-      (#{"lock" "git-check" "render" "create" "delete" "exec" "git-push" "unlock-any"} token)
+      (*parse-args-steps* token)
       (let [steps (into steps [token])]
         (recur (rest xs) (first xs) steps cmds))
 
