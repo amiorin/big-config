@@ -20,6 +20,8 @@ Modern infrastructure automation often suffers from "scripting fatigue"—fragil
 - **[Workflow](./src/clj/big_config/workflow.clj)**: A state-driven engine for composing automation units into complex pipelines. It supports **[pluggable steps](./src/clj/big_config/pluggable.clj)** via Clojure multimethods, allowing you to override or extend any standard behavior.
 - **[Render](./src/clj/big_config/render.clj)**: A powerful template engine based on Selmer for generating tool configurations from project-agnostic templates.
 - **[Lock](./src/clj/big_config/lock.clj)**: A "client-side Atlantis" that ensures safety in collaborative environments using Git as the backend.
+- **[Store](./src/clj/big_config/store.clj)**: A Redis-backed journaling store for managing state with ACID-like properties. It enables event-sourcing and reliable state transitions in long-running workflows.
+- **[System](./src/clj/big_config/system.clj)**: A lifecycle management alternative to Integrant that uses workflows to coordinate the start and stop of system components, with built-in support for background processes.
 
 ## Configuration Overrides
 
@@ -41,8 +43,8 @@ clojure -Ttools install-latest :lib io.github.amiorin/big-config :as big-config
 # Print help for all available templates
 clojure -A:deps -Tbig-config help/doc
 
-# Scaffold a new project using a template
-clojure -Tbig-config terraform :target-dir my-infra
+# Scaffold a new project using the package template
+clojure -Tbig-config package :owner acme :repository infra :ssh-key 123456 :target-dir my-infra
 ```
 
 ## The BigConfig DSL (Babashka)

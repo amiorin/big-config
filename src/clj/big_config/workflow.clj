@@ -9,9 +9,13 @@
   executes CLI tools (e.g., Terraform/OpenTofu, Ansible).
   * **`comp-workflow`**: A high-level orchestrator that sequences multiple
   `tool-workflows` to create a unified lifecycle (e.g., `create`, `delete`).
+  * **`system-workflow`**: A lifecycle management engine (see `big-config.system`)
+  that coordinates starting and stopping system components as an alternative to Integrant.
 
   ### Usage Syntax
   BigConfig Workflow can be used as a library or as a CLI using Babashka.
+  The engine is powered by **[pluggable steps](./pluggable.clj)**, allowing for
+  seamless extension via multimethods.
 
   ```shell
   # Execute a tool workflow directly
@@ -481,10 +485,10 @@
                       [next-step (let [[new-opts opts-fn]
                                        (get step->opts-and-opts-fn next-step [@opts* identity])]
                                    (opts-fn new-opts))]))
-          wf (core/->workflow {:first-step first-step
-                               :last-step last-step
-                               :wire-fn wire-fn
-                               :next-fn next-fn})]
+          wf (pluggable/->workflow* {:first-step first-step
+                                     :last-step last-step
+                                     :wire-fn wire-fn
+                                     :next-fn next-fn})]
       (wf step-fns opts))))
 
 (comment
