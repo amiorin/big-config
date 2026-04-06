@@ -1,1 +1,0 @@
-(ns big-config.package)

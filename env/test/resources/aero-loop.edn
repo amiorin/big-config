@@ -1,4 +1,0 @@
-{:alpha {:big-config.aero/foo [:big-config.aero/join
-                               :big-config.aero/bar]
-         :big-config.aero/bar [:big-config.aero/join
-                               :big-config.aero/foo]}}

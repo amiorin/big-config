@@ -4,7 +4,6 @@
            io.github.clojure/tools.build {:mvn/version "0.10.12"}
            babashka/process              {:mvn/version "0.6.25"}
            babashka/fs                   {:mvn/version "0.5.31"}
-           aero/aero                     {:mvn/version "1.1.6"}
            io.github.paintparty/bling    {:mvn/version "0.9.2"}
            selmer/selmer                 {:mvn/version "1.13.1"}
            cheshire/cheshire             {:mvn/version "6.1.0"}

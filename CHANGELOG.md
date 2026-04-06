@@ -24,6 +24,11 @@ The patch number is calculated with `git rev-list --count HEAD`
 - -tidy -smoke-test -test and -test:bb are now private tasks
 - remove step-fns argument from ->workflow map
 
+### Removed
+
+- legacy namespaces: `big-config.aero`, `big-config.call`, `big-config.clone`, and `big-config.package`.
+- dependency `aero/aero` from main `deps.edn`.
+
 ## [0.3.264] - 2025-10-09
 
 ### Added
