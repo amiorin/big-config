@@ -590,17 +590,18 @@
   BC_PAR_CLOUDFLARE_ZONE_ID=\"your-zone-id\"` See the namespace
   `big-config.workflow`.
   "
-  [opts]
-  (let [params-from-env (->> (System/getenv)
-                             (filter #(str/starts-with? % prefix))
-                             (map (fn [[k v]] [(-> k
-                                                   (subs (count prefix))
-                                                   str/lower-case
-                                                   (str/replace "_" "-")
-                                                   (str/replace "." "-")
-                                                   keyword) v]))
-                             (into {}))]
-    (merge-with merge opts {::params params-from-env})))
+  ([opts] (read-bc-pars opts (System/getenv)))
+  ([opts env]
+   (let [params-from-env (->> env
+                              (filter #(str/starts-with? (key %) prefix))
+                              (map (fn [[k v]] [(-> k
+                                                    (subs (count prefix))
+                                                    str/lower-case
+                                                    (str/replace "_" "-")
+                                                    (str/replace "." "-")
+                                                    keyword) v]))
+                              (into {}))]
+     (merge-with merge opts {::params params-from-env}))))
 
 (comment
   (read-bc-pars {::params {:foo :bar}}))
