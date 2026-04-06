@@ -1,20 +1,34 @@
 (ns big-config.workflow-test
   (:require
    [big-config :as bc]
-   [big-config.core :as core]
    [big-config.render :as render]
    [big-config.run :as run]
+   [big-config.utils :refer [debug]]
    [big-config.workflow :as sut]
    [clojure.string :as str]
    [clojure.test :refer [deftest is testing]]))
 
 (defn s1
-  [_step-fns opts]
-  (core/ok opts))
+  [step-fns opts]
+  (sut/run-steps step-fns opts))
+
+(comment
+  (s1 [] {}))
 
 (defn s2
-  [_step-fns opts]
-  (core/ok opts))
+  [step-fns opts]
+  (sut/run-steps step-fns opts))
+
+(comment
+  (s2 [] {}))
+
+(comment
+  (debug tap-values
+    (let [wf (sut/->workflow* {:first-step ::start
+                               :pipeline [::s1 ["pwd"]
+                                          ::s2 ["pwd"]]})]
+      (wf [] {::bc/env :repl})))
+  (-> tap-values))
 
 (deftest parse-args-test
   (testing "parse-args"
@@ -93,13 +107,13 @@
   (testing ":pipeline execution"
     (let [wf (sut/->workflow* {:first-step ::start
                                :pipeline [::s1 ["pwd"]
-                                          ::s2 ["render"]]})
+                                          ::s2 ["pwd"]]})
           res (wf [] {::bc/env :repl})]
       (is (= 0 (::bc/exit res)))
       (is (some? (::s1 res)))
       (is (some? (::s2 res)))
       (is (= ["exec"] (::sut/steps (::s1 res))))
-      (is (= ["render"] (::sut/steps (::s2 res)))))))
+      (is (= ["exec"] (::sut/steps (::s2 res)))))))
 
 (deftest run-steps-test
   (testing "run-steps success"

@@ -18,15 +18,18 @@
   [{:keys [first-step last-step wire-fn next-fn]}]
   (fn [step-fns opts]
     (let [new-wire-fn (fn [step step-fns]
-                        (let [[_ next-step] (wire-fn step step-fns)]
-                          [(partial handle-step step step-fns) next-step]))
+                        (let [[f next-step] (wire-fn step step-fns)]
+                          [(fn [opts]
+                             (let [method (.getMethod ^clojure.lang.MultiFn handle-step step)
+                                   default-method (.getMethod ^clojure.lang.MultiFn handle-step :default)]
+                               (if (and method (not= method default-method))
+                                 (handle-step step step-fns opts)
+                                 (f opts))))
+                           next-step]))
           wf (core/->workflow {:first-step first-step
                                :last-step last-step
                                :wire-fn new-wire-fn
                                :next-fn next-fn})]
-      (.addMethod ^clojure.lang.MultiFn handle-step :default (fn [step step-fns opts]
-                                                               (let [[f _] (wire-fn step step-fns)]
-                                                                 (f opts))))
       (wf step-fns opts))))
 
 (comment
