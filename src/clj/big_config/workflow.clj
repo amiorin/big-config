@@ -258,7 +258,8 @@
    [big-config.render :as render]
    [big-config.run :as run]
    [big-config.unlock :as unlock]
-   [big-config.utils :refer [assert-args-present debug keyword->path]]
+   [big-config.utils :refer [assert-args-present debug keyword->name
+                             keyword->path]]
    [bling.core :refer [bling]]
    [clojure.string :as str]
    [com.rpl.specter :as s]
@@ -312,7 +313,13 @@
       :else (throw (ex-info (format "Value for `%s` is neither a function nor a symbol" kw) opts)))))
 
 (defn select-globals [{:keys [globals] :as opts}]
-  (->> (or globals [::bc/env ::run/shell-opts ::render/module ::render/profile ::prefix ::globals])
+  (->> (or globals [::bc/env
+                    ::run/shell-opts
+                    ::render/module
+                    ::render/profile
+                    ::prefix
+                    ::object-prefix
+                    ::globals])
        (select-keys opts)))
 
 (defn run-steps
@@ -444,25 +451,34 @@
 (defn- add-suffix [kw suffix]
   (keyword (namespace kw) (str (name kw) suffix)))
 
+(defn- parse-path [path]
+  (str/split path #"/"))
+
+(defn- build-path [parts profile suffix]
+  (-> (vec parts)
+      (conj (format "%s-%s" profile suffix))
+      (->> (str/join "/"))))
+
 (defn ^:no-doc new-prefix
-  [{:keys [::prefix ::render/profile] :as opts} first-step]
+  [{:keys [::object-prefix ::prefix ::render/profile] :as opts} first-step]
   (let [prefix (or prefix ".dist")
+        object-prefix (or object-prefix "tofu")
         profile (or profile "default")
-        dirs (str/split prefix #"/")
-        magic-prefix-found (str/starts-with? (last dirs) profile)
-        previous-hash (when magic-prefix-found
-                        (-> (last dirs)
-                            (str/split #"-")
-                            last))
-        dirs (if magic-prefix-found
-               (butlast dirs)
-               dirs)
+        dirs (parse-path prefix)
+        object-dirs (parse-path object-prefix)
+        profile-found? (str/starts-with? (last dirs) profile)
+        prev-hash (when profile-found?
+                    (last (str/split (last dirs) #"-")))
+        base-dirs (if profile-found? (butlast dirs) dirs)
+        base-object-dirs (if profile-found? (butlast object-dirs) object-dirs)
         suffix (-> first-step
-                   (str previous-hash)
+                   (str prev-hash)
                    hash
-                   Integer/toHexString)
-        dirs (conj (vec dirs) (format "%s-%s" profile suffix))]
-    (assoc opts ::prefix (str/join "/" dirs))))
+                   Integer/toHexString)]
+
+    (assoc opts
+           ::prefix (build-path base-dirs profile suffix)
+           ::object-prefix (build-path base-object-dirs profile suffix))))
 
 (comment
   (new-prefix {} :io.github.amiorin.rama.package/start-create-or-delete))
@@ -554,20 +570,24 @@
 (defn prepare
   "Prepare `opts`. See the namespace `big-config.workflow`."
   {:arglists '([opts overrides])}
-  [{:keys [::name] :as opts} {:keys [::path-fn ::prefix ::params] :as overrides}]
+  [{:keys [::name] :as opts} {:keys [::object-fn ::path-fn ::object-prefix ::prefix ::params] :as overrides}]
   (assert-args-present opts overrides name)
   (let [path-fn (or path-fn #(format "%s/%s" (or prefix ".dist") (-> % ::name keyword->path)))
+        object-fn (or object-fn #(format "%s/%s" (or object-prefix "tofu") (-> % ::name keyword->name)))
         opts (merge opts overrides)
         dir (path-fn opts)
+        object (object-fn opts)
         opts (->> opts
                   (s/transform [::render/templates s/ALL] #(merge % params
-                                                                  {:target-dir dir}))
+                                                                  {:target-dir dir
+                                                                   :target-object object}))
                   (s/setval [::run/shell-opts :dir] dir))]
     opts))
 
 (comment
-  (prepare {::name ::tofu
-            ::render/templates [{}]} {}))
+  (debug tap-values
+    (prepare (new-prefix {::name ::tofu
+                          ::render/templates [{}]} ::foo) {})))
 
 (defn merge-params
   "Merge the package params with the tool params. Tools is a seq of qualified

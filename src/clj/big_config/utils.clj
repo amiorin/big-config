@@ -54,6 +54,19 @@
     (-> full-str
         (str/replace "." "/"))))
 
+(defn keyword->name
+  "Converts a keyword into a file name string. Namespaces are treated as
+  words and dots are converted into dashes.
+  Example: `:big-config.core/foo` -> `\"big-config-core-foo\"`"
+  [kw]
+  (let [full-str (if-let [ns (namespace kw)]
+                   (str ns "-" (name kw))
+                   (name kw))]
+    (-> full-str
+        (str/replace "/" "-")
+        (str/replace "." "-"))))
+
+
 (def MAP-WALKER
   (s/recursive-path [] p
                     (s/if-path map?

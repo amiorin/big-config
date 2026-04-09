@@ -84,7 +84,7 @@
               ::render/templates [{:template "t1"}]}
         prepared (sut/prepare opts {::sut/prefix "dist" ::sut/params {:p 1}})]
     (is (= "dist/tofu" (get-in prepared [::run/shell-opts :dir])))
-    (is (= [{:template "t1" :p 1 :target-dir "dist/tofu"}]
+    (is (= [{:template "t1" :p 1 :target-dir "dist/tofu" :target-object "tofu/tofu"}]
            (::render/templates prepared)))))
 
 (deftest merge-params-test
