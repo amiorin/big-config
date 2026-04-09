@@ -82,10 +82,11 @@
 
   When using `parse-args` (e.g., in Babashka tasks), you might need to register
   new step names so they are recognized as steps rather than shell commands.
-  This is done by rebinding the dynamic var `*parse-args-steps*`.
+  This is done by rebinding the dynamic var `*parse-args-steps*`. Note that
+  steps are keywords, not strings.
 
   ```clojure
-  (binding [workflow/*parse-args-steps* (conj workflow/*parse-args-steps* \"my-custom-step\")]
+  (binding [workflow/*parse-args-steps* (conj workflow/*parse-args-steps* :my-custom-step)]
     (workflow/parse-args [\"my-custom-step\" \"render\"]))
   ```
 
@@ -97,7 +98,8 @@
   * **`parse-args`**: Utility function to normalize string or vector-based
   arguments.
   * **`select-globals`**: Utility function to copy the global options across
-  workflows.
+  workflows. Propagates `::bc/env`, `::run/shell-opts`, `::render/module`,
+  `::render/profile`, `::prefix`, `::object-prefix`, and `::globals`.
   * **`merge-params`**: Utility function to merge the package params with the
   tool params. `tools` is a sequence of qualified keywords.
   * **`read-bc-pars`**: Utility function to override the package params with
@@ -105,16 +107,23 @@
 
   ### Options for `wf*-opts`.
   * `:first-step` (required): First step of the workflow.
-  * `:last-step` (optional): Optional last step.
+  * `:last-step` (optional): Optional last step (defaults to `<namespace-of-first-step>/end`).
   * `:pipeline` (required): A vector containing the repetition of:
     * The qualified keyword of the tool workflow (e.g., `::tools/tofu`).
     * A vector containing:
       * Arguments for the tool workflow (e.g., `[\"render ...\"]`).
       * An optional `opts-fn` to adapt/merge outputs from previous steps into the current params.
+  > **Note:** `->workflow*` calls `new-prefix` on the globals derived from `opts`,
+  > which stamps a unique hash into both `::prefix` and `::object-prefix`. Each
+  > invocation of the composite workflow therefore writes to an isolated directory
+  > and object path, avoiding collisions when the same workflow is run concurrently.
 
   ### Options for `opts` and step `render`
   * `::name` (required): The unique identifier for the workflow instance.
   * `::path-fn` (optional): Logic for resolving file paths.
+  * `::object-fn` (optional): Logic for resolving the target object name (defaults to `<object-prefix>/<name-as-dashed-string>`).
+  * `::prefix` (optional): The base directory prefix (defaults to `.dist`).
+  * `::object-prefix` (optional): The base object prefix used to compute `:target-object` in template params (defaults to `tofu`).
   * `::params` (optional): The input data for the workflow. The conventions is
   to use unqualified keywords with prefixes like: `:oci-config-file-profile` or
   `:hcloud-server-type`.
@@ -124,7 +133,13 @@
 
   ### Options for `prepare-overrides` and step `render`
   * `::path-fn` (optional): Logic for resolving file paths.
+  * `::object-fn` (optional): Logic for resolving the target object name.
+  * `::prefix` (optional): Override for the base directory prefix.
+  * `::object-prefix` (optional): Override for the base object prefix.
   * `::params` (optional): The input data for the workflow.
+
+  > **Note:** `prepare` injects `:target-dir` and `:target-object` into every
+  > template map so templates can reference them without repeating path logic.
 
   ### Options for `opts` and step `create` or `delete`
   * `::create-fn` (required): The workflow to create the resource.
