@@ -20,6 +20,7 @@ The patch number is calculated with `git rev-list --count HEAD`
 
 ### Changed
 
+- refactor `workflow` to use keywords for steps in `parse-args` and `->workflow`, improving handling of namespaced steps.
 - rename `show-help` to `help`
 - -tidy -smoke-test -test and -test:bb are now private tasks
 - remove step-fns argument from ->workflow map

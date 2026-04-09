@@ -324,7 +324,11 @@
         create-opts (merge (or create-opts {}) globals-opts)
         delete-opts (merge (or delete-opts {}) globals-opts)
         opts* (atom opts)
-        steps* (atom (map (fn [step] (keyword "big-config.workflow" (name step))) steps))
+        steps* (atom (map (fn [step]
+                            (if (namespace step)
+                              step
+                              (keyword "big-config.workflow" (name step))))
+                          steps))
         wf (pluggable/->workflow* {:first-step ::start
                                    :last-step ::end
                                    :wire-fn (fn [step step-fns]
@@ -389,7 +393,7 @@
                 ::lock/owner "alberto"}))
   (-> tap-values))
 
-(def ^:dynamic *parse-args-steps* #{"lock" "git-check" "render" "create" "delete" "exec" "git-push" "unlock-any"})
+(def ^:dynamic *parse-args-steps* #{:lock :git-check :render :create :delete :exec :git-push :unlock-any})
 
 (defn parse-args
   "Utility functions to normalize string or vector-based arguments. See the
@@ -410,23 +414,23 @@
            (nil? token))
       (recur (rest xs) (first xs) steps cmds)
 
-      (*parse-args-steps* token)
-      (let [steps (into steps [token])]
+      (*parse-args-steps* (keyword token))
+      (let [steps (into steps [(keyword token)])]
         (recur (rest xs) (first xs) steps cmds))
 
       (= "--" token)
       (if (seq xs)
-        (let [steps (if (some #{"exec"} steps)
+        (let [steps (if (some #{:exec} steps)
                       steps
-                      (into steps ["exec"]))
+                      (into steps [:exec]))
               cmds (conj cmds (str/join " " xs))]
           (recur '() nil steps cmds))
         (throw (ex-info "-- cannot be without a command" {})))
 
       token
-      (let [steps (if (some #{"exec"} steps)
+      (let [steps (if (some #{:exec} steps)
                     steps
-                    (into steps ["exec"]))
+                    (into steps [:exec]))
             cmds (into cmds [(str/replace token ":" " ")])]
         (recur (rest xs) (first xs) steps cmds))
 

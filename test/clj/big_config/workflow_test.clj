@@ -32,15 +32,15 @@
 
 (deftest parse-args-test
   (testing "parse-args"
-    (is (= {::sut/steps ["render"] ::run/cmds []}
+    (is (= {::sut/steps [:render] ::run/cmds []}
            (sut/parse-args "render")))
-    (is (= {::sut/steps ["render" "lock"] ::run/cmds []}
+    (is (= {::sut/steps [:render :lock] ::run/cmds []}
            (sut/parse-args "render lock")))
-    (is (= {::sut/steps ["render" "exec"] ::run/cmds ["tofu init"]}
+    (is (= {::sut/steps [:render :exec] ::run/cmds ["tofu init"]}
            (sut/parse-args "render tofu:init")))
-    (is (= {::sut/steps ["render" "exec"] ::run/cmds ["tofu init"]}
+    (is (= {::sut/steps [:render :exec] ::run/cmds ["tofu init"]}
            (sut/parse-args "render -- tofu init")))
-    (is (= {::sut/steps ["render" "exec"] ::run/cmds ["tofu init -auto-approve"]}
+    (is (= {::sut/steps [:render :exec] ::run/cmds ["tofu init -auto-approve"]}
            (sut/parse-args ["render" "--" "tofu" "init" "-auto-approve"])))
     (is (thrown-with-msg? clojure.lang.ExceptionInfo #"-- cannot be without a command"
                           (sut/parse-args "render --")))))
@@ -112,8 +112,8 @@
       (is (= 0 (::bc/exit res)))
       (is (some? (::s1 res)))
       (is (some? (::s2 res)))
-      (is (= ["exec"] (::sut/steps (::s1 res))))
-      (is (= ["exec"] (::sut/steps (::s2 res)))))))
+      (is (= [:exec] (::sut/steps (::s1 res))))
+      (is (= [:exec] (::sut/steps (::s2 res)))))))
 
 (deftest run-steps-test
   (testing "run-steps success"
