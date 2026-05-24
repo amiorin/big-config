@@ -4,7 +4,7 @@
 
 This directory is the JVM Clojure implementation of BigConfig. It provides workflow orchestration, Selmer template rendering, shell command execution, Git locking helpers, and BigTofu/OpenTofu construct helpers.
 
-The project uses `deps.edn`, `clojure.test`, and the local Clojure Selmer checkout at `../../Selmer/master` (currently `/home/ubuntu/code/bigconfig/Selmer/master`).
+The project uses `deps.edn`, `clojure.test`, and the Selmer template library (Maven artifact `selmer/selmer {:mvn/version "1.13.1"}`).
 
 ## Repository Layout
 
@@ -25,7 +25,6 @@ big-config/clojure/
 ## Development Commands
 
 ```sh
-clojure -X:deps prep # prepares local Selmer when needed
 clojure -M:test
 clojure -M:run -- echo ok
 ```
@@ -40,4 +39,4 @@ clojure -M:run -- echo ok
 
 ## Git
 
-Stay on `main`. Commit only when explicitly asked.
+Stay on `clojure`. Commit only when explicitly asked.

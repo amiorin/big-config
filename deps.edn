@@ -1,6 +1,6 @@
 {:paths ["src" "resources"]
  :deps {org.clojure/clojure {:mvn/version "1.12.0"}
-        selmer/selmer {:local/root "../../Selmer/master"}}
+        selmer/selmer {:mvn/version "1.13.1"}}
  :aliases {:test {:extra-paths ["test"]
                   :main-opts ["-m" "big-config.test-runner"]}
            :run {:main-opts ["-m" "big-config.cli"]}}}
