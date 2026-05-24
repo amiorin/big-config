@@ -1,14 +1,9 @@
-{ pkgs, lib, config, inputs, ... }:
+{ pkgs, ... }:
 
 {
   packages = [
     pkgs.git
-    pkgs.babashka
-    pkgs.process-compose
-    pkgs.just
-    pkgs.redis
-    pkgs.direnv
-    pkgs.clj-kondo
+    pkgs.python312
+    pkgs.uv
   ];
-  languages.clojure.enable = true;
 }

@@ -1,4 +1,4 @@
-name: Tests
+name: Python Tests
 
 on:
   push:
@@ -16,52 +16,48 @@ jobs:
   test:
     runs-on: ubuntu-latest
     steps:
-      - name: Free Disk Space (Ubuntu)
-        uses: jlumbroso/free-disk-space@main
-        with:
-          tool-cache: false
-          android: true
-          dotnet: true
-          haskell: true
-          large-packages: true
-          docker-images: true
-          swap-storage: true
-      - name: download big-container
-        run: docker pull ghcr.io/amiorin/big-container:latest
-      - uses: actions/checkout@v5
+      - name: Checkout BigConfig
+        uses: actions/checkout@v5
         with:
           fetch-depth: 0
-      - name: runs big-config tests
-        id: run_tests
-        run: >-
-          docker run
-          --rm
-          -u vscode
-          -v /tmp:/tmp
-          -e SSH_AUTH_SOCK=$SSH_AUTH_SOCK
-          -e GITHUB_WORKSPACE=$GITHUB_WORKSPACE
-          -v $GITHUB_WORKSPACE:$GITHUB_WORKSPACE
-          ghcr.io/amiorin/big-container:latest
-          fish -c 'cd $GITHUB_WORKSPACE
-          && bb build
-          && direnv allow
-          && direnv exec . just test'
+
+      - name: Checkout local Selmer dependency
+        run: |
+          sudo mkdir -p /home/ubuntu/code/bigconfig/Selmer
+          sudo chown -R "$USER:$USER" /home/ubuntu
+          git clone --depth 1 --branch python https://github.com/bigconfig-ai/Selmer.git /home/ubuntu/code/bigconfig/Selmer/python
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Set up uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+
+      - name: Install dependencies
+        run: uv sync --frozen
+
+      - name: Run tests
+        run: uv run pytest -q
 
 # test locally
-# cat .github/workflows/ci.yml | jet -i yaml -o json | jq -r .jobs.test.steps[3].run | GITHUB_WORKSPACE=$(pwd) bash -s
+# uv sync --frozen && uv run pytest -q
 
   tag:
     needs:
       - test
     runs-on: ubuntu-latest
     steps:
-      - name: "Checkout code"
-        uses: "actions/checkout@v4"
+      - name: Checkout code
+        uses: actions/checkout@v5
         with:
           fetch-depth: 0
 
       - id: set-artifact-tag-version
-        run: echo "ARTIFACT_TAG_VERSION=0.3.$(git rev-list --count HEAD)" >> $GITHUB_OUTPUT
+        run: echo "ARTIFACT_TAG_VERSION=0.3.$(git rev-list --count HEAD)" >> "$GITHUB_OUTPUT"
 
       - id: create-tag
         uses: rickstaa/action-create-tag@v1

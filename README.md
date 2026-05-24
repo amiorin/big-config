@@ -1,116 +1,187 @@
 <h1 align=center><code>BigConfig</code></h1>
 
-[![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/amiorin/big-config)
+**BigConfig is a Python workflow and template engine for infrastructure-as-code (IaC) automation.**
 
-**BigConfig is a workflow and template engine that enables a "zero-cost build step" for infrastructure-as-code (IaC).**
+It provides a small map-threading workflow runtime, a Selmer-based renderer, a shell-command DSL, and Git-tag locking for tools such as OpenTofu/Terraform, Ansible, Kubectl, and other CLIs.
 
-It bridges the gap between powerful general-purpose programming (Clojure/Babashka) and specialized CLI tools like Terraform, OpenTofu, Ansible, Kubectl, and more.
+The repository is Python-only; the previous Clojure implementation, tests, templates, and Babashka/Clojure config have been removed.
 
-## Why BigConfig?
+## Status
 
-Modern infrastructure automation often suffers from "scripting fatigue"—fragile Bash scripts or restrictive DSLs (HCL, YAML) that make complex logic hard to maintain. BigConfig provides:
+Implemented in Python 3.12+:
 
-- **Zero-Cost Build Step**: Use Clojure's expressive data manipulation to generate configuration files (JSON, YAML, HCL), then execute your tools seamlessly.
-- **Functional Orchestration**: Sequence multiple tools into a unified lifecycle (e.g., `render` -> `lock` -> `tofu apply` -> `unlock`).
-- **Serverless Locking**: A client-side, Git-based locking mechanism (using Git tags) to coordinate team efforts without a central coordination server like Atlantis.
-- **Extreme Portability**: Develop and debug locally with a REPL, then run the exact same workflow in CI with absolute parity.
+- `big_config.core` — workflow primitives: `ok`, `choice`, `workflow`, `step_fn`
+- `big_config.workflow` — high-level orchestration, CLI argument parsing, `run_steps`, `workflow_star`
+- `big_config.pluggable` — pluggable step dispatch
+- `big_config.render` — Selmer-powered template rendering
+- `big_config.run` — shell command execution
+- `big_config.git` — Git helper workflows
+- `big_config.lock` / `big_config.unlock` — Git-tag pessimistic locking
+- `big_config.utils` — shared helpers
+- `big_config.selmer_filters` — BigConfig Selmer filters
+- `big_config.step_fns` — workflow middleware helpers
+- `big_tofu.core` / `big_tofu.create` — OpenTofu/Terraform construct helpers
 
-## Core Pillars
+Intentionally excluded from this rewrite for now:
 
-- **[Workflow](./src/clj/big_config/workflow.clj)**: A state-driven engine for composing automation units into complex pipelines. It supports **[pluggable steps](./src/clj/big_config/pluggable.clj)** via Clojure multimethods, allowing you to override or extend any standard behavior.
-- **[Render](./src/clj/big_config/render.clj)**: A powerful template engine based on Selmer for generating tool configurations from project-agnostic templates.
-- **[Lock](./src/clj/big_config/lock.clj)**: A "client-side Atlantis" that ensures safety in collaborative environments using Git as the backend.
-- **[Store](./src/clj/big_config/store.clj)**: A Redis-backed journaling store for managing state with ACID-like properties. It enables event-sourcing and reliable state transitions in long-running workflows.
-- **[System](./src/clj/big_config/system.clj)**: A lifecycle management alternative to Integrant that uses workflows to coordinate the start and stop of system components, with built-in support for background processes.
+- Redis store
+- system lifecycle engine
+- tools/template scaffolding CLI
+- legacy `step` and `build` namespaces
+- bundled template scaffolding
 
-## Extending the Workflow
+## Requirements
 
-BigConfig is designed for extensibility. You can define custom steps and integrate them into the DSL.
+- Python 3.12+
+- [`uv`](https://docs.astral.sh/uv/)
+- local Selmer Python checkout at:
+  `/home/ubuntu/code/bigconfig/Selmer/python`
 
-### Custom Steps (multimethods)
+The Selmer dependency is configured as a local dependency in `pyproject.toml`.
 
-Override or add new behavior using the `handle-step` multimethod:
+## Development
 
-```clojure
-(require '[big-config.pluggable :as pluggable])
-
-(defmethod pluggable/handle-step ::my-step
-  [f step step-fns opts]
-  (println "Hello from my custom step!" step (count step-fns))
-  (f opts))
+```shell
+uv sync
+uv run pytest -q
 ```
 
-### Registering Steps in the DSL
+Current test suite:
 
-Built-in DSL steps include `validate` and `describe`. To ensure a custom step is recognized by the `bb` command (rather than being treated as a raw shell command), register it using the `*parse-args-steps*` dynamic var:
-
-```clojure
-(require '[big-config.workflow :as workflow])
-
-(binding [workflow/*parse-args-steps* (conj workflow/*parse-args-steps* :my-step)]
-  (workflow/parse-args ["my-step" "render"]))
+```shell
+32 passed
 ```
 
-### Workflow-level validate/describe hooks
+## CLI
 
-Composite workflows can expose opt-in `validate` and `describe` steps by providing `::workflow/validate-fn` and `::workflow/describe-fn`. They are regular workflow step functions (`[step-fns opts] -> opts`) and should return `opts` with `::big-config/exit` / `::big-config/err`.
+The Python package exposes a `big-config` command with the same CLI DSL shape:
 
-```clojure
-(workflow/run-steps
-  step-fns
-  {::workflow/steps       [:validate :create :describe]
-   ::workflow/create-fn   create
-   ::workflow/delete-fn   delete
-   ::workflow/validate-fn validate
-   ::workflow/describe-fn describe})
+```shell
+uv run big-config render lock tofu:init tofu:plan -- tofu apply -auto-approve
 ```
+
+Rules:
+
+- known tokens such as `render`, `lock`, `validate`, `describe`, and `unlock-any` become workflow steps
+- `tool:subcommand` becomes the shell command `tool subcommand`
+- `--` appends the rest of the command line as one raw command string
+- shell commands run through the `exec` step
+
+Minimal smoke test:
+
+```shell
+uv run big-config render -- true
+```
+
+## Python API
+
+BigConfig keeps the original map-threading API model closely: workflows thread an `opts` dictionary through functions. Namespaced keys are represented as strings, for example `"big-config/exit"`.
+
+```python
+from big_config import ENV, EXIT
+from big_config import workflow, render, run
+
+opts = {
+    ENV: "lib",
+    workflow.STEPS: ["render", "exec"],
+    render.TEMPLATES: [],
+    run.CMDS: ["true"],
+}
+
+result = workflow.run_steps([], opts)
+assert result[EXIT] == 0
+```
+
+### Defining a workflow
+
+```python
+from big_config import core
+
+START = "example/start"
+END = "example/end"
+
+
+def prepare(opts):
+    return core.ok({**opts, "prepared": True})
+
+
+def wire(step, _step_fns):
+    if step == START:
+        return prepare, END
+    return lambda opts: opts, None
+
+wf = core.workflow({"first_step": START, "wire_fn": wire})
+result = wf([], {})
+```
+
+### Pluggable steps
+
+```python
+from big_config import core, pluggable
+
+
+@pluggable.defmethod("example/custom")
+def custom_handler(f, step, step_fns, opts):
+    return {**core.ok(opts), "custom": True}
+```
+
+To make a new unqualified CLI token parse as a workflow step:
+
+```python
+from big_config import workflow
+
+workflow.PARSE_ARGS_STEPS.add("custom")
+```
+
+## Rendering
+
+`big_config.render` uses the local Python Selmer implementation.
+
+```python
+from big_config import render
+
+render.render({
+    render.TEMPLATES: [{
+        "template": "template",
+        "target-dir": "dist",
+        "overwrite": True,
+        "transform": [["."]],
+    }]
+})
+```
+
+Template directories are resolved from the current working directory, `env/test/resources`, `test/resources`, and `resources` when those directories exist.
 
 ## Configuration Overrides
 
-BigConfig supports overriding project parameters through environment variables using the `BC_PAR_` prefix. This is particularly useful for CI/CD pipelines:
+Parameters can be overridden from the environment with the `BC_PAR_` prefix:
 
 ```shell
-# This overrides the :provider-backend parameter
 export BC_PAR_PROVIDER_BACKEND="local"
 ```
 
-## Installation
+```python
+from big_config import workflow
 
-BigConfig is typically used as a Clojure tool or via Babashka. For detailed instructions, visit the [installation](https://www.bigconfig.ai/manual/#install) guide.
-
-```shell
-# Add BigConfig as a tool to Clojure
-clojure -Ttools install-latest :lib io.github.amiorin/big-config :as big-config
-
-# Print help for all available templates
-clojure -A:deps -Tbig-config help/doc
-
-# Scaffold a compute-only project using the package template
-clojure -Tbig-config package :owner acme :repository infra :target-dir my-infra
+opts = workflow.read_bc_pars({})
+# {"big-config.workflow/params": {"provider-backend": "local"}}
 ```
 
-The `package` template generates a compute-only BigConfig project with OpenTofu compute providers (`hcloud`, `oci`, `digitalocean`, `no-infra`), optional `tofu-backend` state configuration, ping-only Ansible workflows, and validation/description helpers that can be wired into composite workflows as `validate` / `describe` steps.
+## CI
 
-## The BigConfig DSL (Babashka)
-
-When used with Babashka, BigConfig provides a concise DSL for running workflows directly from the shell:
+GitHub Actions runs the Python suite with `uv` and Python 3.12. Because Selmer is a local dependency, CI checks out `bigconfig-ai/Selmer` branch `python` into `/home/ubuntu/code/bigconfig/Selmer/python` before running:
 
 ```shell
-# Render configs, acquire a lock, plan with Tofu, and append a raw apply command
-bb render lock tofu:init tofu:plan -- tofu apply -auto-approve
+uv sync --frozen
+uv run pytest -q
 ```
-
-- `render`: Generates configuration files.
-- `lock`: Acquires a pessimistic lock via Git tags.
-- `validate`: Runs the configured `::workflow/validate-fn` when present.
-- `describe`: Runs the configured `::workflow/describe-fn` when present.
-- `tofu:init`: Executes `tofu init` in the rendered directory.
-- `tofu:plan`: Executes `tofu plan` in the rendered directory.
-- `-- tofu apply -auto-approve`: Adds one raw command string to the `exec` step.
 
 ## Documentation & Resources
 
-- **[Full Documentation](https://www.bigconfig.ai/manual/)**
+- Historical/manual site: <https://www.bigconfig.ai/manual/>
+- Python source: [`src/big_config`](./src/big_config)
+- BigTofu source: [`src/big_tofu`](./src/big_tofu)
+- Tests: [`test`](./test)
 
 ---
 Developed and maintained by [Alberto Miorin](https://albertomiorin.com).

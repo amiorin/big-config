@@ -9,3 +9,5 @@
 /justfile
 /pc-dev.yaml
 /pc-test.yaml
+__pycache__/
+*.py[cod]

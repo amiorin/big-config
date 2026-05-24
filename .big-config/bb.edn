@@ -1,8 +1,0 @@
-{:deps {amiorin/big-config {:local/root "."}}
- :tasks
- {:requires ([render :as render])
-  -tidy {:doc "tidy clojure files"
-         :task (do (shell "clojure-lsp clean-ns")
-                   (shell "clojure-lsp format"))}
-  build {:doc "bb build render devenv:build"
-         :task (render/build* *command-line-args*)}}}

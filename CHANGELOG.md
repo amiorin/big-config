@@ -34,6 +34,7 @@ The patch number is calculated with `git rev-list --count HEAD`
 
 ### Removed
 
+- Clojure implementation, tests, templates, generated docs, Babashka tasks, and Clojure-specific editor/linter config after the Python rewrite became primary.
 - legacy namespaces: `big-config.aero`, `big-config.call`, `big-config.clone`, and `big-config.package`.
 - dependency `aero/aero` from main `deps.edn`.
 

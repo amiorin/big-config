@@ -1,7 +1,0 @@
----
-- name: Ping compute host
-  hosts: all
-  gather_facts: false
-  tasks:
-    - name: Ping remote host
-      ansible.builtin.ping:
