@@ -3,7 +3,7 @@
 {
   packages = [
     pkgs.git
-    pkgs.nodejs
+    pkgs.clojure
     pkgs.direnv
   ];
 }

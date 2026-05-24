@@ -1,44 +1,50 @@
-# BigConfig TypeScript
+# BigConfig Clojure
 
-BigConfig is a Node.js/TypeScript workflow and template automation library for infrastructure-as-code tooling. It renders Selmer templates, runs CLI pipelines, manages Git-tag locks, and provides helpers for OpenTofu/Terraform-style data generation.
+BigConfig is a JVM Clojure workflow and template automation library for infrastructure-as-code tooling. It renders Selmer templates, runs CLI pipelines, manages Git-tag locks, and provides helpers for OpenTofu/Terraform-style data generation.
 
-## Install
+## Local Selmer dependency
 
-```sh
-npm install
+This project depends on the local Clojure Selmer checkout:
+
+```edn
+selmer/selmer {:local/root "../../Selmer/master"}
 ```
 
-The project uses the local Selmer TypeScript package at `../../Selmer/typescript`.
+Prepare that local dependency once before running tests in a fresh checkout:
+
+```sh
+clojure -X:deps prep
+```
 
 ## Development
 
 ```sh
-npm run check   # TypeScript typecheck
-npm test        # Vitest test suite
-npm run build   # Compile to dist/
+clojure -X:deps prep # needed when Selmer target/classes is missing
+clojure -M:test       # clojure.test suite
+clojure -M:run -- echo ok
 ```
 
 ## CLI syntax
 
 ```sh
-big-config render lock tofu:init tofu:plan -- tofu apply -auto-approve
+clojure -M:run render lock tofu:init tofu:plan -- tofu apply -auto-approve
 ```
 
 - Known workflow steps are parsed as steps.
 - `tool:subcommand` becomes `tool subcommand`.
 - `--` starts one raw command and automatically adds the `exec` step.
 
-## Public modules
+## Public namespaces
 
-- `big-config/core` — workflow primitives: `ok`, `choice`, `createWorkflow`, `createStepFn`.
-- `big-config/workflow` — dynamic workflow composition, CLI parsing, `prepare`, `runSteps`.
-- `big-config/pluggable` — step override registry.
-- `big-config/render` — Selmer-based template rendering.
-- `big-config/run` — command runner with test seam.
-- `big-config/git`, `big-config/lock`, `big-config/unlock` — Git helpers and locking workflows.
-- `big-config/big-tofu/core`, `big-config/big-tofu/create` — OpenTofu/Terraform construct helpers.
+- `big-config.core` — workflow primitives: `ok`, `choice`, `create-workflow`, `->workflow`, `create-step-fn`.
+- `big-config.workflow` — dynamic workflow composition, CLI parsing, `prepare`, `run-steps`.
+- `big-config.pluggable` — step override registry.
+- `big-config.render` — Selmer-based template rendering using the local Selmer dependency.
+- `big-config.run` — command runner with a test seam.
+- `big-config.git`, `big-config.lock`, `big-config.unlock` — Git helpers and locking workflows.
+- `big-config.big-tofu.core`, `big-config.big-tofu.create` — OpenTofu/Terraform construct helpers.
 
-The old store, system lifecycle, build helper, and project scaffolding modules are intentionally not part of this TypeScript rewrite.
+Options use Clojure namespaced keywords such as `:big-config/exit` and `:big-config.workflow/steps`.
 
 ## License
 

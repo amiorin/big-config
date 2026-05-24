@@ -2,7 +2,6 @@
 !.github/
 !.github/**
 !.gitignore
-node_modules/
-dist/
-coverage/
+target/
+.cpcache/
 *.log

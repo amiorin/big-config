@@ -19,18 +19,17 @@ jobs:
       - uses: actions/checkout@v5
         with:
           fetch-depth: 0
-      - uses: actions/setup-node@v5
+      - uses: actions/setup-java@v4
         with:
-          node-version: "25"
-          cache: npm
-      - name: Install dependencies
-        run: npm ci
-      - name: Typecheck
-        run: npm run check
+          distribution: temurin
+          java-version: "21"
+      - uses: DeLaGuardo/setup-clojure@13.4
+        with:
+          cli: latest
+      - name: Prepare local Selmer dependency
+        run: clojure -X:deps prep
       - name: Test
-        run: npm test
-      - name: Build
-        run: npm run build
+        run: clojure -M:test
 
   tag:
     needs:
