@@ -1,9 +1,0 @@
-[meta]
-name = "foo-service"
-
-[tags]
-tribe = "tribe"
-squad = "squad"
-
-[[permissions.something.read_write]]
-s3_prefixes = ["s3://bucket1", "s3://bucket2"]

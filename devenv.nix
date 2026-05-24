@@ -3,12 +3,7 @@
 {
   packages = [
     pkgs.git
-    pkgs.babashka
-    pkgs.process-compose
-    pkgs.just
-    pkgs.redis
+    pkgs.nodejs
     pkgs.direnv
-    pkgs.clj-kondo
   ];
-  languages.clojure.enable = true;
 }
