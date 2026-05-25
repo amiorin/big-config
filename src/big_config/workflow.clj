@@ -16,6 +16,7 @@
 (def git-check :big-config.workflow/git-check)
 (def render-step :big-config.workflow/render)
 (def create :big-config.workflow/create)
+(def build :big-config.workflow/build)
 (def delete :big-config.workflow/delete)
 (def validate :big-config.workflow/validate)
 (def describe :big-config.workflow/describe)
@@ -60,6 +61,7 @@
 (defn run-steps [step-fns opts]
   (let [globals-opts (select-globals opts)
         create-opts (merge (get opts k/wf-create-opts {}) globals-opts)
+        build-opts (merge (get opts k/wf-build-opts {}) globals-opts)
         delete-opts (merge (get opts k/wf-delete-opts {}) globals-opts)
         opts* (atom opts)
         queued-steps (atom (mapv #(if (k/namespace-of %) (k/normalize-keyword %) (k/qualify k/workflow-ns %))
@@ -74,6 +76,7 @@
                           :big-config.workflow/git-check [(fn [o] (git/check step-fns o)) nil]
                           :big-config.workflow/render [(fn [o] (render/templates step-fns o)) nil]
                           :big-config.workflow/create [(fn [o] ((resolve-fn k/wf-create-fn opts) step-fns o)) nil]
+                          :big-config.workflow/build [(fn [o] ((resolve-fn k/wf-build-fn opts) step-fns o)) nil]
                           :big-config.workflow/delete [(fn [o] ((resolve-fn k/wf-delete-fn opts) step-fns o)) nil]
                           :big-config.workflow/validate [(fn [o] ((resolve-fn k/wf-validate-fn opts (fn [_s x] (core/ok x))) step-fns o)) nil]
                           :big-config.workflow/describe [(fn [o] ((resolve-fn k/wf-describe-fn opts (fn [_s x] (core/ok x))) step-fns o)) nil]
@@ -83,7 +86,7 @@
                           :big-config.workflow/end [identity nil]
                           [identity nil]))
              :next-fn (fn [step _next-step step-opts]
-                        (if (#{create delete} step)
+                        (if (#{create build delete} step)
                           (swap! opts* #(assoc %
                                                 k/exit (get step-opts k/exit)
                                                 k/err (get step-opts k/err)
@@ -97,12 +100,13 @@
                                   (if next-step
                                     [next-step (cond
                                                  (= next-step create) create-opts
+                                                 (= next-step build) build-opts
                                                  (= next-step delete) delete-opts
                                                  :else @opts*)]
                                     [end @opts*]))))})]
     (wf step-fns @opts*)))
 
-(def parse-arg-steps #{"lock" "git-check" "render" "create" "delete" "validate" "describe" "exec" "git-push" "unlock-any"})
+(def parse-arg-steps #{"lock" "git-check" "render" "create" "build" "delete" "validate" "describe" "exec" "git-push" "unlock-any"})
 (def ^:dynamic *parse-args-steps* parse-arg-steps)
 
 (defn- tokenize [str-or-args]
@@ -186,7 +190,7 @@
                       (let [existing (get-in out [root tool k/wf-params] {})]
                         (assoc-in out [root tool k/wf-params] (merge params existing))))
                     out
-                    [k/wf-create-opts k/wf-delete-opts]))
+                    [k/wf-create-opts k/wf-build-opts k/wf-delete-opts]))
           opts
           tools))
 

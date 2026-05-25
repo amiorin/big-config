@@ -28,10 +28,12 @@
 (def wf-path-fn :big-config.workflow/path-fn)
 (def wf-object-fn :big-config.workflow/object-fn)
 (def wf-create-fn :big-config.workflow/create-fn)
+(def wf-build-fn :big-config.workflow/build-fn)
 (def wf-delete-fn :big-config.workflow/delete-fn)
 (def wf-validate-fn :big-config.workflow/validate-fn)
 (def wf-describe-fn :big-config.workflow/describe-fn)
 (def wf-create-opts :big-config.workflow/create-opts)
+(def wf-build-opts :big-config.workflow/build-opts)
 (def wf-delete-opts :big-config.workflow/delete-opts)
 
 (def lock-ns "big-config.lock")

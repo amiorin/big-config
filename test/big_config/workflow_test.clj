@@ -19,6 +19,8 @@
          (workflow/parse-args "render")))
   (is (= {k/wf-steps [:render :lock] k/run-cmds []}
          (workflow/parse-args "render lock")))
+  (is (= {k/wf-steps [:render :build] k/run-cmds []}
+         (workflow/parse-args "render build")))
   (is (= {k/wf-steps [:render :exec] k/run-cmds ["tofu init"]}
          (workflow/parse-args "render tofu:init")))
   (is (= {k/wf-steps [:render :exec] k/run-cmds ["tofu init -auto-approve"]}
@@ -44,9 +46,11 @@
 
 (deftest merges-params-and-reads-bc-par-overrides
   (let [opts {k/wf-create-opts {:tools/tofu-opts {k/wf-params {:a 1}}}
+              k/wf-build-opts {:tools/tofu-opts {k/wf-params {:a 1}}}
               k/wf-delete-opts {:tools/tofu-opts {k/wf-params {:a 1}}}}
         merged (workflow/merge-params [:tools/tofu-opts] {:b 2} opts)]
     (is (= {:a 1 :b 2} (get-in merged [k/wf-create-opts :tools/tofu-opts k/wf-params])))
+    (is (= {:a 1 :b 2} (get-in merged [k/wf-build-opts :tools/tofu-opts k/wf-params])))
     (is (= {k/wf-params {:zone-id "123"}}
            (workflow/read-bc-pars {} {"BC_PAR_ZONE_ID" "123" "OTHER" "junk"})))))
 
@@ -74,6 +78,23 @@
                                     k/env :lib})]
     (is (= 0 (get res k/exit)))
     (is (= [:validate :describe] @called))))
+
+(deftest runs-build-step-with-its-own-function-and-opts
+  (let [called (atom [])
+        res (workflow/run-steps [] {k/wf-steps [:create :build]
+                                    k/wf-create-fn (fn [_step-fns opts]
+                                                     (swap! called conj [:create (get opts :source)])
+                                                     (core/ok opts))
+                                    k/wf-build-fn (fn [_step-fns opts]
+                                                    (swap! called conj [:build (get opts :source)])
+                                                    (core/ok opts))
+                                    k/wf-create-opts {:source :create}
+                                    k/wf-build-opts {:source :build}
+                                    k/env :lib})]
+    (is (= 0 (get res k/exit)))
+    (is (= [[:create :create] [:build :build]] @called))
+    (is (= :create (get-in res [workflow/create 0 :source])))
+    (is (= :build (get-in res [workflow/build 0 :source])))))
 
 (deftest composes-registered-workflow-pipeline-steps
   (workflow/register-workflow :test/s1 (fn [_step-fns opts] (core/ok opts)))
