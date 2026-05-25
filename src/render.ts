@@ -180,6 +180,7 @@ export function resolveTemplateDir(template: string): string {
   const candidates = [
     isAbsolute(template) ? template : undefined,
     resolve(process.cwd(), template),
+    resolve(process.cwd(), "src", "resources", template),
     resolve(process.cwd(), "resources", template),
     resolve(here, "..", template),
     resolve(here, "..", "resources", template),

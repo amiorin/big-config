@@ -17,6 +17,8 @@ import {
   RENDER_TEMPLATES,
   WF_CREATE_FN,
   WF_CREATE_OPTS,
+  WF_BUILD_FN,
+  WF_BUILD_OPTS,
   WF_DELETE_FN,
   WF_DELETE_OPTS,
   WF_DESCRIBE_FN,
@@ -48,6 +50,7 @@ const LOCK = `${WORKFLOW_NS}/lock`;
 const GIT_CHECK = `${WORKFLOW_NS}/git-check`;
 const RENDER = `${WORKFLOW_NS}/render`;
 const CREATE = `${WORKFLOW_NS}/create`;
+const BUILD = `${WORKFLOW_NS}/build`;
 const DELETE = `${WORKFLOW_NS}/delete`;
 const VALIDATE = `${WORKFLOW_NS}/validate`;
 const DESCRIBE = `${WORKFLOW_NS}/describe`;
@@ -91,6 +94,7 @@ export function selectGlobals(opts: Opts): Opts {
 export function runSteps(stepFns: Array<StepFn | string>, opts: Opts): Opts {
   const globalsOpts = selectGlobals(opts);
   const createOpts = { ...(opts[WF_CREATE_OPTS] ?? {}), ...globalsOpts };
+  const buildOpts = { ...(opts[WF_BUILD_OPTS] ?? {}), ...globalsOpts };
   const deleteOpts = { ...(opts[WF_DELETE_OPTS] ?? {}), ...globalsOpts };
   let optsStar: Opts = opts;
   let queuedSteps = (opts[WF_STEPS] ?? []).map((step: Keyword) => namespaceOf(step) ? step : qualify(WORKFLOW_NS, step));
@@ -105,6 +109,7 @@ export function runSteps(stepFns: Array<StepFn | string>, opts: Opts): Opts {
         case GIT_CHECK: return [(o: Opts) => gitCheck(stepFns, o), undefined];
         case RENDER: return [(o: Opts) => renderTemplates(stepFns, o), undefined];
         case CREATE: return [(o: Opts) => resolveFn<WorkflowFunction>(WF_CREATE_FN, opts)(stepFns, o), undefined];
+        case BUILD: return [(o: Opts) => resolveFn<WorkflowFunction>(WF_BUILD_FN, opts)(stepFns, o), undefined];
         case DELETE: return [(o: Opts) => resolveFn<WorkflowFunction>(WF_DELETE_FN, opts)(stepFns, o), undefined];
         case VALIDATE: return [(o: Opts) => resolveFn<WorkflowFunction>(WF_VALIDATE_FN, opts, (_s, x) => ok(x))(stepFns, o), undefined];
         case DESCRIBE: return [(o: Opts) => resolveFn<WorkflowFunction>(WF_DESCRIBE_FN, opts, (_s, x) => ok(x))(stepFns, o), undefined];
@@ -116,7 +121,7 @@ export function runSteps(stepFns: Array<StepFn | string>, opts: Opts): Opts {
       }
     },
     nextFn: (step, _nextStep, stepOpts) => {
-      if (step === CREATE || step === DELETE) {
+      if (step === CREATE || step === BUILD || step === DELETE) {
         optsStar = { ...optsStar, [EXIT]: stepOpts[EXIT], [ERR]: stepOpts[ERR], [step]: [...(optsStar[step] ?? []), stepOpts] };
       } else {
         optsStar = stepOpts;
@@ -125,14 +130,14 @@ export function runSteps(stepFns: Array<StepFn | string>, opts: Opts): Opts {
       if (stepOpts[EXIT] > 0) return [END, optsStar];
       const nextStep = queuedSteps[0];
       queuedSteps = queuedSteps.slice(1);
-      if (nextStep) return [nextStep, nextStep === CREATE ? createOpts : nextStep === DELETE ? deleteOpts : optsStar];
+      if (nextStep) return [nextStep, nextStep === CREATE ? createOpts : nextStep === BUILD ? buildOpts : nextStep === DELETE ? deleteOpts : optsStar];
       return [END, optsStar];
     }
   });
   return wf(stepFns, optsStar);
 }
 
-export const parseArgSteps = new Set(["lock", "git-check", "render", "create", "delete", "validate", "describe", "exec", "git-push", "unlock-any"]);
+export const parseArgSteps = new Set(["lock", "git-check", "render", "create", "build", "delete", "validate", "describe", "exec", "git-push", "unlock-any"]);
 export { parseArgSteps as "*parse-args-steps*" };
 
 function tokenize(strOrArgs: string | string[]): string[] {
@@ -219,7 +224,7 @@ export function prepare(opts: Opts, overrides: Opts): Opts {
 export function mergeParams(tools: Keyword[], params: Opts, opts: Opts): Opts {
   let out = clone(opts);
   for (const tool of tools) {
-    for (const root of [WF_CREATE_OPTS, WF_DELETE_OPTS]) {
+    for (const root of [WF_CREATE_OPTS, WF_BUILD_OPTS, WF_DELETE_OPTS]) {
       const existing = out[root]?.[tool]?.[WF_PARAMS] ?? {};
       out = {
         ...out,

@@ -32,10 +32,12 @@ export const WF_PARAMS = `${WORKFLOW_NS}/params`;
 export const WF_PATH_FN = `${WORKFLOW_NS}/path-fn`;
 export const WF_OBJECT_FN = `${WORKFLOW_NS}/object-fn`;
 export const WF_CREATE_FN = `${WORKFLOW_NS}/create-fn`;
+export const WF_BUILD_FN = `${WORKFLOW_NS}/build-fn`;
 export const WF_DELETE_FN = `${WORKFLOW_NS}/delete-fn`;
 export const WF_VALIDATE_FN = `${WORKFLOW_NS}/validate-fn`;
 export const WF_DESCRIBE_FN = `${WORKFLOW_NS}/describe-fn`;
 export const WF_CREATE_OPTS = `${WORKFLOW_NS}/create-opts`;
+export const WF_BUILD_OPTS = `${WORKFLOW_NS}/build-opts`;
 export const WF_DELETE_OPTS = `${WORKFLOW_NS}/delete-opts`;
 
 export const LOCK_NS = "big-config.lock";
