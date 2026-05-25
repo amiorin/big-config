@@ -188,6 +188,7 @@ def _candidate_template_dirs(template: str) -> list[Path]:
     candidates.extend(
         [
             cwd / template,
+            cwd / "src" / "resources" / template,
             cwd / "env" / "test" / "resources" / template,
             cwd / "test" / "resources" / template,
             cwd / "resources" / template,

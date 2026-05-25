@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import hashlib
 import os
+import sys
 from collections.abc import Callable, Iterable, Mapping, Sequence
 from typing import Any
 
@@ -12,10 +13,12 @@ from .utils import BigConfigError, has_namespace, keyword, keyword_to_name, keyw
 
 STEPS = "big-config.workflow/steps"
 CREATE_FN = "big-config.workflow/create-fn"
+BUILD_FN = "big-config.workflow/build-fn"
 DELETE_FN = "big-config.workflow/delete-fn"
 VALIDATE_FN = "big-config.workflow/validate-fn"
 DESCRIBE_FN = "big-config.workflow/describe-fn"
 CREATE_OPTS = "big-config.workflow/create-opts"
+BUILD_OPTS = "big-config.workflow/build-opts"
 DELETE_OPTS = "big-config.workflow/delete-opts"
 NAME = "big-config.workflow/name"
 PATH_FN = "big-config.workflow/path-fn"
@@ -25,8 +28,35 @@ OBJECT_PREFIX = "big-config.workflow/object-prefix"
 PARAMS = "big-config.workflow/params"
 GLOBALS = "big-config.workflow/globals"
 
-PARSE_ARGS_STEPS: set[str] = {"lock", "git-check", "render", "create", "delete", "validate", "describe", "exec", "git-push", "unlock-any"}
+PARSE_ARGS_STEPS: set[str] = {"lock", "git-check", "render", "create", "build", "delete", "validate", "describe", "exec", "git-push", "unlock-any"}
 _WORKFLOW_REGISTRY: dict[str, Callable[[list[Any], dict[str, Any]], dict[str, Any]]] = {}
+
+
+def _print_step_before(step: str, opts: Mapping[str, Any]) -> None:
+    failed = opts.get(EXIT) is not None and opts.get(EXIT) != 0
+    prefix = "✖" if failed else "➜"
+    msg = None
+    if step == "big-config.workflow/lock":
+        msg = f"Lock (owner {opts.get('big-config.lock/owner', '')})"
+    elif step == "big-config.workflow/unlock-any":
+        msg = "Unlock any"
+    elif step == "big-config.workflow/git-check":
+        msg = "Checking if the working directory is clean"
+    elif step == "big-config.workflow/render":
+        msg = f"Rendering workflow: {opts.get(NAME, '')}"
+    elif step == "big-config.run/run-cmd":
+        msg = f"Running:\n> {(opts.get(run.CMDS) or [''])[0] or ''}"
+    if msg:
+        print(f"{prefix} {msg}", file=sys.stderr)
+
+
+def _print_step_after(step: str, opts: Mapping[str, Any]) -> None:
+    if opts.get(EXIT, 0) > 0 and step in {"big-config.workflow/git-check", "big-config.run/run-cmd"}:
+        msg = "Working directory is NOT clean" if step == "big-config.workflow/git-check" else f"Failed running:\n> {(opts.get(run.CMDS) or [''])[0] or ''}"
+        print(f"✖ {msg}", file=sys.stderr)
+
+
+print_step_fn = core.step_fn({"before_f": _print_step_before, "after_f": _print_step_after})
 
 
 def register_workflow_step(step: str, fn: Callable[[list[Any], dict[str, Any]], dict[str, Any]]) -> None:
@@ -67,6 +97,7 @@ def _hook_or_ok(key: str, opts: Mapping[str, Any]) -> Callable[[list[Any], dict[
 def run_steps(step_fns: list[Any], opts: Mapping[str, Any]) -> dict[str, Any]:
     globals_opts = select_globals(opts)
     create_opts = {**dict(opts.get(CREATE_OPTS, {}) or {}), **globals_opts}
+    build_opts = {**dict(opts.get(BUILD_OPTS, {}) or {}), **globals_opts}
     delete_opts = {**dict(opts.get(DELETE_OPTS, {}) or {}), **globals_opts}
     opts_acc: dict[str, Any] = dict(opts)
     steps_queue = [_qualify_workflow_step(step) for step in opts.get(STEPS, [])]
@@ -82,6 +113,8 @@ def run_steps(step_fns: list[Any], opts: Mapping[str, Any]) -> dict[str, Any]:
             return lambda inner: render.templates(resolved_step_fns, inner), None
         if step == "big-config.workflow/create":
             return lambda inner: _resolve_fn(CREATE_FN, opts)(resolved_step_fns, inner), None
+        if step == "big-config.workflow/build":
+            return lambda inner: _resolve_fn(BUILD_FN, opts)(resolved_step_fns, inner), None
         if step == "big-config.workflow/delete":
             return lambda inner: _resolve_fn(DELETE_FN, opts)(resolved_step_fns, inner), None
         if step == "big-config.workflow/validate":
@@ -99,7 +132,7 @@ def run_steps(step_fns: list[Any], opts: Mapping[str, Any]) -> dict[str, Any]:
     def next_fn(step: str, _next_step: str | None, current_opts: dict[str, Any]):
         nonlocal opts_acc, steps_queue
         exit_code = current_opts.get(EXIT)
-        if step in {"big-config.workflow/create", "big-config.workflow/delete"}:
+        if step in {"big-config.workflow/create", "big-config.workflow/build", "big-config.workflow/delete"}:
             opts_acc.update({k: current_opts.get(k) for k in [EXIT, ERR] if k in current_opts})
             opts_acc.setdefault(step, []).append(current_opts)
         else:
@@ -112,6 +145,8 @@ def run_steps(step_fns: list[Any], opts: Mapping[str, Any]) -> dict[str, Any]:
             next_step = steps_queue.pop(0)
             if next_step == "big-config.workflow/create":
                 return next_step, dict(create_opts)
+            if next_step == "big-config.workflow/build":
+                return next_step, dict(build_opts)
             if next_step == "big-config.workflow/delete":
                 return next_step, dict(delete_opts)
             return next_step, opts_acc
@@ -180,7 +215,7 @@ def new_prefix(opts: Mapping[str, Any], first_step: str) -> dict[str, Any]:
     prev_hash = dirs[-1].split("-")[-1] if profile_found else ""
     base_dirs = dirs[:-1] if profile_found else dirs
     base_object_dirs = object_dirs[:-1] if profile_found else object_dirs
-    digest = hashlib.sha1(f"{first_step}{prev_hash}".encode()).hexdigest()[:8]
+    digest = hashlib.sha256(f"{first_step}{prev_hash}".encode()).hexdigest()[:8]
     new_opts = dict(opts)
     new_opts[PREFIX] = _build_path(base_dirs, profile, digest)
     new_opts[OBJECT_PREFIX] = _build_path(base_object_dirs, profile, digest)
@@ -287,7 +322,7 @@ def prepare(opts: Mapping[str, Any], overrides: Mapping[str, Any]) -> dict[str, 
 def merge_params(tools: Sequence[str], params: Mapping[str, Any], opts: Mapping[str, Any]) -> dict[str, Any]:
     result = dict(opts)
     for tool in tools:
-        for root in [CREATE_OPTS, DELETE_OPTS]:
+        for root in [CREATE_OPTS, BUILD_OPTS, DELETE_OPTS]:
             root_map = dict(result.get(root, {}) or {})
             tool_map = dict(root_map.get(tool, {}) or {})
             existing = dict(tool_map.get(PARAMS, {}) or {})
