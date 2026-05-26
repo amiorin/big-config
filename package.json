@@ -84,7 +84,7 @@
     "prepack": "npm run build"
   },
   "dependencies": {
-    "selmer": "github:bigconfig-ai/Selmer#f395e00242dda17c50a3d886924af02bd8838b87"
+    "selmer": "github:bigconfig-ai/Selmer#c4a3601bad030e4eae73f6c796342974428daade"
   },
   "devDependencies": {
     "@types/node": "^22.15.21",
