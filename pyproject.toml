@@ -11,7 +11,7 @@ requires-python = ">=3.12"
 license = { text = "MIT" }
 authors = [{ name = "BigConfig contributors" }]
 dependencies = [
-  "selmer @ git+https://github.com/bigconfig-ai/Selmer.git@d6db31695ba1c06abefe30d6ed8a1dedc0de110a",
+  "selmer @ git+https://github.com/bigconfig-ai/Selmer.git@94a9475b22104f5a3c015b6b84513a5b8c22e316",
 ]
 
 [project.scripts]
