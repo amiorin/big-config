@@ -4,7 +4,7 @@
 
 This directory is the TypeScript/Node.js rewrite of BigConfig. It provides workflow orchestration, Selmer template rendering, shell command execution, Git locking helpers, and BigTofu/OpenTofu construct helpers.
 
-The project is ESM-only and uses Vitest for tests. The Selmer engine is consumed as a local dependency from `../../Selmer/typescript`.
+The project is ESM-only and uses Vitest for tests. The Selmer engine is pulled from the `bigconfig-ai/Selmer` GitHub repo, pinned to a commit in `package.json`. To develop against a local checkout, override the `selmer` dependency with `"selmer": "file:../../selmer/typescript"` and re-run `npm install`.
 
 ## Repository Layout
 
@@ -44,4 +44,4 @@ npm run build
 
 ## Git
 
-Stay on `main`. Commit only when explicitly asked.
+Stay on `typescript` (each language has its own branch in this repo). Commit messages follow Conventional Commits (`feat:`, `fix:`, `refactor:`, `docs:`, `chore:`, `deps:`). Commit only when explicitly asked.
