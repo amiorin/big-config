@@ -108,8 +108,8 @@ Parsing rules:
 ## What to Avoid
 
 - Do not reintroduce Clojure source, Clojure tests, Babashka tasks, or Clojure-specific config.
-- Do not create feature branches; stay on `main`.
-- Do not commit unless explicitly asked.
+- Do not create feature branches; stay on `python` (each language has its own branch in this repo).
+- Do not commit unless explicitly asked. Commit messages follow Conventional Commits (`feat:`, `fix:`, `refactor:`, `docs:`, `chore:`, `deps:`).
 - Do not vendor the Selmer dependency; keep it as the configured pinned Git dependency.
 
 ## Useful Commands
