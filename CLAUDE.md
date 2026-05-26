@@ -11,16 +11,30 @@ The project uses `deps.edn`, `clojure.test`, and the Selmer template library (Ma
 ```text
 big-config/clojure/
 ├── src/big_config/          # Clojure source
-│   ├── big_tofu/            # OpenTofu/Terraform helpers
-│   ├── core.clj             # Workflow primitives
-│   ├── workflow.clj         # Composition layer and CLI parsing
-│   ├── render.clj           # Selmer template renderer
-│   ├── run.clj              # Shell command execution
-│   ├── lock.clj             # Git-tag locking
-│   └── ...
+│   └── big_tofu/            # OpenTofu/Terraform helpers
 ├── test/big_config/         # clojure.test tests
 └── deps.edn
 ```
+
+## Namespaces
+
+| Namespace | Purpose |
+|---|---|
+| `big-config.core` | Workflow primitives: `ok`, `choice`, `workflow`, `step-fn` |
+| `big-config.workflow` | High-level orchestration, CLI argument parsing, `run-steps`, `create-workflow-star` |
+| `big-config.pluggable` | Pluggable step dispatch |
+| `big-config.render` | Selmer-based renderer |
+| `big-config.run` | Shell command execution |
+| `big-config.git` | Git helper workflows |
+| `big-config.lock` | Git-tag pessimistic locking |
+| `big-config.unlock` | Force-release locking workflow |
+| `big-config.utils` | Shared helpers and structured exceptions |
+| `big-config.keys` | Namespaced reserved-key registry |
+| `big-config.selmer-filters` | BigConfig Selmer filters |
+| `big-config.step-fns` | Workflow middleware helpers |
+| `big-config.cli` | CLI entry point (`-M:run`) |
+| `big-tofu.core` | Construct helpers and references |
+| `big-tofu.create` | Common OpenTofu/Terraform constructs |
 
 ## Development Commands
 
@@ -39,4 +53,4 @@ clojure -M:run -- echo ok
 
 ## Git
 
-Stay on `clojure`. Commit only when explicitly asked.
+Stay on `clojure` (each language has its own branch in this repo). Commit messages follow Conventional Commits (`feat:`, `fix:`, `refactor:`, `docs:`, `chore:`, `deps:`). Commit only when explicitly asked.
