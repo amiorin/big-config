@@ -2,7 +2,7 @@
 
 ## Project Overview
 
-BigConfig is now a **Python 3.12+** workflow and template engine for infrastructure-as-code automation. It keeps the original map-threading workflow model while using Python modules, pytest, uv, and the local Python Selmer implementation.
+BigConfig is now a **Python 3.12+** workflow and template engine for infrastructure-as-code automation. It keeps the original map-threading workflow model while using Python modules, pytest, uv, and the Python Selmer dependency pinned in `pyproject.toml`/`uv.lock`.
 
 The historical Clojure implementation, Clojure tests, Clojure templates, Babashka tasks, and Clojure-specific config have been removed from this checkout.
 
@@ -50,13 +50,7 @@ uv sync
 uv run pytest -q
 ```
 
-The local Selmer dependency must exist at:
-
-```text
-/home/ubuntu/code/bigconfig/Selmer/python
-```
-
-CI checks out that dependency before running tests.
+The Selmer dependency is pinned to a Git commit in `pyproject.toml` and locked in `uv.lock`.
 
 ## Workflow Model
 
@@ -116,7 +110,7 @@ Parsing rules:
 - Do not reintroduce Clojure source, Clojure tests, Babashka tasks, or Clojure-specific config.
 - Do not create feature branches; stay on `main`.
 - Do not commit unless explicitly asked.
-- Do not vendor the Selmer dependency; keep it as the configured local dependency.
+- Do not vendor the Selmer dependency; keep it as the configured pinned Git dependency.
 
 ## Useful Commands
 

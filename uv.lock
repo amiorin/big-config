@@ -16,7 +16,7 @@ dev = [
 ]
 
 [package.metadata]
-requires-dist = [{ name = "selmer", directory = "/home/ubuntu/code/bigconfig/Selmer/python" }]
+requires-dist = [{ name = "selmer", git = "https://github.com/bigconfig-ai/Selmer.git?rev=d6db31695ba1c06abefe30d6ed8a1dedc0de110a" }]
 
 [package.metadata.requires-dev]
 dev = [{ name = "pytest", specifier = ">=8.0" }]
@@ -85,9 +85,4 @@ wheels = [
 [[package]]
 name = "selmer"
 version = "1.13.1.post0"
-source = { directory = "/home/ubuntu/code/bigconfig/Selmer/python" }
-
-[package.metadata]
-
-[package.metadata.requires-dev]
-dev = [{ name = "pytest", specifier = ">=8.0" }]
+source = { git = "https://github.com/bigconfig-ai/Selmer.git?rev=d6db31695ba1c06abefe30d6ed8a1dedc0de110a#d6db31695ba1c06abefe30d6ed8a1dedc0de110a" }

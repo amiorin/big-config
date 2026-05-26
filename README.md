@@ -34,10 +34,8 @@ Intentionally excluded from this rewrite for now:
 
 - Python 3.12+
 - [`uv`](https://docs.astral.sh/uv/)
-- local Selmer Python checkout at:
-  `/home/ubuntu/code/bigconfig/Selmer/python`
 
-The Selmer dependency is configured as a local dependency in `pyproject.toml`.
+The Selmer dependency is pinned in `pyproject.toml` to commit `d6db31695ba1c06abefe30d6ed8a1dedc0de110a` from `bigconfig-ai/Selmer`.
 
 ## Development
 
@@ -49,7 +47,7 @@ uv run pytest -q
 Current test suite:
 
 ```shell
-32 passed
+31 passed
 ```
 
 ## CLI
@@ -135,7 +133,7 @@ workflow.PARSE_ARGS_STEPS.add("custom")
 
 ## Rendering
 
-`big_config.render` uses the local Python Selmer implementation.
+`big_config.render` uses the Python Selmer dependency pinned in `pyproject.toml`.
 
 ```python
 from big_config import render
@@ -169,7 +167,7 @@ opts = workflow.read_bc_pars({})
 
 ## CI
 
-GitHub Actions runs the Python suite with `uv` and Python 3.12. Because Selmer is a local dependency, CI checks out `bigconfig-ai/Selmer` branch `python` into `/home/ubuntu/code/bigconfig/Selmer/python` before running:
+GitHub Actions runs the Python suite with `uv` and Python 3.12. Dependencies are installed from `uv.lock`, including the pinned Selmer commit:
 
 ```shell
 uv sync --frozen
