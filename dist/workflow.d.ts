@@ -1,0 +1,25 @@
+import { type StepFn, type WorkflowFn } from "./core.js";
+import { type Keyword, type Opts } from "./keys.js";
+export type WorkflowFunction = (stepFns: Array<StepFn | string>, opts: Opts) => Opts;
+export type OptsFn = (opts: Opts) => Opts;
+export declare const printStepFn: StepFn;
+export declare function selectGlobals(opts: Opts): Opts;
+export declare function runSteps(stepFns: Array<StepFn | string>, opts: Opts): Opts;
+export declare const parseArgSteps: Set<string>;
+export { parseArgSteps as "*parse-args-steps*" };
+export declare function parseArgs(strOrArgs: string | string[]): Opts;
+export declare function newPrefix(opts: Opts, firstStep: Keyword): Opts;
+export declare function path(opts: Opts, name: Keyword): string;
+export declare function prepare(opts: Opts, overrides: Opts): Opts;
+export declare function mergeParams(tools: Keyword[], params: Opts, opts: Opts): Opts;
+export declare function readBcPars(opts: Opts, env?: Record<string, string | undefined>): Opts;
+export declare function registerWorkflow(name: Keyword, workflow: WorkflowFunction): void;
+export declare function unregisterWorkflow(name: Keyword): void;
+export declare function createWorkflowStar(options: {
+    firstStep?: Keyword;
+    lastStep?: Keyword;
+    pipeline?: any[];
+    "first-step"?: Keyword;
+    "last-step"?: Keyword;
+}): WorkflowFn;
+export { createWorkflowStar as "->workflow*", parseArgs as "parse-args", selectGlobals as "select-globals", newPrefix as "new-prefix", mergeParams as "merge-params", readBcPars as "read-bc-pars", runSteps as "run-steps" };

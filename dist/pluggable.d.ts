@@ -1,0 +1,10 @@
+import { type KebabWorkflowOptions, type StepFn, type WorkflowFn, type WorkflowOptions } from "./core.js";
+import { type Keyword, type Opts } from "./keys.js";
+export type HandleStepFn = (f: (opts: Opts) => Opts, step: Keyword, stepFns: StepFn[], opts: Opts) => Opts;
+export declare function handleStep(f: (opts: Opts) => Opts, step: Keyword, stepFns: StepFn[], opts: Opts): Opts;
+export declare function registerHandleStep(step: Keyword, handler: HandleStepFn): void;
+export declare function removeHandleStep(step: Keyword): void;
+export declare function clearHandleSteps(): void;
+export { registerHandleStep as defmethod, removeHandleStep as "remove-method" };
+export declare function createWorkflowStar(options: WorkflowOptions | KebabWorkflowOptions): WorkflowFn;
+export { createWorkflowStar as "->workflow*" };

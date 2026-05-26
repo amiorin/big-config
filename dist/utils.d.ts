@@ -1,0 +1,24 @@
+import { type Keyword, type Opts } from "./keys.js";
+export type AnyFn = (...args: any[]) => any;
+export declare function registerFunction(name: string, fn: AnyFn): void;
+export declare function unregisterFunction(name: string): void;
+export declare function resolveRegisteredFunction(name: string): AnyFn | undefined;
+export declare function toFn<T extends AnyFn = AnyFn>(value: unknown, defaultValue?: T): T;
+export { toFn as "->fn" };
+export declare function deepMerge<T extends Opts>(...maps: Array<Opts | undefined | null>): T;
+export declare function sortNestedMap<T>(value: T): T;
+export declare function deepSortMaps<T>(value: T): T;
+export declare function stableStringify(value: unknown): string;
+export declare function hashString(value: string, length?: number): string;
+export declare function portAssigner(service: unknown): number;
+export declare function assertArgsPresent(args: Record<string, unknown>): void;
+export declare function keywordToPath(kw: Keyword): string;
+export declare function keywordToName(kw: Keyword): string;
+export declare function clone<T>(value: T): T;
+export declare function getIn(obj: Opts | undefined | null, path: string[]): any;
+export declare function assocIn<T extends Opts>(obj: T, path: string[], value: any): T;
+export declare function updateIn<T extends Opts>(obj: T, path: string[], f: (value: any) => any): T;
+export declare function debug<T>(body: (tap: (value: unknown) => void) => T): {
+    result: T;
+    taps: unknown[];
+};

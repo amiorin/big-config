@@ -1,0 +1,13 @@
+import { type Opts } from "./keys.js";
+export declare function parseTagContent(tagContent: string): Opts;
+export declare function generateLockId(opts: Opts): Opts;
+export declare function deleteTag(opts: Opts): Opts;
+export declare function createTag(opts: Opts): Opts;
+export declare function pushTag(opts: Opts): Opts;
+export declare function deleteRemoteTag(opts: Opts): Opts;
+export declare function getRemoteTag(opts: Opts): Opts;
+export declare function readTag(opts: Opts): Opts;
+export declare function checkTag(opts: Opts): Opts;
+export declare function checkRemoteTag(opts: Opts): Opts;
+export declare const lock: import("./core.js").WorkflowFn;
+export { generateLockId as "generate-lock-id", deleteTag as "delete-tag", createTag as "create-tag", pushTag as "push-tag", deleteRemoteTag as "delete-remote-tag", getRemoteTag as "get-remote-tag", readTag as "read-tag", checkTag as "check-tag", checkRemoteTag as "check-remote-tag", parseTagContent as "parse-tag-content" };

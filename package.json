@@ -84,7 +84,7 @@
     "prepack": "npm run build"
   },
   "dependencies": {
-    "selmer": "file:../../Selmer/typescript"
+    "selmer": "github:bigconfig-ai/Selmer#f395e00242dda17c50a3d886924af02bd8838b87"
   },
   "devDependencies": {
     "@types/node": "^22.15.21",
