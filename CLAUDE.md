@@ -10,16 +10,25 @@ The project is ESM-only and uses Vitest for tests. The Selmer engine is pulled f
 
 ```text
 big-config/typescript/
-├── src/                 # TypeScript source
-│   ├── big-tofu/        # OpenTofu/Terraform helpers
-│   ├── core.ts          # Workflow primitives
-│   ├── workflow.ts      # Composition layer and CLI parsing
-│   ├── render.ts        # Selmer template renderer
-│   ├── run.ts           # Shell command execution
-│   ├── lock.ts          # Git-tag locking
-│   └── ...
-├── test/                # Vitest tests
-├── package.json
+├── src/                  # TypeScript source
+│   ├── index.ts          # Public re-exports
+│   ├── cli.ts            # CLI entry point (`bin/big-config`)
+│   ├── core.ts           # Workflow primitives (ok, choice, workflow, stepFn)
+│   ├── workflow.ts       # Composition layer, CLI parsing, runSteps, createWorkflowStar
+│   ├── pluggable.ts      # Pluggable step dispatch
+│   ├── render.ts         # Selmer template renderer
+│   ├── run.ts            # Shell command execution (runner seam)
+│   ├── git.ts            # Git helper workflows
+│   ├── lock.ts           # Git-tag pessimistic locking
+│   ├── unlock.ts         # Force-release locking workflow
+│   ├── step.ts           # Step type
+│   ├── step-fns.ts       # Workflow middleware helpers
+│   ├── selmer-filters.ts # BigConfig Selmer filters
+│   ├── keys.ts           # Reserved-key registry
+│   ├── utils.ts          # Shared helpers
+│   └── big-tofu/         # OpenTofu/Terraform construct helpers (core.ts, create.ts)
+├── test/                 # Vitest tests
+├── package.json          # ESM, subpath exports for every module above
 ├── tsconfig.json
 └── vitest.config.ts
 ```
