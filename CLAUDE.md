@@ -10,9 +10,11 @@ The project uses `deps.edn`, `clojure.test`, and the Selmer template library (Ma
 
 ```text
 big-config/clojure/
-├── src/big_config/          # Clojure source
-│   └── big_tofu/            # OpenTofu/Terraform helpers
-├── test/big_config/         # clojure.test tests
+├── src/
+│   ├── big_config.clj         # Aggregator namespace
+│   └── big_config/            # Clojure source (cli, core, workflow, render, run, lock, …)
+│       └── big_tofu/          # OpenTofu/Terraform helpers
+├── test/big_config/           # clojure.test tests, plus test_runner.clj
 └── deps.edn
 ```
 
@@ -33,8 +35,9 @@ big-config/clojure/
 | `big-config.selmer-filters` | BigConfig Selmer filters |
 | `big-config.step-fns` | Workflow middleware helpers |
 | `big-config.cli` | CLI entry point (`-M:run`) |
-| `big-tofu.core` | Construct helpers and references |
-| `big-tofu.create` | Common OpenTofu/Terraform constructs |
+| `big-config.big-tofu.core` | Construct helpers and references |
+| `big-config.big-tofu.create` | Common OpenTofu/Terraform constructs |
+| `big-config` | Aggregator namespace (re-exports all of the above) |
 
 ## Development Commands
 
