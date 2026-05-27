@@ -2,9 +2,9 @@
 
 ## Project Overview
 
-BigConfig is now a **Python 3.12+** workflow and template engine for infrastructure-as-code automation. It keeps the original map-threading workflow model while using Python modules, pytest, uv, and the Python Selmer dependency pinned in `pyproject.toml`/`uv.lock`.
+This directory is the **Python 3.12+** implementation of BigConfig — a workflow and template engine for infrastructure-as-code automation. It keeps the original map-threading workflow model while using Python modules, pytest, uv, and the Python Selmer port pinned in `pyproject.toml`/`uv.lock` (`selmer @ git+https://github.com/bigconfig-ai/Selmer.git@<sha>`).
 
-The historical Clojure implementation, Clojure tests, Clojure templates, Babashka tasks, and Clojure-specific config have been removed from this checkout.
+The Clojure sibling lives at `../clojure` and the TypeScript sibling at `../typescript`; they are parallel implementations of the same engine and must stay behaviour-equivalent (reserved keys, step semantics, CLI shape).
 
 ## Repository Layout
 
@@ -38,6 +38,8 @@ big-config/python/
 | `big_config.utils` | Shared helpers and structured exceptions |
 | `big_config.selmer_filters` | BigConfig Selmer filters |
 | `big_config.step_fns` | Workflow middleware helpers |
+| `big_config.cli` | CLI entry point (`uv run big-config ...`) |
+| `big_config` (`__init__`) | Reserved-key string constants (`EXIT`, `ERR`, `STACK_TRACE`, `ENV`, `PROCS`, `STEPS`, `TEST_MODE`) |
 | `big_tofu.core` | Construct helpers and references |
 | `big_tofu.create` | Common OpenTofu/Terraform constructs |
 
@@ -107,10 +109,11 @@ Parsing rules:
 
 ## What to Avoid
 
-- Do not reintroduce Clojure source, Clojure tests, Babashka tasks, or Clojure-specific config.
+- Do not add Clojure source, Clojure tests, Babashka tasks, or Clojure-specific config into this leaf; the Clojure implementation lives at `../clojure`.
 - Do not create feature branches; stay on `python` (each language has its own branch in this repo).
 - Do not commit unless explicitly asked. Commit messages follow Conventional Commits (`feat:`, `fix:`, `refactor:`, `docs:`, `chore:`, `deps:`).
 - Do not vendor the Selmer dependency; keep it as the configured pinned Git dependency.
+- Do not diverge from the Clojure / TypeScript siblings on reserved-key strings or CLI shape — keep `big-config/exit`, `big-config/err`, etc. verbatim across all three implementations.
 
 ## Useful Commands
 
