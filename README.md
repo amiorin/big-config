@@ -8,7 +8,7 @@ BigConfig is a Node.js/TypeScript workflow and template automation library for i
 npm install
 ```
 
-The project uses the local Selmer TypeScript package at `../../Selmer/typescript`.
+The Selmer engine is pulled from the [`bigconfig-ai/Selmer`](https://github.com/bigconfig-ai/Selmer) GitHub repo, pinned to a commit in `package.json`. To develop against a local checkout, override the dependency with `"selmer": "file:../../selmer/typescript"` and re-run `npm install`.
 
 ## Development
 
