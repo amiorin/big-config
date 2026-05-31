@@ -1,7 +1,10 @@
 from __future__ import annotations
 
+import importlib
+import importlib.resources
 import os
 import shutil
+import sys
 import tempfile
 from collections.abc import Callable, Iterable, Mapping
 from pathlib import Path
@@ -21,6 +24,12 @@ STEP_MODULE = "big-config.step/module"
 STEP_PROFILE = "big-config.step/profile"
 
 NON_REPLACED_EXTS: set[str] = {"jpg", "jpeg", "png", "gif", "bmp", "bin"}
+
+# Top-level package under which target packages ship their template data. It is
+# force-included into the wheel as a namespace package, so consumers can resolve
+# templates through importlib.resources instead of materialising a ./resources
+# symlink in the working directory.
+RESOURCES_PACKAGE = "resources"
 
 _TEMPLATE_KEYS = {
     "template",
@@ -204,10 +213,39 @@ def _candidate_template_dirs(template: str) -> list[Path]:
     return unique
 
 
+def _resource_roots() -> list[Path]:
+    # Filesystem roots of the installed ``resources`` package, if importable.
+    # A regular on-disk install yields a single concrete path; namespace and
+    # editable installs yield a MultiplexedPath spanning several directories
+    # (e.g. site-packages plus an editable source tree), enumerated via the
+    # package's __path__. Returns an empty list when ``resources`` is absent so
+    # callers fall back to the working-directory candidates.
+    try:
+        anchor = importlib.resources.files(RESOURCES_PACKAGE)
+    except (ImportError, TypeError, ValueError):
+        return []
+    try:
+        return [Path(os.fspath(anchor))]
+    except TypeError:
+        package = sys.modules.get(RESOURCES_PACKAGE) or importlib.import_module(RESOURCES_PACKAGE)
+        return [Path(entry) for entry in getattr(package, "__path__", [])]
+
+
+def _resource_template_dir(template: str) -> Path | None:
+    for root in _resource_roots():
+        candidate = root / template
+        if candidate.is_dir():
+            return candidate.resolve()
+    return None
+
+
 def find_template_dir(template: str) -> Path:
     for candidate in _candidate_template_dirs(template):
         if candidate.exists() and candidate.is_dir():
             return candidate.resolve()
+    resource_dir = _resource_template_dir(template)
+    if resource_dir is not None:
+        return resource_dir
     raise BigConfigError("Template resource not found", {"template": template})
 
 

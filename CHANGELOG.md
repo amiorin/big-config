@@ -25,6 +25,7 @@ The patch number is calculated with `git rev-list --count HEAD`
 
 ### Changed
 
+- renderer resolves bundled templates from the installed `resources` package via `importlib.resources` when they are not found under the working directory, so consumers no longer need a `./resources` symlink.
 - `package` template now accepts only `:owner`, `:repository`, `:target-dir`, and `:overwrite`; SSH keys and provider settings are configured in generated profiles or via `BC_PAR_*` overrides.
 - generated `package` projects use a compute-only lifecycle (`tofu -> ansible-local -> ansible`) with ping-only Ansible playbooks and ONCE-style `bb help` adapted for BigConfig.
 - refactor `workflow` to use keywords for steps in `parse-args` and `->workflow`, improving handling of namespaced steps.
