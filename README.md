@@ -4,7 +4,7 @@
 
 It provides a small map-threading workflow runtime, a Selmer-based renderer, a shell-command DSL, and Git-tag locking for tools such as OpenTofu/Terraform, Ansible, Kubectl, and other CLIs.
 
-The repository is Python-only; the previous Clojure implementation, tests, templates, and Babashka/Clojure config have been removed.
+This is the Python implementation. The Clojure (`../clojure`) and TypeScript (`../typescript`) siblings are parallel implementations of the same engine and stay behaviour-equivalent (reserved keys, step semantics, CLI shape).
 
 ## Status
 
@@ -22,7 +22,7 @@ Implemented in Python 3.12+:
 - `big_config.step_fns` — workflow middleware helpers
 - `big_tofu.core` / `big_tofu.create` — OpenTofu/Terraform construct helpers
 
-Intentionally excluded from this rewrite for now:
+Intentionally excluded for now:
 
 - Redis store
 - system lifecycle engine
@@ -35,19 +35,13 @@ Intentionally excluded from this rewrite for now:
 - Python 3.12+
 - [`uv`](https://docs.astral.sh/uv/)
 
-The Selmer dependency is pinned in `pyproject.toml` to commit `d6db31695ba1c06abefe30d6ed8a1dedc0de110a` from `bigconfig-ai/Selmer`.
+The Selmer dependency is pinned to a Git commit from `bigconfig-ai/Selmer` in `pyproject.toml` and locked in `uv.lock`.
 
 ## Development
 
 ```shell
 uv sync
 uv run pytest -q
-```
-
-Current test suite:
-
-```shell
-31 passed
 ```
 
 ## CLI
