@@ -1,10 +1,10 @@
-<h1 align=center><code>BigConfig</code></h1>
+<h1 align=center><code>BigConfig Python SDK</code></h1>
 
-**BigConfig is a Python workflow and template engine for infrastructure-as-code (IaC) automation.**
+**The Python SDK is a workflow and template engine for infrastructure-as-code (IaC) automation.**
 
 It provides a small map-threading workflow runtime, a Selmer-based renderer, a shell-command DSL, and Git-tag locking for tools such as OpenTofu/Terraform, Ansible, Kubectl, and other CLIs.
 
-This is the Python implementation. The Clojure (`../clojure`) and TypeScript (`../typescript`) siblings are parallel implementations of the same engine and stay behaviour-equivalent (reserved keys, step semantics, CLI shape).
+This is the Python SDK implementation. The Clojure SDK (`../clojure`) and TypeScript SDK (`../typescript`) siblings are parallel implementations of the same engine and stay behaviour-equivalent (reserved keys, step semantics, CLI shape).
 
 ## Status
 
@@ -18,7 +18,7 @@ Implemented in Python 3.12+:
 - `big_config.git` — Git helper workflows
 - `big_config.lock` / `big_config.unlock` — Git-tag pessimistic locking
 - `big_config.utils` — shared helpers
-- `big_config.selmer_filters` — BigConfig Selmer filters
+- `big_config.selmer_filters` — SDK Selmer filters
 - `big_config.step_fns` — workflow middleware helpers
 - `big_tofu.core` / `big_tofu.create` — OpenTofu/Terraform construct helpers
 
@@ -46,7 +46,7 @@ uv run pytest -q
 
 ## CLI
 
-The Python package exposes a `big-config` command with the same CLI DSL shape:
+The Python SDK package exposes a `big-config` command with the same CLI DSL shape:
 
 ```shell
 uv run big-config render lock tofu:init tofu:plan -- tofu apply -auto-approve
@@ -67,7 +67,7 @@ uv run big-config render -- true
 
 ## Python API
 
-BigConfig keeps the original map-threading API model closely: workflows thread an `opts` dictionary through functions. Namespaced keys are represented as strings, for example `"big-config/exit"`.
+The Python SDK keeps the original map-threading API model closely: workflows thread an `opts` dictionary through functions. Namespaced keys are represented as strings, for example `"big-config/exit"`.
 
 ```python
 from big_config import ENV, EXIT

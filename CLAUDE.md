@@ -1,18 +1,18 @@
-# BigConfig — AI Assistant Guide
+# BigConfig Python SDK — AI Assistant Guide
 
 ## Project Overview
 
-This directory is the **Python 3.12+** implementation of BigConfig — a workflow and template engine for infrastructure-as-code automation. It keeps the original map-threading workflow model while using Python modules, pytest, uv, and the Python Selmer port pinned in `pyproject.toml`/`uv.lock` (`selmer @ git+https://github.com/bigconfig-ai/Selmer.git@<sha>`).
+This directory is the **Python 3.12+ SDK**: the Python implementation of BigConfig SDK, a workflow and template engine for infrastructure-as-code automation. It keeps the original map-threading workflow model while using Python modules, pytest, uv, and the Python Selmer port pinned in `pyproject.toml`/`uv.lock` (`selmer @ git+https://github.com/bigconfig-ai/Selmer.git@<sha>`).
 
-The Clojure sibling lives at `../clojure` and the TypeScript sibling at `../typescript`; they are parallel implementations of the same engine and must stay behaviour-equivalent (reserved keys, step semantics, CLI shape).
+The Clojure SDK sibling lives at `../clojure` and the TypeScript SDK sibling at `../typescript`; they are parallel implementations of the same engine and must stay behaviour-equivalent (reserved keys, step semantics, CLI shape).
 
 ## Repository Layout
 
 ```text
 big-config/python/
-├── src/big_config/     # Python BigConfig package
+├── src/big_config/     # Python SDK package
 ├── src/big_tofu/       # Python OpenTofu/Terraform helpers
-├── test/big_config/    # pytest suite for BigConfig
+├── test/big_config/    # pytest suite for the SDK
 ├── test/big_tofu/      # pytest suite for BigTofu
 ├── test/fixtures/      # Renderer fixtures used by pytest
 ├── env/test/resources/ # Renderer test resources
@@ -36,7 +36,7 @@ big-config/python/
 | `big_config.lock` | Git-tag pessimistic locking |
 | `big_config.unlock` | Force-release locking workflow |
 | `big_config.utils` | Shared helpers and structured exceptions |
-| `big_config.selmer_filters` | BigConfig Selmer filters |
+| `big_config.selmer_filters` | SDK Selmer filters |
 | `big_config.step_fns` | Workflow middleware helpers |
 | `big_config.cli` | CLI entry point (`uv run big-config ...`) |
 | `big_config` (`__init__`) | Reserved-key string constants (`EXIT`, `ERR`, `STACK_TRACE`, `ENV`, `PROCS`, `STEPS`, `TEST_MODE`) |
@@ -113,7 +113,7 @@ Parsing rules:
 - Do not create feature branches; stay on `python` (each language has its own branch in this repo).
 - Do not commit unless explicitly asked. Commit messages follow Conventional Commits (`feat:`, `fix:`, `refactor:`, `docs:`, `chore:`, `deps:`).
 - Do not vendor the Selmer dependency; keep it as the configured pinned Git dependency.
-- Do not diverge from the Clojure / TypeScript siblings on reserved-key strings or CLI shape — keep `big-config/exit`, `big-config/err`, etc. verbatim across all three implementations.
+- Do not diverge from the Clojure SDK / TypeScript SDK siblings on reserved-key strings or CLI shape — keep `big-config/exit`, `big-config/err`, etc. verbatim across all three SDK implementations.
 
 ## Useful Commands
 
