@@ -1,8 +1,8 @@
-# BigConfig TypeScript — AI Assistant Guide
+# BigConfig TypeScript SDK — AI Assistant Guide
 
 ## Project Overview
 
-This directory is the TypeScript/Node.js rewrite of BigConfig. It provides workflow orchestration, Selmer template rendering, shell command execution, Git locking helpers, and BigTofu/OpenTofu construct helpers.
+This directory is the TypeScript SDK: the Node.js implementation of BigConfig SDK. It provides workflow orchestration, Selmer template rendering, shell command execution, Git locking helpers, and BigTofu/OpenTofu construct helpers.
 
 The project is ESM-only and uses Vitest for tests. The Selmer engine is pulled from the `bigconfig-ai/Selmer` GitHub repo, pinned to a commit in `package.json`. To develop against a local checkout, override the `selmer` dependency with `"selmer": "file:../../selmer/typescript"` and re-run `npm install`.
 
@@ -23,7 +23,7 @@ big-config/typescript/
 │   ├── unlock.ts         # Force-release locking workflow
 │   ├── step.ts           # Step type
 │   ├── step-fns.ts       # Workflow middleware helpers
-│   ├── selmer-filters.ts # BigConfig Selmer filters
+│   ├── selmer-filters.ts # SDK Selmer filters
 │   ├── keys.ts           # Reserved-key registry
 │   ├── utils.ts          # Shared helpers
 │   └── big-tofu/         # OpenTofu/Terraform construct helpers (core.ts, create.ts)
@@ -46,7 +46,7 @@ npm run build
 
 - Keep the package ESM-only.
 - Prefer named exports plus compatibility aliases where useful.
-- Use `Opts` maps with string keys such as `big-config/exit` and `big-config.workflow/steps` to preserve BigConfig API concepts.
+- Use `Opts` maps with string keys such as `big-config/exit` and `big-config.workflow/steps` to preserve SDK API concepts.
 - Keep command execution behind the `run.runner` seam so tests can avoid spawning real processes.
 - Keep subworkflow isolation in `workflow.runSteps` and `workflow.createWorkflowStar`.
 - Do not add project scaffolding, store, system lifecycle, or build-helper modules unless explicitly requested.

@@ -1,6 +1,6 @@
-# BigConfig TypeScript
+# BigConfig TypeScript SDK
 
-BigConfig is a Node.js/TypeScript workflow and template automation library for infrastructure-as-code tooling. It renders Selmer templates, runs CLI pipelines, manages Git-tag locks, and provides helpers for OpenTofu/Terraform-style data generation.
+The TypeScript SDK is a Node.js workflow and template automation library for infrastructure-as-code tooling. It renders Selmer templates, runs CLI pipelines, manages Git-tag locks, and provides helpers for OpenTofu/Terraform-style data generation.
 
 ## Install
 
@@ -38,7 +38,7 @@ big-config render lock tofu:init tofu:plan -- tofu apply -auto-approve
 - `big-config/git`, `big-config/lock`, `big-config/unlock` — Git helpers and locking workflows.
 - `big-config/big-tofu/core`, `big-config/big-tofu/create` — OpenTofu/Terraform construct helpers.
 
-The old store, system lifecycle, build helper, and project scaffolding modules are intentionally not part of this TypeScript rewrite.
+The old store, system lifecycle, build helper, and project scaffolding modules are intentionally not part of this TypeScript SDK.
 
 ## License
 
