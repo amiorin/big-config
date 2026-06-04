@@ -1,6 +1,6 @@
-# BigConfig Clojure
+# BigConfig Clojure SDK
 
-BigConfig is a JVM Clojure workflow and template automation library for infrastructure-as-code tooling. It renders Selmer templates, runs CLI pipelines, manages Git-tag locks, and provides helpers for OpenTofu/Terraform-style data generation.
+The Clojure SDK is a JVM workflow and template automation library for infrastructure-as-code tooling. It renders Selmer templates, runs CLI pipelines, manages Git-tag locks, and provides helpers for OpenTofu/Terraform-style data generation.
 
 ## Selmer dependency
 

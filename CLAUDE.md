@@ -1,8 +1,8 @@
-# BigConfig Clojure — AI Assistant Guide
+# BigConfig Clojure SDK — AI Assistant Guide
 
 ## Project Overview
 
-This directory is the JVM Clojure implementation of BigConfig. It provides workflow orchestration, Selmer template rendering, shell command execution, Git locking helpers, and BigTofu/OpenTofu construct helpers.
+This directory is the Clojure SDK: the JVM implementation of BigConfig SDK. It provides workflow orchestration, Selmer template rendering, shell command execution, Git locking helpers, and BigTofu/OpenTofu construct helpers.
 
 The project uses `deps.edn`, `clojure.test`, and the Selmer template library (Maven artifact `selmer/selmer {:mvn/version "1.13.1"}`).
 
@@ -32,7 +32,7 @@ big-config/clojure/
 | `big-config.unlock` | Force-release locking workflow |
 | `big-config.utils` | Shared helpers and structured exceptions |
 | `big-config.keys` | Namespaced reserved-key registry |
-| `big-config.selmer-filters` | BigConfig Selmer filters |
+| `big-config.selmer-filters` | SDK Selmer filters |
 | `big-config.step-fns` | Workflow middleware helpers |
 | `big-config.cli` | CLI entry point (`-M:run`) |
 | `big-config.big-tofu.core` | Construct helpers and references |
